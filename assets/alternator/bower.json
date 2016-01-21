@@ -1,0 +1,23 @@
+{
+  "name": "alternator",
+  "description": "an alternator simulation",
+  "main": "alternator.ts",
+  "authors": [
+    "ssrb"
+  ],
+  "license": "BSD",
+  "homepage": "https://ssrb.github.io",
+  "moduleType": [],
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "numericjs": "~1.2.6",
+    "gl-matrix": "~2.3.1"
+  }
+}

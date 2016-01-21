@@ -1,0 +1,541 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Lyttelton harbour</title>
+
+    <style>
+      html, body, #map-div {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+      }
+    </style>
+
+    <script>
+
+		var map;
+		var canvasLayer;
+		var gl;
+
+		var meshProgram, edgeProgram;
+
+		var pixelsToWebGLMatrix = new Float32Array(16);
+		var mapMatrix = new Float32Array(16);
+
+		function getShader ( gl, id ){
+		   var shaderScript = document.getElementById ( id );
+		   var str = "";
+		   var k = shaderScript.firstChild;
+		   while ( k ){
+		     if ( k.nodeType == 3 ) str += k.textContent;
+		     k = k.nextSibling;
+		   }
+		   var shader;
+		   if ( shaderScript.type == "x-shader/x-fragment" )
+		           shader = gl.createShader ( gl.FRAGMENT_SHADER );
+		   else if ( shaderScript.type == "x-shader/x-vertex" )
+		           shader = gl.createShader(gl.VERTEX_SHADER);
+		   else return null;
+		   gl.shaderSource(shader, str);
+		   gl.compileShader(shader);
+		   if (gl.getShaderParameter(shader, gl.COMPILE_STATUS) == 0)
+		      alert(id + "\n" + gl.getShaderInfoLog(shader));
+		   return shader;
+		}
+
+		function init() {
+		
+			// initialize the map
+			var mapOptions = {
+                center: new google.maps.LatLng(-43.60838714253866, 172.717281961498),
+                zoom: 16,
+                mapTypeId: "OSM",
+                mapTypeControl: false,
+                streetViewControl: false
+            }
+
+			var mapDiv = document.getElementById('map-div');
+			map = new google.maps.Map(mapDiv, mapOptions);
+
+			//Define OSM map type pointing at the OpenStreetMap tile server
+            map.mapTypes.set("OSM", new google.maps.ImageMapType({
+                getTileUrl: function(coord, zoom) {
+                    return "http://tile.openstreetmap.org/" + zoom + "/" + coord.x + "/" + coord.y + ".png";
+                },
+                tileSize: new google.maps.Size(256, 256),
+                name: "OpenStreetMap",
+                maxZoom: 18
+            }));
+
+			//noty({id: 'loading', text: "Loading mesh. Please wait...", layout: 'topCenter'});
+			
+			loadSolution();
+			loadData();
+			
+			//noty.close('loading');
+
+			// initialize the canvasLayer
+			var canvasLayerOptions = {
+			  map: map,
+			  resizeHandler: resize,
+			  animate: true,
+			  updateHandler: update
+			};
+			canvasLayer = new CanvasLayer(canvasLayerOptions);
+
+			// initialize WebGL
+			gl = canvasLayer.canvas.getContext('experimental-webgl');
+		
+			createShaderProgram();
+			
+			update();
+		}
+
+		var vertices = [], triangles = [], triangles2 = [], baryCoordinates = [], domainIndex = [], edges = [], boundaryIndex = [], solutionReal = [], solutionImag = [];
+		var solutionRealTmp = [], solutionImagTmp = [];
+		var solMin, solMax;
+
+	    var d = 0.00955042966330666;
+	    var xmin = 250.816739768889;
+	    var ymin = 162.523014276134;
+
+		function loadData() {
+
+			var req = new XMLHttpRequest();
+		    req.open('GET', '/assets/lyttelton/lyttelton.mesh', false);
+		    req.send();
+		    if (req.readyState == XMLHttpRequest.DONE) {
+		      var lines = req.responseText.split("\n");
+		      var index = 0;
+		      for (;index < lines.length && lines[index] != "Vertices"; ++index) {
+		      }
+		      ++index;
+		      
+		      var nbVertice = parseInt(lines[index], 10);
+		      ++index;
+
+		      var i;
+
+		      for (i = 0; i < nbVertice; ++i, ++index) {
+		        var array = lines[index].match(/^([-e\d\.]+) ([-e\d\.]+) ([\d]+)$/);
+		        vertices[2 * i] = parseFloat(array[1]);
+           		vertices[2 * i + 1] = parseFloat(array[2]);
+		      }
+
+		      for (;index < lines.length && lines[index] != "Edges"; ++index) {
+		      }
+		      ++index;
+
+		      var nbEdges = parseInt(lines[index], 10);
+		      ++index;
+
+		      for (i = 0; i < nbEdges; ++i, ++index) {
+		        var array = lines[index].match(/^([\d]+) ([\d]+) ([\d]+)$/);		  
+		        edges[4 * i] = vertices[2 * (array[1] - 1)];
+		        edges[4 * i + 1] = vertices[2 * (array[1] - 1) + 1];
+		        edges[4 * i + 2] = vertices[2 * (array[2] - 1)];
+		        edges[4 * i + 3] = vertices[2 * (array[2] - 1) + 1];
+
+		        boundaryIndex[2 * i] = boundaryIndex[2 * i + 1] = array[3];
+		      }
+
+		      for (;index < lines.length && lines[index] != "Triangles"; ++index) {
+		      }
+		      ++index;
+
+		      var nbTriangle = parseInt(lines[index], 10);
+		      ++index;
+
+		      for (i = 0; i < nbTriangle; ++i, ++index) {
+		        var array = lines[index].match(/^([\d]+) ([\d]+) ([\d]+) ([\d]+)$/);
+
+		        triangles[3 * i] = array[1] - 1;
+
+		        triangles[3 * i + 1] = array[2] - 1;
+
+		        triangles[3 * i + 2] = array[3] - 1;
+
+
+		        triangles2[6 * i]	  = vertices[2 * (array[1] - 1)];
+		        triangles2[6 * i + 1] = vertices[2 * (array[1] - 1) + 1];
+
+		        triangles2[6 * i + 2] = vertices[2 * (array[2] - 1)];
+		        triangles2[6 * i + 3] = vertices[2 * (array[2] - 1) + 1];
+
+		        triangles2[6 * i + 4] = vertices[2 * (array[3] - 1)];
+		        triangles2[6 * i + 5] = vertices[2 * (array[3] - 1) + 1];
+
+
+		        domainIndex[3 * i] = domainIndex[3 *i + 1] = domainIndex[3 *i + 2] = parseInt(array[4]) - 1;
+
+		        baryCoordinates[9 * i]	  = 1;
+		        baryCoordinates[9 * i + 1] = 0;
+		        baryCoordinates[9 * i + 2] = 0;
+
+		        baryCoordinates[9 * i + 3] = 0;
+		        baryCoordinates[9 * i + 4] = 1;
+		        baryCoordinates[9 * i + 5] = 0;
+
+		        baryCoordinates[9 * i + 6] = 0;
+		        baryCoordinates[9 * i + 7] = 0;
+		        baryCoordinates[9 * i + 8] = 1;
+
+
+		        solutionReal[3 * i] = solutionRealTmp[triangles[3 * i]];
+		        solutionReal[3 * i + 1] = solutionRealTmp[triangles[3 * i + 1]];
+		        solutionReal[3 * i + 2] = solutionRealTmp[triangles[3 * i + 2]];
+
+		        solutionImag[3 * i] = solutionImagTmp[triangles[3 * i]];
+		        solutionImag[3 * i + 1] = solutionImagTmp[triangles[3 * i + 1]];
+		        solutionImag[3 * i + 2] = solutionImagTmp[triangles[3 * i + 2]];
+
+		      }
+		    }		
+		}
+
+		function loadSolution() {
+			var req = new XMLHttpRequest();
+		    req.open('GET', '/assets/lyttelton/lytteltonsol.txt', false);
+		    req.send();
+		    if (req.readyState == XMLHttpRequest.DONE) {
+		    	solutionRealTmp = [];
+				solutionImagTmp = [];
+		    	var lines = req.responseText.split("\n");
+			      for (var i = 0; i < lines.length; ++i) {
+			        var array = lines[i].match(/^([-+]?[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)([-+]?[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)i$/);
+			        solutionRealTmp[i] = parseFloat(array[1]);
+	           		solutionImagTmp[i] = parseFloat(array[2]);
+			      }
+		    }
+
+		   //var module = Math.sqrt(solutionRealTmp[0] *  solutionRealTmp[0] + solutionImagTmp[0] * solutionImagTmp[0]);
+		   var module = solutionRealTmp[0];
+		   solMin = module, solMax = module;
+		   for (i = 0; i < solutionRealTmp.length; ++i) {
+		   		//module = Math.sqrt(solutionRealTmp[i] *  solutionRealTmp[i] + solutionImagTmp[i] * solutionImagTmp[i]);
+		   		module = solutionRealTmp[i];
+		        if (module < solMin) {
+		          solMin = module;
+		        } else if (module > solMax) {
+		          solMax = module;
+		        }
+		    }
+
+		}
+
+		function resize() {
+			var width = canvasLayer.canvas.width;
+			var height = canvasLayer.canvas.height;
+
+			gl.viewport(0, 0, width, height);
+
+			// matrix which maps pixel coordinates to WebGL coordinates
+			pixelsToWebGLMatrix.set([2/width, 0, 0, 0, 0, -2/height, 0, 0, 0, 0, 0, 0, -1, 1, 0, 1]);
+		}
+
+		function scaleMatrix(matrix, scaleX, scaleY) {
+			// scaling x and y, which is just scaling first two columns of matrix
+			matrix[0] *= scaleX;
+			matrix[1] *= scaleX;
+			matrix[2] *= scaleX;
+			matrix[3] *= scaleX;
+
+			matrix[4] *= scaleY;
+			matrix[5] *= scaleY;
+			matrix[6] *= scaleY;
+			matrix[7] *= scaleY;
+		}
+
+		function translateMatrix(matrix, tx, ty) {
+			// translation is in last column of matrix
+			matrix[12] += matrix[0]*tx + matrix[4]*ty;
+			matrix[13] += matrix[1]*tx + matrix[5]*ty;
+			matrix[14] += matrix[2]*tx + matrix[6]*ty;
+			matrix[15] += matrix[3]*tx + matrix[7]*ty;
+		}
+
+		var meshBuffer, edgeBuffer, boundaryBuffer, domainBuffer, baryCoordBuffer, solutionRealBuffer, solutionImagBuffer;
+
+		function createShaderProgram() {
+
+			meshProgram = gl.createProgram();
+
+			gl.getExtension('OES_standard_derivatives');
+
+			gl.attachShader(meshProgram, getShader( gl, "mesh-vs" ));
+			gl.attachShader(meshProgram, getShader( gl, "mesh-fs" ));
+			gl.linkProgram(meshProgram);
+			gl.useProgram(meshProgram);
+
+			meshBuffer = gl.createBuffer()
+			gl.bindBuffer(gl.ARRAY_BUFFER, meshBuffer);
+			//gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangles2), gl.STATIC_DRAW);
+		
+			baryCoordBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, baryCoordBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(baryCoordinates), gl.STATIC_DRAW);
+
+			domainBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, domainBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, new Uint8Array(domainIndex), gl.STATIC_DRAW);
+
+			solutionRealBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, solutionRealBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(solutionReal), gl.STATIC_DRAW);
+
+			solutionImagBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, solutionImagBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(solutionImag), gl.STATIC_DRAW);
+
+			//gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
+   			//gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(triangles), gl.STATIC_DRAW);
+
+   			edgeProgram = gl.createProgram();
+			gl.attachShader(edgeProgram, getShader( gl, "edge-vs" ));
+			gl.attachShader(edgeProgram, getShader( gl, "edge-fs" ));
+			gl.linkProgram(edgeProgram);
+			gl.useProgram(edgeProgram);
+
+			edgeBuffer =  gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, edgeBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(edges), gl.STATIC_DRAW);
+
+			boundaryBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, boundaryBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, new Uint8Array(boundaryIndex), gl.STATIC_DRAW);
+		
+
+		}
+
+		var toto = 0;
+		function update() {
+
+			if(vertices == undefined) return;
+	
+			gl.clear(gl.COLOR_BUFFER_BIT);
+
+			var mapProjection = map.getProjection();
+
+			/**
+			 * We need to create a transformation that takes world coordinate
+			 * points in the pointArrayBuffer to the coodinates WebGL expects.
+			 * 1. Start with second half in pixelsToWebGLMatrix, which takes pixel
+			 *     coordinates to WebGL coordinates.
+			 * 2. Scale and translate to take world coordinates to pixel coords
+			 * see https://developers.google.com/maps/documentation/javascript/maptypes#MapCoordinate
+			 */
+
+			// copy pixel->webgl matrix
+			mapMatrix.set(pixelsToWebGLMatrix);
+
+			// Scale to current zoom (worldCoords * 2^zoom)
+			var scale = Math.pow(2, map.zoom);
+			scaleMatrix(mapMatrix, /*d **/ scale, /*d **/ scale);
+
+			// translate to current view (vector from topLeft to 0,0)
+			var offset = mapProjection.fromLatLngToPoint(canvasLayer.getTopLeft());
+			translateMatrix(mapMatrix,-offset.x + xmin, -offset.y + ymin);
+
+			scaleMatrix(mapMatrix, d,  d);
+			// attach matrix value to 'mapMatrix' uniform in shader
+			gl.useProgram(meshProgram);
+			var matrixLoc = gl.getUniformLocation(meshProgram, 'prMatrix');
+			gl.uniformMatrix4fv(matrixLoc, false, mapMatrix);
+
+			// draw!
+			//gl.drawElements(gl.TRIANGLES, triangles.length, gl.UNSIGNED_SHORT ,0);
+			var location = gl.getAttribLocation(meshProgram, "aPos")
+			gl.bindBuffer(gl.ARRAY_BUFFER, meshBuffer);
+			gl.vertexAttribPointer(location, 2, gl.FLOAT, false, 0, 0);
+			gl.enableVertexAttribArray( location );		
+
+			location = gl.getAttribLocation(meshProgram, "aBaryCoord")
+			gl.bindBuffer(gl.ARRAY_BUFFER, baryCoordBuffer);
+			gl.vertexAttribPointer(location, 3, gl.FLOAT, false, 0, 0);
+			gl.enableVertexAttribArray( location );
+
+			location = gl.getAttribLocation(meshProgram, "aDomainIndex");
+			gl.bindBuffer(gl.ARRAY_BUFFER, domainBuffer);
+			gl.vertexAttribPointer(location, 1, gl.BYTE, false, 0, 0);
+			gl.enableVertexAttribArray( location );
+
+			location = gl.getAttribLocation(meshProgram, "aSolutionReal");
+			gl.bindBuffer(gl.ARRAY_BUFFER, solutionRealBuffer);
+			gl.vertexAttribPointer(location, 1, gl.FLOAT, false, 0, 0);
+			gl.enableVertexAttribArray( location );
+
+			location = gl.getAttribLocation(meshProgram, "aSolutionImag");
+			gl.bindBuffer(gl.ARRAY_BUFFER, solutionImagBuffer);
+			gl.vertexAttribPointer(location, 1, gl.FLOAT, false, 0, 0);
+			gl.enableVertexAttribArray( location );
+
+   			gl.uniform1f(gl.getUniformLocation(meshProgram, 'solMin'), solMin);
+   			gl.uniform1f(gl.getUniformLocation(meshProgram, 'solMax'), solMax);
+
+			gl.uniform1f(gl.getUniformLocation(meshProgram, 'time'), toto);
+			toto += 0.1;
+
+			gl.drawArrays(gl.TRIANGLES, 0, triangles2.length / 2);
+
+			gl.useProgram(edgeProgram);
+			matrixLoc = gl.getUniformLocation(edgeProgram, 'prMatrix');
+			gl.uniformMatrix4fv(matrixLoc, false, mapMatrix);
+
+			location = gl.getAttribLocation(edgeProgram, "aPos")
+			gl.bindBuffer(gl.ARRAY_BUFFER, edgeBuffer);
+			gl.vertexAttribPointer(location, 2, gl.FLOAT, false, 0, 0);
+			gl.enableVertexAttribArray( location );	
+
+			location = gl.getAttribLocation(edgeProgram, "aBoundaryIndex");
+			gl.bindBuffer(gl.ARRAY_BUFFER, boundaryBuffer);
+			gl.vertexAttribPointer(location, 1, gl.BYTE, false, 0, 0);
+			gl.enableVertexAttribArray( location );
+
+			gl.drawArrays(gl.LINES, 0, edges.length / 2);
+
+		}
+
+    </script>
+
+	<script id="mesh-vs" type="x-shader/x-vertex">
+	  attribute vec4 aPos;
+	  attribute vec3 aBaryCoord;
+	  attribute float aDomainIndex;
+	  varying vec3 vBaryCoord;
+	  varying float vDomainIndex;
+
+	  attribute float aSolutionReal;
+	  attribute float aSolutionImag;
+	  varying float vSolution;
+
+  	 uniform float solMin, solMax, time;
+
+	  uniform mat4 prMatrix;
+	  void main(void) {
+	     gl_Position = prMatrix * aPos;
+	     vBaryCoord = aBaryCoord;
+	     vDomainIndex = aDomainIndex;
+	
+	     vSolution = aSolutionReal * cos(time) - aSolutionImag * sin(time);
+	     vSolution = 1. - (vSolution - solMin) / (solMax - solMin);
+	  }
+	</script> 
+	 
+	<script id="mesh-fs" type="x-shader/x-fragment"> 
+	#extension GL_OES_standard_derivatives : enable
+
+	// http://codeflow.org/entries/2012/aug/02/easy-wireframe-display-with-barycentric-coordinates/
+	precision highp float;
+	varying vec3 vBaryCoord;
+
+	varying float vSolution;
+
+	varying float vDomainIndex;
+
+	float edgeFactor(){
+	    vec3 d = fwidth(vBaryCoord);
+	    vec3 a3 = smoothstep(vec3(0.0), d*1.5, vBaryCoord);
+    	return min(min(a3.x, a3.y), a3.z);
+	}
+
+vec3 heatcolor() {
+
+  float h = 4. * vSolution, 
+  s = 1., 
+  v = 0.8,
+  f = h - floor(h),
+  p = v * (1. - s),
+  q = v * (1. - s * f),
+  t = v * (1. - s * (1. - f));
+
+  if (h <= 1.) {
+    return vec3(v, t, p);
+  }
+
+  if (h <= 2.) {
+    return vec3(q, v, p);
+  }
+
+  if (h <= 3.) {
+    return vec3(p, v, t);
+  }
+
+  return vec3(p, q, v);
+}
+
+	vec3 domainColor() {
+
+	  float h = 4. * (1.0 - vDomainIndex / 5.0), 
+	  s = 1., 
+	  v = 0.8,
+	  f = h - floor(h),
+	  p = v * (1. - s),
+	  q = v * (1. - s * f),
+	  t = v * (1. - s * (1. - f));
+
+	  if (h <= 1.) {
+	    return vec3(v, t, p);
+	  }
+
+	  if (h <= 2.) {
+	    return vec3(q, v, p);
+	  }
+
+	  if (h <= 3.) {
+	    return vec3(p, v, t);
+	  }
+
+	  return vec3(p, q, v);
+	}
+
+	void main(void) {
+		//gl_FragColor = vec4(domainColor(), (1.0-edgeFactor())*0.95);
+		gl_FragColor = vec4(heatcolor(), 1.);
+	}
+	</script> 
+
+
+	<script id="edge-vs" type="x-shader/x-vertex">
+	  attribute vec4 aPos;
+	  attribute float aBoundaryIndex;
+	  uniform mat4 prMatrix;
+	  varying float vBoundaryIndex;
+	  void main(void) {
+	     gl_Position = prMatrix * aPos;
+	     vBoundaryIndex = aBoundaryIndex;
+	  }
+	</script> 
+	 
+	<script id="edge-fs" type="x-shader/x-fragment"> 
+	precision highp float;
+	varying float vBoundaryIndex;
+	void main(void) {
+		gl_FragColor = vBoundaryIndex < 1.5 ? vec4(1.0,0.0,0.0,1.0) : vec4(0.0,0.0,1.0,1.0);
+
+	}
+
+	</script> 
+
+  </head>
+
+  <body>
+    <div id="map-div"></div>
+	<script src="http://maps.googleapis.com/maps/api/js?sensor=false"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+	
+	<script src="js/CanvasLayer.js"></script>
+
+	<!--script src="js/noty/jquery.noty.js"></script>
+	<script src="js/noty/layouts/topCenter.js"></script>
+	<script src="js/noty/themes/default.js"></script-->
+
+	<script>
+		$(function() {
+			init();
+		});
+	</script>
+	
+  </body>
+</html>
