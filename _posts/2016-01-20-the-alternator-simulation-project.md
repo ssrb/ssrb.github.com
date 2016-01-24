@@ -15,7 +15,7 @@ In this post I'm going to describe how to implement a finite element simulation 
 
 Here's the result:
 
-<iframe width="850" height="700" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="http://ssrb.github.io/alternator-fem-webapp/alternator.html" style="border: 1px solid black">unwantedtext</iframe><br/><small><a href="http://ssrb.github.io/alternator-fem-webapp/alternator.html">View Larger Simulation</a></small>
+<iframe width="500" height="500" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="http://ssrb.github.io/alternator-fem-webapp/alternator.html" style="border: 1px solid black">unwantedtext</iframe><br/><small><a href="http://ssrb.github.io/alternator-fem-webapp/alternator.html">View Larger Simulation</a></small>
 
 Code is [here](https://github.com/ssrb/alternator-fem-webapp)
 
