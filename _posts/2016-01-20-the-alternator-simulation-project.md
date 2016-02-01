@@ -25,7 +25,10 @@ Code is [here](https://github.com/ssrb/alternator-fem-webapp)
 
 The machine we're going to study is an unusual induction generator of the [squirel-cage](https://en.wikipedia.org/wiki/Squirrel-cage_rotor) type.
 
-The machine rotor has 12 massive coper rods shorted by rings at both ends: the so called squirel cage.
+This is `\(1/12^{th}\)` of the machine:
+![machine]({{ site.url }}/{{ page.assets }}/machine.png)
+
+The rotor has 12 massive coper rods shorted by rings at both ends: the so called squirel cage.
 Rods are enclosed in a cyclinder made of iron laminations.
 
 The stator, made of iron laminations too, has 12 winding slots. The winding pattern is as follow: 
@@ -174,7 +177,7 @@ The advantage of this method is that we compute mesh for both domains once and f
 A drawback of this method is that given the angular speed of the rotor we need to choose the time step of the simulation accordingly.
 In our example, for a rotor speed of 3000rpm, the time step will be `\(60 / (12 * 32 * 3000)\)` seconds.
 
-As it rotates, the rotor slice will "make contact" with both a stator and an "anti-stator" slice. 
+As it rotates, the rotor slice will face both a stator and an "anti-stator" slice. 
 But we won't explicitely model the anti-stator slice since its nodal values are the opposite of those of the stator slice.
 Instead we will model a rotor slice which wraps around and use the sign/polarity vector introduced earlier in order to decide if a rotor nodal value is coupled to a stator or "anti-stator" `\(dof\)`.
 
