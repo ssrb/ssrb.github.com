@@ -5,6 +5,8 @@ permalink: /:categories/:year/:month/:day/:title
 exclude: [".rvmrc", ".rbenv-version", "Rakefile", "changelog.md", ".travis.yml", "deploy_key.enc", "Gemfile", "Genfile.lock", "deploy"]
 highlighter: pygments
 
+gist:
+  noscript: false
 # Themes are encouraged to use these universal variables 
 # so be sure to set them if your theme uses them.
 #

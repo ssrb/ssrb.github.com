@@ -403,3 +403,5 @@ My main references were:
 François Cuvelier, Caroline Japhet and Gilles Scarella
 * [Simple linear-time algorithms to test chordality of graphs, test acyclicity of hypergraphs and selectively reduce acyclic hypergraphs](http://dl.acm.org/citation.cfm?id=1179) by Robert E. Tarjan and Mihalis Yannakakis
 * [Wikipedia](https://en.wikipedia.org/wiki/Chordal_graph)
+
+<!-- http://cass-mt.pnnl.gov/docs/ia3-2013/2-1.pdf -->
