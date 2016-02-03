@@ -55,7 +55,7 @@ To find the size of the smallest possible slice we compute the [greatest common 
 
 Next, in order to decide if we need to use [periodic or anti-periodic boundary conditions](https://en.wikipedia.org/wiki/Periodic_boundary_conditions) to join our alternator slices, we simply observe that if we apply [Kirchof current's law](https://en.wikipedia.org/wiki/Kirchhoff%27s_circuit_laws) to the rotor squirel cage topology, the [eddy currents](https://en.wikipedia.org/wiki/Eddy_current) flowing through one rod will flow in the opposite direction in the previous and next rods so that we use periodic (respectively anti-periodic) boundary condition if the slice contains an even (respectively odd) number of rod.
 
-It comes that for this particular endeavour we can simulate `\(1/12^{th}\)` of the machine (30 degrees), so a single rod and a single slot, and must use *anti-periodic* boundary condition.
+It comes that for this particular endeavour we can simulate `\(1/12^{th}\)` of the machine (30 degrees), so a single rod and a single slot, and must use _anti-periodic_ boundary condition.
 
 Whem implementing the finite element method using first order Lagrange element to solve non periodic problem we have a one to one mapping between mesh vertices and [degrees of freedom](https://en.wikipedia.org/wiki/Degrees_of_freedom_(physics_and_chemistry))(`\(dof\)`) so that we can identify vertices with `\(dof\)`.
 
@@ -197,6 +197,10 @@ Relevant project class is in <https://github.com/ssrb/alternator-fem-webapp/blob
 
 ### Maxwell's equations
 
+In this section, I will describe as concisely as I can the derivation of the [PDE](https://en.wikipedia.org/wiki/Partial_differential_equation) we're about to solve.
+
+DISCLAIMER: I'M BY NO MEANS A MAXWELL'S EQUATION EXPERT.
+
 Within the machine, the physical quantities we're intested in, such as magnetic vector potential and current density, are governed by [Maxwell's equations](https://en.wikipedia.org/wiki/Maxwell%27s_equations).
 
 * The main equation we're interested in is the differential form of [Ampère's circuital law](https://en.wikipedia.org/wiki/Amp%C3%A8re%27s_circuital_law#Differential_form) which
@@ -258,11 +262,18 @@ for `\(A \equiv \left(0,0,A\right)\)` and `\(i_k, k = 1 \dots n_{coil}\)`.
 
 ### Coupling between magnetic & electrical equations
 
+At this stage we got two unknowns:
+
+* the magnetic vector potential;
+* the current flowing through the coils
+
+We're going to model a _linear_ electrical circuit the alternator coils are connected to using a [lumped element model](https://en.wikipedia.org/wiki/Lumped_element_model).
+
+The lumped element model of an N buses linear electrical circuit can be concisely characterised  using the [nodal admittance matrix](https://en.wikipedia.org/wiki/Nodal_admittance_matrix):
+
 Work in progress ;-)
 
-[Lumped element model](https://en.wikipedia.org/wiki/Lumped_element_model)
-[Admitance matrix](https://en.wikipedia.org/wiki/Nodal_admittance_matrix)
-<!-- https://en.wikipedia.org/wiki/Admittance_parameters -->
+<https://en.wikipedia.org/wiki/Lenz%27s_law>
 
 ## Conclusion
 
