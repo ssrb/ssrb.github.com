@@ -208,7 +208,7 @@ relates the magnetic vector potential `\(A\)` to the [electric field](https://en
 
 $$\nabla \times \left(\mu \nabla \times A \right) = \sigma E \$$
 
-`\(\mu\)` is the [relative magnetic permeability](https://en.wikipedia.org/wiki/Permeability_(electromagnetism)) and `\(\sigma\)` the [electrical conductivity](https://en.wikipedia.org/wiki/Electrical_resistivity_and_conductivity). In this toy simulation, these quantities are considered constant for a particular medium (coper, iron, air).
+`\(\mu\)` is the [relative magnetic permeability](https://en.wikipedia.org/wiki/Permeability_(electromagnetism)) and `\(\sigma\)` the [electrical conductivity](https://en.wikipedia.org/wiki/Electrical_resistivity_and_conductivity). In this toy simulation, these quantities are assumed constant for a particular medium (coper, iron, air).
 
 * The next equation we use is the [Maxwell–Faraday induction law](https://en.wikipedia.org/wiki/Faraday%27s_law_of_induction#Maxwell.E2.80.93Faraday_equation).
 It relates the electric field `\(E\)` to the magnetic vector potential `\(A\)` and the [electric potential](https://en.wikipedia.org/wiki/Electric_potential) `\(V\)` :
