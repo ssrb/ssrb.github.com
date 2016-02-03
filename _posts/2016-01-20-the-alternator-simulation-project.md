@@ -13,7 +13,7 @@ In this post I'm going to illustrate how to implement a finite element simulatio
 
 <!-- more -->
 
-The simulation computes the magnetic vector potential `\(A\)` within a (2D) radial cross section of the machine I'm about to describe.
+The simulation computes the magnetic vector potential within a (2D) radial cross section of the machine I'm about to describe.
 
 Here's the result:
 
@@ -199,7 +199,62 @@ Relevant project class is in <https://github.com/ssrb/alternator-fem-webapp/blob
 
 Within the machine, the physical quantities we're intested in, such as magnetic vector potential and current density, are governed by [Maxwell's equations](https://en.wikipedia.org/wiki/Maxwell%27s_equations).
 
-Work in progress ;-)
+* The main equation we're interested in is the differential form of [Ampère's circuital law](https://en.wikipedia.org/wiki/Amp%C3%A8re%27s_circuital_law#Differential_form) which
+relates the magnetic vector potential `\(A\)` to the [electric field](https://en.wikipedia.org/wiki/Electric_field) `\(E\)`:
+
+$$\nabla \times \left(\mu \nabla \times A \right) = \sigma E \$$
+
+`\(\mu\)` is the [relative magnetic permeability](https://en.wikipedia.org/wiki/Permeability_(electromagnetism)) and `\(\sigma\)` the [electrical conductivity](https://en.wikipedia.org/wiki/Electrical_resistivity_and_conductivity). In this toy simulation, these quantities are considered constant for a particular medium (coper, iron, air).
+
+* The next equation we use is the [Maxwell–Faraday induction law](https://en.wikipedia.org/wiki/Faraday%27s_law_of_induction#Maxwell.E2.80.93Faraday_equation).
+It relates the electric field `\(E\)` to the magnetic vector potential `\(A\)` and the [electric potential](https://en.wikipedia.org/wiki/Electric_potential) `\(V\)` :
+
+$$E = -\nabla V - \frac{\partial A}{\partial t}$$
+
+Putting these two together we got:
+
+$$\nabla \times \left(\mu \nabla \times A \right) + \sigma \frac{\partial A}{\partial t} = - \sigma \nabla V$$
+
+For this 2D problem `\(A\)` and `\(\nabla V\)` are reduced to their z components. That is `\(A \equiv \left(0,0,A\right)\)` and `\(\nabla V \equiv \left(0,0,\partial V / \partial z\right) \)`.
+
+Now we're going to make a gross simplification and say that `\(\partial V / \partial z \neq 0\)` only within the coils. 
+Furthermore, within a coil, we're going to estimate this quantity as the difference of electric potential at both ends of a single conductor 
+divided by its length: 
+
+$$\frac{\partial V}{\partial z} = \frac{V_{z_b} - V_{z_a}}{L}$$
+
+Since the machine is 50mm thick, we set `\(L = 0.05\)`.
+
+Then, using [Ohm's law](https://en.wikipedia.org/wiki/Ohm%27s_law), we say that:
+
+$$V_{z_a} - V_{z_b} = iR$$
+
+with `\(i\)` the current going through the coil and `\(R\)` the resistance of that 50mm long coper conductor.
+Remember that we care about the sign of `\(i\)` which depends on the winding pattern.
+
+We can estimate `\(R\)` using [Pouillet's law](https://en.wikipedia.org/wiki/Electrical_resistivity_and_conductivity):
+
+$$R = \frac{L}{\sigma \mathscr{A}}$$
+
+with `\(\mathscr{A}\)` the cross-sectional area of the conductor.
+
+Ultimately within a single conductor we got:
+
+$$- \sigma \nabla V \equiv \sigma \frac{V_{z_a} - V_{z_b}}{L} = \sigma \frac{iR}{L} = \sigma \frac{i}{L} \cdot \frac{L}{\sigma \mathscr{A}} = \frac{i}{\mathscr{A}}$$
+
+In the code we estimate the cross-sectional area of a single conductor dividing the cross-sectional area of the entire coil by the number of conductors within the coil.
+
+Putting everything back together we want to solve:
+
+$$\begin{aligned} 
+\nabla \times \left(\mu \nabla \times A \right) + \sigma \frac{\partial A}{\partial t} = \sum_{k = 1}^{n_{coil}}{\psi_k i_k}\\\
+\psi_k(x) = \begin{cases}
+\frac{1}{\mathscr{A}_k} \text{ within coil } k\\\
+0 \text{ otherwise}
+\end{cases}
+\end{aligned}$$
+
+for `\(A \equiv \left(0,0,A\right)\)` and `\(i_k, k = 1 \dots n_{coil}\)`.
 
 ### Coupling between magnetic & electrical equations
 
