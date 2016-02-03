@@ -199,7 +199,7 @@ Relevant project class is in <https://github.com/ssrb/alternator-fem-webapp/blob
 
 In this section, I will describe as concisely as I can the derivation of the [PDE](https://en.wikipedia.org/wiki/Partial_differential_equation) we're about to solve.
 
-DISCLAIMER: I'M BY NO MEANS A MAXWELL'S EQUATION EXPERT.
+DISCLAIMER: I'M BY NO MEANS A MAXWELL'S EQUATIONS EXPERT.
 
 Within the machine, the physical quantities we're intested in, such as magnetic vector potential and current density, are governed by [Maxwell's equations](https://en.wikipedia.org/wiki/Maxwell%27s_equations).
 
