@@ -250,13 +250,13 @@ In the code we estimate the cross-sectional area of a single conductor dividing 
 
 Putting everything back together we want to solve:
 
-$$\begin{aligned} 
-\nabla \times \left(\mu \nabla \times A \right) + \sigma \frac{\partial A}{\partial t} = \sum_{k = 1}^{n_{coil}}{\psi_k i_k}\\\
+$$\begin{equation}\begin{aligned} 
+\nabla \times \left(\mu \nabla \times A \right) + \sigma \frac{\partial A}{\partial t} = \sum_{k = 1}^{n_{coil}}\psi_k i_k\\\
 \psi_k(x) = \begin{cases}
 \frac{1}{\mathscr{A}_k} \text{ within coil } k\\\
 0 \text{ otherwise}
 \end{cases}
-\end{aligned}$$
+\end{aligned}\label{eq:eq_potential_current}\end{equation}$$
 
 for `\(A \equiv \left(0,0,A\right)\)` and `\(i_k, k = 1 \dots n_{coil}\)`.
 
@@ -264,19 +264,82 @@ for `\(A \equiv \left(0,0,A\right)\)` and `\(i_k, k = 1 \dots n_{coil}\)`.
 
 At this stage we got two unknowns:
 
-* the magnetic vector potential;
-* the current flowing through the coils
+* the magnetic vector potential `\(A\)`;
+* the currents flowing through the coils `\(i_k, k = 1 \dots n_{coil}\)`
 
-We're going to model a _linear_ electrical circuit the alternator coils are connected to using a [lumped element model](https://en.wikipedia.org/wiki/Lumped_element_model).
+We are going to get rid of the current.
 
-The lumped element model of an N buses linear electrical circuit can be concisely characterised  using the [nodal admittance matrix](https://en.wikipedia.org/wiki/Nodal_admittance_matrix):
+In order to do so we model the _linear_ electrical circuit connected to the machine using a [lumped element model](https://en.wikipedia.org/wiki/Lumped_element_model):
+this will give us another relationship between `\(A\)` and `\(i_k, k = 1 \dots n_{coil}\)`.
 
-Work in progress ;-)
+The lumped element model of an N port linear electrical circuit can be treated as a single black box whose behavior is concisely described by its [admittance parameters](https://en.wikipedia.org/wiki/Admittance_parameters):
 
-<https://en.wikipedia.org/wiki/Lenz%27s_law>
+$$\begin{pmatrix}i_1\\\ \vdots \\\ i_k\end{pmatrix} = I_0 + Y \begin{pmatrix}v_1\\\ \vdots \\\ v_k\end{pmatrix}, k = 1, \ldots, n_{coil}$$
+
+`\(Y\)` is called the [nodal admittance matrix](https://en.wikipedia.org/wiki/Nodal_admittance_matrix).
+
+where `\(v_k, k = 1, \ldots, n_{coil}\)` is the voltage at each port of the circuit.
+
+When the machine is connected to the circuit, the voltage at each port will be equal to the [electromotive force](https://en.wikipedia.org/wiki/Electromotive_force) `\(\mathcal{E}_k\)` generated in the matching coil.
+
+As per [Lenz's law](https://en.wikipedia.org/wiki/Lenz%27s_law):
+
+$$\mathcal{E_k}=-\frac{\partial \Phi_k}{\partial t}$$
+
+Where `\(\Phi_k\)` is the [magnetic flux](https://en.wikipedia.org/wiki/Magnetic_flux).
+Furthermore
+
+$$ \Phi_k = L \int_{\Omega} \psi_k A dx$$
+
+Finally we can rewrite the dextral side of `\(\eqref{eq:eq_potential_current}\)`:
+
+$$\begin{aligned} 
+\sum_{k = 1}^{n_{coil}}\psi_k i_k & = \sum_{k = 1}^{n_{coil}}\psi_k \left( I_{0,k} + \sum_{l = 1}^{n_{coil}} Y_{k.l} v_l\right) \\\
+& = \sum_{k = 1}^{n_{coil}}\psi_k \left( I_{0,k} - \sum_{l = 1}^{n_{coil}} Y_{k.l} \frac{\partial \Phi_l}{\partial t} \right) \\\
+& = \sum_{k = 1}^{n_{coil}}\psi_k \left( I_{0,k} - L \frac{\partial}{\partial t} \sum_{l = 1}^{n_{coil}} Y_{k,l} \int_{\Omega} \psi_l A dx \right)
+\end{aligned}$$
+
+and group the vector potential terms on the sinistral side:
+
+$$\begin{equation}
+\nabla \times \left(\mu \nabla \times A \right) + \sigma \frac{\partial A}{\partial t} + L \frac{\partial}{\partial t} \sum_{k,l = 1}^{n_{coil}} Y_{k,l} \psi_k \int_{\Omega} \psi_l A dx = \sum_{k = 1}^{n_{coil}}\psi_k I_{0,k}
+\label{eq:eq_potential}\end{equation}$$
+
+We want to solve for the magnetic vector potential.
+
+### Discretization
+
+At this stage it's only calculus.
+
+#### Time
+
+To solve `\(\eqref{eq:eq_potential}\)` numericaly we first integrate over time using the [Backward Euler method](https://en.wikipedia.org/wiki/Backward_Euler_method).
+It leads to
+
+$$\begin{equation}
+\nabla \times \left(\mu \nabla \times A_{t+\Delta t} \right) + \frac{\sigma}{\Delta t} A_{t+\Delta t} + \frac{L}{\Delta t} \sum_{k,l = 1}^{n_{coil}} Y_{k,l} \psi_k \int_{\Omega} \psi_l A_{t+\Delta t} dx = \frac{\sigma}{\Delta t}A_{t} + \frac{L}{\Delta t} \sum_{k,l = 1}^{n_{coil}} Y_{k,l} \psi_k \int_{\Omega} \psi_l A_{t} dx + \sum_{k = 1}^{n_{coil}}\psi_k I_{0,k}\label{eq:eq_potential_time}
+\end{equation}$$
+
+We want to solve for `\(A_{t+\Delta t}\)`. 
+
+BEWARE: remember that `\(\Delta t\)` depends on the way we spatialy discretized the rotor/stator interface as well as the rotor speed.
+
+#### Space
+
+We next integrate over space using the [finite element method](https://en.wikipedia.org/wiki/Finite_element_method). Weak formulation of `\(\eqref{eq:eq_potential_time}\)` one baby step at a time:
+
+$$\begin{equation}
+\begin{aligned} 
+& \nabla \times \left(\mu \nabla \times A_{t+\Delta t} \right) + \frac{\sigma}{\Delta t} A_{t+\Delta t} + \frac{L}{\Delta t} \sum_{k,l = 1}^{n_{coil}} Y_{k,l} \psi_k \int_{\Omega} \psi_l A_{t+\Delta t} dx = \frac{\sigma}{\Delta t}A_{t} + \frac{L}{\Delta t} \sum_{k,l = 1}^{n_{coil}} Y_{k,l} \psi_k \int_{\Omega} \psi_l A_{t} dx + \sum_{k = 1}^{n_{coil}}\psi_k I_{0,k}\\\
+\Leftrightarrow & v \cdot \nabla \times \left(\mu \nabla \times A_{t+\Delta t} \right) + \frac{\sigma}{\Delta t} v A_{t+\Delta t} + \frac{L}{\Delta t} \sum_{k,l = 1}^{n_{coil}} v Y_{k,l} \psi_k \int_{\Omega} \psi_l A_{t+\Delta t} dx = \frac{\sigma}{\Delta t} v A_{t} + \frac{L}{\Delta t} \sum_{k,l = 1}^{n_{coil}} v Y_{k,l} \psi_k \int_{\Omega} \psi_l A_{t} dx + \sum_{k = 1}^{n_{coil}} v \psi_k I_{0,k}, \forall v\\\
+\Leftrightarrow & \int_{\Omega}  v \cdot \nabla \times \left(\mu \nabla \times A_{t+\Delta t} \right) dx + \int_{\Omega}  \frac{\sigma}{\Delta t} v A_{t+\Delta t} dx + \int_{\Omega} \left( \frac{L}{\Delta t} \sum_{k,l = 1}^{n_{coil}} v Y_{k,l} \psi_k \int_{\Omega} \psi_l A_{t+\Delta t} dx \right) dx = \int_{\Omega} \frac{\sigma}{\Delta t} v A_{t} dx + \int_{\Omega} \left( \frac{L}{\Delta t} \sum_{k,l = 1}^{n_{coil}} v Y_{k,l} \psi_k \int_{\Omega} \psi_l A_{t} dx \right) dx + \int_{\Omega} \left( \sum_{k = 1}^{n_{coil}} v \psi_k I_{0,k} \right) dx, \forall v\\\
+\Leftrightarrow & \int_{\Omega}  \mu  \left( \nabla \times v \right) \left( \nabla \times A_{t+\Delta t} \right) dx + \frac{1}{\Delta t} \int_{\Omega} \sigma v A_{t+\Delta t} dx + \frac{L}{\Delta t} \sum_{k,l = 1}^{n_{coil}} Y_{k,l} \left( \int_{\Omega}  \psi_k v dx \right) \left( \int_{\Omega} \psi_l A_{t+\Delta t} dx \right) = \frac{1}{\Delta t} \int_{\Omega} \sigma v A_{t} dx + \frac{L}{\Delta t} \sum_{k,l = 1}^{n_{coil}} Y_{k,l} \left( \int_{\Omega} \psi_k v dx \right) \left( \int_{\Omega} \psi_l A_{t} dx \right) + \sum_{k = 1}^{n_{coil}} \int_{\Omega} v \psi_k I_{0,k} dx, \forall v\\\
+\Leftrightarrow & \int_{\Omega}  \mu  \left( \nabla \cdot v \right) \left( \nabla \cdot A_{t+\Delta t} \right) dx + \frac{1}{\Delta t} \int_{\Omega} \sigma v A_{t+\Delta t} dx + \frac{L}{\Delta t} \sum_{k,l = 1}^{n_{coil}} Y_{k,l} \left( \int_{\Omega}  \psi_k v dx \right) \left( \int_{\Omega} \psi_l A_{t+\Delta t} dx \right) = \frac{1}{\Delta t} \int_{\Omega} \sigma v A_{t} dx + \frac{L}{\Delta t} \sum_{k,l = 1}^{n_{coil}} Y_{k,l} \left( \int_{\Omega} \psi_k v dx \right) \left( \int_{\Omega} \psi_l A_{t} dx \right) + \sum_{k = 1}^{n_{coil}} \int_{\Omega} v \psi_k I_{0,k} dx, \forall v
+\end{aligned}\label{eq:eq_potential_space_time}
+\end{equation}$$
+
+As usual, we skip all the functional analysis details :-)
 
 ## Conclusion
 
 Work in progress ;-)
-
-
