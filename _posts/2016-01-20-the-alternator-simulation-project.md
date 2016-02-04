@@ -358,7 +358,9 @@ $$\begin{equation}
 \end{aligned}\label{eq:eq_potential_space_time}
 \end{equation}$$
 
-
+BEWARE: coils `\(dof\)` are coupled together even though the corresponding vertices don't belong to a same triangle. This coupling is due to the linear electrical circuit.
+This correspond to the `\(\left( \int_{\Omega}  \psi_k v dx \right) \left( \int_{\Omega} \psi_l A_{t+\Delta t} dx \right)\)` terms in the equation. That's not like your usual
+finite element method.
 
 ## Conclusion
 
