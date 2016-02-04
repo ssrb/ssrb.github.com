@@ -269,24 +269,44 @@ At this stage we got two unknowns:
 
 We are going to get rid of the current.
 
+#### Admittance matrix
+
 In order to do so we model the _linear_ electrical circuit connected to the machine using a [lumped element model](https://en.wikipedia.org/wiki/Lumped_element_model):
 this will give us another relationship between `\(A\)` and `\(i_k, k = 1 \dots n_{coil}\)`.
 
 The lumped element model of an N port linear electrical circuit can be treated as a single black box whose behavior is concisely described by its [admittance parameters](https://en.wikipedia.org/wiki/Admittance_parameters):
 
-$$\begin{pmatrix}i_1\\\ \vdots \\\ i_k\end{pmatrix} = I_0 + Y \begin{pmatrix}v_1\\\ \vdots \\\ v_k\end{pmatrix}, k = 1, \ldots, n_{coil}$$
+$$\begin{pmatrix}i_1\\\ \vdots \\\ i_N \end{pmatrix} = Y \begin{pmatrix}v_1\\\ \vdots \\\ v_N \end{pmatrix}$$
 
-`\(Y\)` is called the [nodal admittance matrix](https://en.wikipedia.org/wiki/Nodal_admittance_matrix).
+where `\(v_k, k = 1, \ldots, N\)` is the voltage at each port of the circuit.
 
-where `\(v_k, k = 1, \ldots, n_{coil}\)` is the voltage at each port of the circuit.
+`\(Y\)` is called the [nodal admittance matrix](https://en.wikipedia.org/wiki/Nodal_admittance_matrix). 
 
-When the machine is connected to the circuit, the voltage at each port will be equal to the [electromotive force](https://en.wikipedia.org/wiki/Electromotive_force) `\(\mathcal{E}_k\)` generated in the matching coil.
+`\(Y\)` is symmetrical and it is extremely important as if it wasn't we would not end up with a [symmetrical bilinear form](https://en.wikipedia.org/wiki/Symmetric_bilinear_form) later on when trying to solve the PDE.
+
+We can label the ports of the electrical circuit so that:
+
+$$\begin{pmatrix}i_1\\\ \vdots \\\ i_{n_{coil}}\\\ i_{n_{coil} + 1}\\\ \vdots \\\ i_N \end{pmatrix} = \begin{pmatrix} Y_{coils, coils} && Y_{coils, others} \\\  Y_{others, coils}  && Y_{others, others} \end{pmatrix} \begin{pmatrix}v_1\\\ \vdots \\\ v_{n_{coil}} \\\ v_{n_{coil} + 1} \\\ \vdots \\\ v_N \end{pmatrix}$$
+
+and since we only care about `\(i_k, k = 1, \ldots, n_{coil}\)` we write:
+
+$$\begin{cases}
+\begin{pmatrix}i_1\\\ \vdots \\\ i_{n_{coil}}\end{pmatrix} = I_0 + Y_{coils, coils} \begin{pmatrix}v_1\\\ \vdots \\\ v_{n_{coil}}\end{pmatrix}\\\
+I_0 = Y_{coils, others} \begin{pmatrix}v_{n_{coil} + 1} \\\ \vdots \\\ v_N\end{pmatrix}
+\end{cases}$$
+
+#### Electromotive force
+
+When the machine is connected to the circuit, the voltage at each port will be equal to the [electromotive force](https://en.wikipedia.org/wiki/Electromotive_force) `\(\mathcal{E}_k\)` generated in the matching coil:
+
+$$v_k = \mathcal{E}_k, k = 1, \ldots, n_{coil}$$
 
 As per [Lenz's law](https://en.wikipedia.org/wiki/Lenz%27s_law):
 
 $$\mathcal{E_k}=-\frac{\partial \Phi_k}{\partial t}$$
 
-Where `\(\Phi_k\)` is the [magnetic flux](https://en.wikipedia.org/wiki/Magnetic_flux).
+where `\(\Phi_k\)` is the [magnetic flux](https://en.wikipedia.org/wiki/Magnetic_flux).
+
 Furthermore
 
 $$ \Phi_k = L \int_{\Omega} \psi_k A dx$$
@@ -313,7 +333,7 @@ At this stage it's only calculus.
 
 #### Time
 
-To solve `\(\eqref{eq:eq_potential}\)` numericaly we first integrate over time using the [Backward Euler method](https://en.wikipedia.org/wiki/Backward_Euler_method).
+To solve `\(\eqref{eq:eq_potential}\)` numericaly we first integrate over time using the [backward Euler method](https://en.wikipedia.org/wiki/Backward_Euler_method).
 It leads to
 
 $$\begin{equation}
@@ -326,7 +346,7 @@ BEWARE: remember that `\(\Delta t\)` depends on the way we spatialy discretized 
 
 #### Space
 
-We next integrate over space using the [finite element method](https://en.wikipedia.org/wiki/Finite_element_method). Weak formulation of `\(\eqref{eq:eq_potential_time}\)` one baby step at a time:
+We next integrate over space using the [finite element method](https://en.wikipedia.org/wiki/Finite_element_method). Weak formulation of `\(\eqref{eq:eq_potential_time}\)` one baby step at a time (as usual, I skip all the functional analysis details as I'm an engineer, not a mathematician :-)):
 
 $$\begin{equation}
 \begin{aligned} 
@@ -338,7 +358,7 @@ $$\begin{equation}
 \end{aligned}\label{eq:eq_potential_space_time}
 \end{equation}$$
 
-As usual, we skip all the functional analysis details :-)
+
 
 ## Conclusion
 
