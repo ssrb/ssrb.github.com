@@ -15,7 +15,7 @@ In this post I'm going to illustrate how to implement a finite element simulatio
 
 The simulation computes the magnetic vector potential within a (2D) radial cross section of the machine I'm about to describe.
 
-Here's the result:
+Here's an example for a 3000rpm rotor speed and a stator energized with a 50Hz AC current:
 
 <iframe width="500" height="500" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="http://ssrb.github.io/alternator-fem-webapp/alternator.html" style="border: 1px solid black">unwantedtext</iframe><br/><small><a href="http://ssrb.github.io/alternator-fem-webapp/alternator.html">View Larger Simulation</a></small>
 
@@ -204,11 +204,11 @@ DISCLAIMER: I'M BY NO MEANS A MAXWELL'S EQUATIONS EXPERT.
 Within the machine, the physical quantities we're intested in, such as magnetic vector potential and current density, are governed by [Maxwell's equations](https://en.wikipedia.org/wiki/Maxwell%27s_equations).
 
 * The main equation we're interested in is the differential form of [Ampère's circuital law](https://en.wikipedia.org/wiki/Amp%C3%A8re%27s_circuital_law#Differential_form) which
-relates the magnetic vector potential `\(A\)` to the [electric field](https://en.wikipedia.org/wiki/Electric_field) `\(E\)`:
+relates the magnetic vector potential `\(A\)` (V·s·m<sup>-1</sup>) to the [electric field](https://en.wikipedia.org/wiki/Electric_field) `\(E\)` (V·m<sup>-1</sup>):
 
 $$\nabla \times \left(\mu \nabla \times A \right) = \sigma E \$$
 
-`\(\mu\)` is the [relative magnetic permeability](https://en.wikipedia.org/wiki/Permeability_(electromagnetism)) and `\(\sigma\)` the [electrical conductivity](https://en.wikipedia.org/wiki/Electrical_resistivity_and_conductivity). In this toy simulation, these quantities are assumed constant for a particular medium (coper, iron, air).
+`\(\mu\)` (H·m<sup>-1</sup>) is the [relative magnetic permeability](https://en.wikipedia.org/wiki/Permeability_(electromagnetism)) and `\(\sigma\)` (S·m<sup>-1</sup>) the [electrical conductivity](https://en.wikipedia.org/wiki/Electrical_resistivity_and_conductivity). In this toy simulation, these quantities are assumed constant for a particular medium (coper, iron, air).
 
 * The next equation we use is the [Maxwell–Faraday induction law](https://en.wikipedia.org/wiki/Faraday%27s_law_of_induction#Maxwell.E2.80.93Faraday_equation).
 It relates the electric field `\(E\)` to the magnetic vector potential `\(A\)` and the [electric potential](https://en.wikipedia.org/wiki/Electric_potential) `\(V\)` :
@@ -305,7 +305,7 @@ As per [Lenz's law](https://en.wikipedia.org/wiki/Lenz%27s_law):
 
 $$\mathcal{E_k}=-\frac{\partial \Phi_k}{\partial t}$$
 
-where `\(\Phi_k\)` is the [magnetic flux](https://en.wikipedia.org/wiki/Magnetic_flux).
+where `\(\Phi_k\)` is the [magnetic flux](https://en.wikipedia.org/wiki/Magnetic_flux) (V·s).
 
 Furthermore
 
@@ -371,4 +371,12 @@ Relevant project class is in <https://github.com/ssrb/alternator-fem-webapp/blob
 
 ## Conclusion
 
-Work in progress ;-)
+That was quite an entertaining project. I must now find a way to validate the results.
+ 
+My references were:
+
+* [Modélisation de systèmes électrotechniques par couplage des équations électriques et magnétiques](https://github.com/ssrb/alternator-fem-webapp/blob/master/papers/ajp-rphysap_1990_25_7_649_0.pdf), By Fréderic Hecht, A. Marrocco, F. Piriou and A. Razek
+* [A general purpose method for electric and magnetic combined problems for 2D, axisymmetruc and transient systems](), By P. Lombard and G.Meunier
+* [The Finite Element Method for Electromagnetic Modeling](http://au.wiley.com/WileyCDA/WileyTitle/productCd-1848210302.html), By G. Meunier
+* [Electromagnetic Modeling by Finite Element Methods](https://www.crcpress.com/Electromagnetic-Modeling-by-Finite-Element-Methods/Bastos-Sadowski/9780824742690) By João Pedro, A. Bastos and N. Sadowski
+* Wikipedia
