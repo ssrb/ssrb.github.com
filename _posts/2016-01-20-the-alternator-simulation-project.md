@@ -19,7 +19,7 @@ Here's an example for a 3000rpm rotor speed and a stator energized with a 50Hz A
 
 <iframe width="500" height="500" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="http://ssrb.github.io/alternator-fem-webapp/alternator.html" style="border: 1px solid black">unwantedtext</iframe><br/><small><a href="http://ssrb.github.io/alternator-fem-webapp/alternator.html">View Larger Simulation</a></small>
 
-Code is [here](https://github.com/ssrb/alternator-fem-webapp)
+The code is [here](https://github.com/ssrb/alternator-fem-webapp)
 
 ## Description of the machine
 
@@ -53,11 +53,11 @@ Because of the problem periodicity, we can reduce the ammount of computation by 
 
 To find the size of the smallest possible slice we compute the [greatest common divisor](https://en.wikipedia.org/wiki/Greatest_common_divisor) (`\(gcd\)`) of the number of rods and slots and only simulate a `\(360 / gcd\)` degrees machine slice.
 
-Next, in order to decide if we need to use [periodic or anti-periodic boundary conditions](https://en.wikipedia.org/wiki/Periodic_boundary_conditions) to join our alternator slices, we simply observe that if we apply [Kirchof current's law](https://en.wikipedia.org/wiki/Kirchhoff%27s_circuit_laws) to the rotor squirel cage topology, the [eddy currents](https://en.wikipedia.org/wiki/Eddy_current) flowing through one rod will flow in the opposite direction in the previous and next rods so that we use periodic (respectively anti-periodic) boundary condition if the slice contains an even (respectively odd) number of rod.
+Next, in order to decide if we need to use [periodic or anti-periodic boundary conditions](https://en.wikipedia.org/wiki/Periodic_boundary_conditions) to join our alternator slices, we simply observe that if we apply [Kirchoff current's law](https://en.wikipedia.org/wiki/Kirchhoff%27s_circuit_laws) to the rotor squirel cage topology, the [eddy currents](https://en.wikipedia.org/wiki/Eddy_current) flowing through one rod will flow in the opposite direction in the previous and next rods so that we use periodic (respectively anti-periodic) boundary condition if the slice contains an even (respectively odd) number of rod.
 
 It comes that for this particular endeavour we can simulate `\(1/12^{th}\)` of the machine (30 degrees), so a single rod and a single slot, and must use _anti-periodic_ boundary condition.
 
-Whem implementing the finite element method using first order Lagrange element to solve non periodic problem we have a one to one mapping between mesh vertices and [degrees of freedom](https://en.wikipedia.org/wiki/Degrees_of_freedom_(physics_and_chemistry))(`\(dof\)`) so that we can identify vertices with `\(dof\)`.
+When implementing the finite element method using first order Lagrange element to solve non periodic problem we have a one to one mapping between mesh vertices and [degrees of freedom](https://en.wikipedia.org/wiki/Degrees_of_freedom_(physics_and_chemistry)) (`\(dof\)`) so that we can identify vertices with `\(dof\)`.
 
 For example a single quadrangular first order Lagrange element has 4 vertices and leads to a 4 `\(dof\)` [stiffness matrix](https://en.wikipedia.org/wiki/Stiffness_matrix):
 
@@ -153,13 +153,13 @@ So that the key to implement (anti-)peridic boundary conditions is to compute th
 
 {% gist ssrb/44a84951fe6dca229bf3 %}
 
-Relevant project class is in <https://github.com/ssrb/alternator-fem-webapp/blob/master/domain.ts>
+The relevant project class is in <https://github.com/ssrb/alternator-fem-webapp/blob/master/domain.ts>
 
-* And this is how I assemble stiffness matrix and load vector using the computed mapping:
+* And this is how I assemble the stiffness matrix and load vector using the computed mapping:
 
 {% gist ssrb/6ff15cec796b1e1a0116 %}
 
-Relevant project class is in <https://github.com/ssrb/alternator-fem-webapp/blob/master/solver.ts>
+The relevant project class is in <https://github.com/ssrb/alternator-fem-webapp/blob/master/solver.ts>
 
 ### Motion
 
@@ -168,17 +168,17 @@ One way to get a match is to first discretize the interface and then use these i
 
 ![mesh]({{ site.url }}/{{ page.assets }}/alter012.000.png)
 
-How about motion ? Idealy we would like to solve for *any* rotor/stator angle.
+How about motion ? Ideally we would like to solve for *any* rotor/stator angle.
 That's doable but a bit too ambitious and we're instead going to only consider rotations multiple of a fixed "rotation step".
 Furthermore we choose a "rotation step" equal to a unit fraction of the domain slice angle, for example `\(1/32\)` of 30 degrees, so that, by uniformly dividing the interface into 32 segments we can match rotor and stator `\(dof\)` regardless of the "discrete" rotation angle.
 
-The advantage of this method is that we compute mesh for both domains once and for all, regardless of the rotation angle.
+The advantage of this method is that we compute the mesh for both domains once and for all, regardless of the rotation angle.
 
 A drawback of this method is that given the angular speed of the rotor we need to choose the time step of the simulation accordingly.
 In our example, for a rotor speed of 3000rpm, the time step will be `\(60 / (12 * 32 * 3000)\)` seconds.
 
 As it rotates, the rotor slice will face both a stator and an "anti-stator" slice. 
-But we won't explicitely model the anti-stator slice since its nodal values are the opposite of those of the stator slice.
+But we won't explicitly model the anti-stator slice since its nodal values are the opposite of those of the stator slice.
 Instead we will model a rotor slice which wraps around and use the sign/polarity vector introduced earlier in order to decide if a rotor nodal value is coupled to a stator or "anti-stator" `\(dof\)`.
 
 One last thing we need to discuss is how to generate the mapping between rotor/stator "local" `\(dof\)` to the machine "global" `\(dof\)`:
@@ -342,7 +342,7 @@ $$\begin{equation}
 
 We want to solve for `\(A_{t+\Delta t}\)`. 
 
-BEWARE: remember that `\(\Delta t\)` depends on the way we spatialy discretized the rotor/stator interface as well as the rotor speed.
+BEWARE: remember that `\(\Delta t\)` depends on the way we spatially discretized the rotor/stator interface as well as the rotor speed.
 
 #### Space
 
