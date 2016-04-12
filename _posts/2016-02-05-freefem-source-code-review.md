@@ -8,7 +8,7 @@ ffsrc: "https://github.com/ssrb/freefempp/tree/master/src"
 ---
 {% include JB/setup %}
 
-In this post I will go through the source code of a tool I really like, [FreeFem++](http://www.freefem.org/ff++/), and document my findings.
+This post is an ongoing effort to document my findings as I walk through the source code of a tool I really like, [FreeFem++](http://www.freefem.org/ff++/).
 
 <!-- more -->
 
@@ -82,7 +82,7 @@ The first frames of a typical call stack look like this:
 	#0  yyparse () at lg.tab.cpp:1851
 	#1  Compile () at lg.ypp:777
 	#2  mainff (argc=2, argv=0x7fffffffddf8) at lg.ypp:947
-	#3  main (argc=2, argv=0x7fffffffde08) at ../Graphics/sansrgraph.cpp:199
+	#3  main (argc=2, argv=0x7fffffffddf8) at ../Graphics/sansrgraph.cpp:199
 
 Now, even though `yyparse()` is called by a function called `Compile()` and `ff++` outputs messages such as 
 
@@ -157,7 +157,7 @@ Once parsing is complete and the interpreter starts doing its job, the call stac
 	#2  yyparse () at lg.tab.cpp:1851
 	#3  Compile () at lg.ypp:777
 	#4  mainff (argc=2, argv=0x7fffffffddf8) at lg.ypp:947
-	#5  main (argc=2, argv=0x7fffffffde08) at ../Graphics/sansrgraph.cpp:199
+	#5  main (argc=2, argv=0x7fffffffddf8) at ../Graphics/sansrgraph.cpp:199
 
 ### Activation record
 
@@ -248,17 +248,65 @@ A simple "int a;" statement call stack looks like this:
 
 	#0  NewVariable<LocalVariable> (off=@0x1063218: 48, t=0xfe5ad0) at ./../fflib/AFunction.hpp:1839
 	#1  TableOfIdentifier::NewVar<LocalVariable> (this=this@entry=0x1063228, k=0x1058ba0 "a", t=0xfe5ad0, top=@0x1063218: 48) at ./../fflib/AFunction.hpp:1890
-	#2  0x0000000000791823 in NewVar<LocalVariable> (t=<optimized out>, k=<optimized out>, this=0x1063210) at ./../fflib/AFunction.hpp:2096
+	#2  NewVar<LocalVariable> (t=<optimized out>, k=<optimized out>, this=0x1063210) at ./../fflib/AFunction.hpp:2096
 	#3  lgparse () at lg.ypp:386
-	#4  0x0000000000794a5a in Compile () at lg.ypp:777
-	#5  0x0000000000795320 in mainff (argc=2, argv=0x7fffffffde08) at lg.ypp:947
-	#6  0x00007ffff5566ec5 in __libc_start_main (main=0x788680 <main(int, char**)>, argc=2, argv=0x7fffffffde08, init=<optimized out>, fini=<optimized out>, rtld_fini=<optimized out>, stack_end=0x7fffffffddf8) at libc-start.c:287
-	#7  0x000000000078be67 in _start ()
+	#4  Compile () at lg.ypp:777
+	#5  mainff (argc=2, argv=0x7fffffffde08) at lg.ypp:947
+	#6  main (argc=2, argv=0x7fffffffde08) at ../Graphics/sansrgraph.cpp:199
 
 
 ### Builtins
 
-## FE spaces and assembly
+Work in progress !
+
+Matrices, FESpace, Varform, Problem ...
+
+## PDE discretization
+
+The best way to figure out how PDE discretization is achieved is to run the script hereunder and step through with the debugger:
+
+{% highlight C++ %}
+mesh Th = square(5,5);
+fespace Vh(Th,P1);
+varf a(u,v) = int2d(Th)(dx(u)*dx(v) + dy(u)*dy(v))
++ on(1,2,3,4,u=0) ;
+matrix A=a(Vh,Vh);
+{% endhighlight %}
+
+The interesting statement is "matrix A=a(Vh,Vh);". 
+It triggers:
+
+* allocation of a CSR encoded sparse matrix;
+* numerical integration and assembly of the elementary matrices
+
+### Assembly
+
+The expression tree node corresponding to that statement is of type `class OpMatrixtoBilinearForm<R,v_fes>::Op`.
+It is defined in [fflib/problem.hpp]({{ page.ffsrc }}/fflib/problem.hpp).
+The interpreter will call the `AnyType OpMatrixtoBilinearForm<R,v_fes>::Op::operator()(Stack stack)  const` method defined in the same file.
+We can summarize that method like so:
+
+{% highlight C++ %}
+AnyType OpMatrixtoBilinearForm<R,v_fes>::Op::operator()(Stack stack) 
+{
+	[...]
+	A.A.master( new  MatriceMorse<R>(Vh,Uh,VF) );
+	*A.A=R(); // reset value of the matrix
+	if ( AssembleVarForm<R,MatriceCreuse<R>,FESpace >( stack,Th,Uh,Vh,ds.typemat->sym,A.A,0,b->largs) )
+		AssembleBC<R,FESpace>( stack,Th,Uh,Vh,ds.typemat->sym,A.A,0,0,b->largs,ds.tgv);
+	[...]
+}
+{% endhighlight %}
+
+
+* First the call to the `MatriceMorse` constructor will in turn call `void MatriceMorse<R>::Build(const FESpace & Uh, const FESpace & Vh, bool sym, bool VF)` defined in 
+[femlib/MatriceCreuse_tpl.hpp]({{ page.ffsrc }}/femlib/MatriceCreuse_tpl.hpp).
+This is responsible for computing the profile of the CSR encoded sparse matrix (French people say "Morse" encoding).
+Here is a version of that method commented by myself:
+
+* Then the calls to `AssembleVarForm` will compute the elementary matrices and assemble them into the stiffness matrix.
+`AssembleVarForm` will walk all the elementary integrals of the variational form and delegate the computation to a more specialized method.
+For example if an elementary integral defines a bilinear form, `void AssembleBilinearForm(Stack stack,const Mesh & Th,const FESpace & Uh,const FESpace & Vh,bool sym, MatriceCreuse<R>  & A, const  FormBilinear * b)` will be called.
 
 Work in progress !
 
