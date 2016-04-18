@@ -302,7 +302,8 @@ AnyType OpMatrixtoBilinearForm<R,v_fes>::Op::operator()(Stack stack)
 * First the call to the `MatriceMorse` constructor will in turn call `void MatriceMorse<R>::Build(const FESpace & Uh, const FESpace & Vh, bool sym, bool VF)` defined in 
 [femlib/MatriceCreuse_tpl.hpp]({{ page.ffsrc }}/femlib/MatriceCreuse_tpl.hpp).
 This is responsible for computing the profile of the CSR encoded sparse matrix (French people say "Morse" encoding).
-Here is a version of that method commented by myself:
+
+[Here is a version of that method I commented](https://gist.github.com/ssrb/0a0ff5812d2ce6e5ec6332dba31ef386)
 
 * Then the calls to `AssembleVarForm` will compute the elementary matrices and assemble them into the stiffness matrix.
 `AssembleVarForm` will walk all the elementary integrals of the variational form and delegate the computation to a more specialized method.
