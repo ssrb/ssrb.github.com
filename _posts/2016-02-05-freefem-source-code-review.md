@@ -309,6 +309,12 @@ This is responsible for computing the profile of the CSR encoded sparse matrix (
 `AssembleVarForm` will walk all the elementary integrals of the variational form and delegate the computation to a more specialized method.
 For example if an elementary integral defines a bilinear form, `void AssembleBilinearForm(Stack stack,const Mesh & Th,const FESpace & Uh,const FESpace & Vh,bool sym, MatriceCreuse<R>  & A, const  FormBilinear * b)` will be called.
 
+[comment]: <> (fem.hpp) 
+[comment]: <> (typedef TTriangle<R2> Triangle;) 
+[comment]: <> (class TypeOfFE FESpace.hpp) 
+[comment]: <> (template<class Mesh>) 
+[comment]: <> (class GTypeOfFE : public  dataTypeOfFE  FESpacen.hpp) 
+
 Work in progress !
 
 ### Numerical integration
