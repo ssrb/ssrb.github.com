@@ -332,6 +332,14 @@ The original version can be found in [femlib/FESpace.cpp]({{ page.ffsrc }}/femli
 The original paper describing the Gibbs-Poole-Stockmeyer used by stage 2 can be found [here]({{ site.url }}/{{ page.assets }}/papers/2156090.pdf).
 The `ff++` implementation is found in [femlib/gibbs.cpp]({{ page.ffsrc }}/femlib//gibbs.cpp).
 
+Spy (2x2 square, 9 vertices, 8 triangles) after stage 1:
+
+![stage 1]({{ site.url }}/{{ page.assets }}/A_P2.png)
+
+Spy after stage 2 (GPS algorithm)
+
+![stage 2]({{ site.url }}/{{ page.assets }}/A_P2_gibbs.png)
+
 ### Numerical integration
 
 Work in progress !
