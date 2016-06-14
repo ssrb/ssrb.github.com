@@ -5,6 +5,7 @@ description: ""
 category: ""
 tags: []
 ffsrc: "https://github.com/ssrb/freefempp/tree/master/src"
+assets: "assets/ff++"
 ---
 {% include JB/setup %}
 
@@ -316,6 +317,20 @@ For example if an elementary integral defines a bilinear form, `void AssembleBil
 [comment]: <> (class GTypeOfFE : public  dataTypeOfFE  FESpacen.hpp) 
 
 Work in progress !
+
+### DoF numbering
+
+Numbering is a 3 stages process:
+
+* dummy numbering of the vertices, edges, faces, volumes, in `ff++` these are called "nodes";
+* reduce the skyline profile of that initial node numbering using the Gibbs-Poole-Stockmeyer algorithm;
+* build a DoF numbering from the improved node numbering: this is simply done by running a prefix sum of the number of DoF per node following the computed node numbering.
+
+Here is a commented simplified (no periodic boundary conditions, no mortar method) version of [stage 1](https://gist.github.com/ssrb/b31d9bfb28bc41369a4ad13fbae8e5e4).
+The original version can be found in [femlib/FESpace.cpp]({{ page.ffsrc }}/femlib//FESpace.cpp).
+
+The original paper describing the Gibbs-Poole-Stockmeyer used by stage 2 can be found [here]({{ site.url }}/{{ page.assets }}/papers/2156090.pdf).
+The `ff++` implementation is found in [femlib/gibbs.cpp]({{ page.ffsrc }}/femlib//gibbs.cpp).
 
 ### Numerical integration
 
