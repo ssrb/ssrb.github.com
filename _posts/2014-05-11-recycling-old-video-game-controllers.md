@@ -386,7 +386,7 @@ Axes:  0:     0  1:     0 Buttons:  0:on   1:off  2:off  3:off
 ## Level 3: Nintendo NES gamepad
 
 The NES gamepad features 2 axis and 4 buttons (labeled A, B, start & select) just as the Genesis one so that their report descriptors are similar.
-The NES gamepad uses a [shit register]({{ site.url }}/{{ page.assets }}/HD14021B.pdf) to communicate its state: the data, clock and latch pins of the register are accessed via the (non-standard) NES connector.
+The NES gamepad uses a [shift register]({{ site.url }}/{{ page.assets }}/HD14021B.pdf) to communicate its state: the data, clock and latch pins of the register are accessed via the (non-standard) NES connector.
 The firmware for the NES gamepad can be found [here](https://github.com/ssrb/ArduJoypadsToHID/tree/master/NESToUSBJoystick)
 
 <div class="galleria">
