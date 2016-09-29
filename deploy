@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e # exit with nonzero exit code if anything fails
-if [[ $TRAVIS ]]; then
+if [ "$TRAVIS" = "true" ] && [ "$TRAVIS_BRANCH" = "source" ]; then
 	cd _site
 	git init
 	git config --global user.email "sb@unhexhexium.net"
