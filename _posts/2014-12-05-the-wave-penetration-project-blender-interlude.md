@@ -11,7 +11,7 @@ tags: []
 In this post I will describe how to add a new modifier similar to the ocean modifier into [Blender](http://www.blender.org).
 
 <video width="640" height="480" controls="controls">
-<source src="https://dl.dropboxusercontent.com/u/33001193/lyttelton_reenc.mp4" type="video/mp4" />
+<source src="https://www.dropbox.com/s/ihsuqnqg3yzo5pp/lyttelton_reenc.mp4?dl=0" type="video/mp4" />
 </video>
 
 <!-- more -->
