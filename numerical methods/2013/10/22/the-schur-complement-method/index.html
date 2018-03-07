@@ -1,0 +1,810 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>
+      
+        The Schur Complement Method: Part 1 - 
+      
+      Seb's blog
+    </title>
+    <meta name="description" content="An easy way to solve finite element problems in parallel">
+    <meta name="author" content="Sébastien Bigot">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+
+    <link href="/assets/themes/hooligan/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/themes/hooligan/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">    
+    <link rel="stylesheet" type="text/css" href="/assets/themes/hooligan/css-social-buttons/css/zocial.stripped.css">
+    <link href="/assets/themes/hooligan/css/pygments.css" rel="stylesheet" type="text/css" media="all">
+    <link href="/assets/themes/hooligan/css/darkstrap.css" rel="stylesheet" type="text/css" media="all">    
+    <link href="/assets/themes/hooligan/css/style.css?body=1" rel="stylesheet" type="text/css" media="all">
+
+    
+    <!-- fav and touch icons -->
+  <!-- Update these with your own images
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
+  -->
+
+    <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      TeX: { equationNumbers: { autoNumber: "AMS" } },
+        tex2jax: {
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      }
+    });
+    MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for(i=0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+    </script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    </script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.js">
+    </script>
+    <script type="text/javascript" src="/galleria/galleria-1.3.3.min.js">
+    </script>
+    <style>
+      .galleria{ width: 700px; height: 400px; background: #000 }
+    </style>
+  </head>
+
+  <body>
+    <div class="navbar">
+      <div class="navbar-inner">
+        <div class="container">
+          <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>      
+
+
+          <a class="brand" href="/">Seb's blog</a>
+
+
+          <div class="nav-collapse">
+            <ul class="nav">
+              
+              
+              
+
+
+  
+    
+      
+      	
+      	<li><a href="/archive.html">Archive</a></li>
+      	
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/categories.html">Categories</a></li>
+      	
+      
+    
+  
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/tags.html">Tags</a></li>
+      	
+      
+    
+  
+
+
+
+            </ul>
+            <ul class="nav pull-right social visible-desktop">
+              <li class="divider-vertical"></li>
+              
+                <li>
+                  <a href="https://github.com/ssrb" class="zocial github icon" target="_blank">
+                    <span class="hidden-desktop">Github</span>
+                  </a>
+                </li>
+              
+                  
+                                        
+                         
+                                  
+              
+              <li>
+                <a class="zocial icon rss" target="_blank" href="/rss.xml">
+                  <span class="hidden-desktop">ATOM Feed</a>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="content">
+        
+<div class="page-header">
+  <h1>
+    The Schur Complement Method: Part 1 
+    
+  </h1>
+</div>
+
+<div class="row">
+  <div class="span8">
+    
+<p>This post is going to illustrate the primal Schur complement method briefly described <a href="http://en.wikipedia.org/wiki/Schur_complement_method">here</a>.
+The Schur complement method is a strategy one can use to divide a finite element problem into independant sub-problems.
+It’s not too involved but requires good understanding of block Gaussian elimination, reordering degrees of freedom plus a few “tricks of the trade”
+to avoid computing inverse of large sparse matrices.</p>
+
+<!-- more -->
+
+<h2 id="a-finite-element-problem">A (finite element) problem</h2>
+
+<p>In that part, we’re going to create all the data needed to implement the method:</p>
+
+<ul>
+  <li>a mesh</li>
+  <li>a system of linear equations</li>
+</ul>
+
+<h3 id="a-2d-poissons-equation">A 2D Poisson’s equation</h3>
+
+<p>First step is to choose a problem.
+For example, solve a <a href="http://en.wikipedia.org/wiki/Poisson's_equation">Poisson equation</a>.</p>
+
+<p>Given a domain <code>\(\Omega\)</code>, the problem is to find <code>\(\varphi\)</code> such that
+<script type="math/tex">% <![CDATA[
+\begin{cases}\left( \frac{\partial^2}{\partial x^2} + \frac{\partial^2}{\partial y^2}\right)\varphi(x,y) & = & 1, & \mbox{on } \Omega \\\ \varphi(x,y) & = & 0, & \mbox{on } \partial\Omega\end{cases} %]]></script></p>
+
+<p>I chose a L-shape for <code>\(\Omega\)</code>:</p>
+
+<p><img src="/assets/schur/poisson2D.domain.png" alt="Alt The Domain" /></p>
+
+<h3 id="freefem">FreeFem++</h3>
+
+<p>Since this post doesn’t aim to illustrate in great details the <a href="http://en.wikipedia.org/wiki/Finite_element_method">finite element method</a> itself, I’m going to translate the <a href="http://en.wikipedia.org/wiki/Weak_formulation">weak formulation</a> of the problem into the <a href="http://www.freefem.org/ff++/index.htm">FreeFem++</a> language.
+What FreeFem++ is going to do for us is to create the desired mesh and system of linear equations.</p>
+
+<p>The weak formulation of the problem is to find <code>\(u\)</code> such that <code>\(\int_\Omega \left( \frac{\partial u}{\partial x}\frac{\partial v}{\partial x} + \frac{\partial u}{\partial y}\frac{\partial v}{\partial y} \right)dxdy + \int_\Omega vdxdy = 0, \forall v\)</code>.</p>
+
+<p>Note that I will be using Lagrange P1 elements to make reordering of the degrees of freedom (DoF) easier in the next step.</p>
+
+<p>This is how the problem translates into the FreeFem++ langage:</p>
+
+<div class="highlight"><pre><code class="language-c" data-lang="c"><span class="lineno"> 1</span> <span class="c1">// Describe the geometry of the domain</span>
+<span class="lineno"> 2</span> <span class="n">border</span> <span class="nf">red</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">){</span><span class="n">x</span><span class="o">=</span><span class="n">t</span><span class="p">;</span><span class="n">y</span><span class="o">=</span><span class="mi">0</span><span class="p">;};</span>
+<span class="lineno"> 3</span> <span class="n">border</span> <span class="nf">green</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="mf">0.5</span><span class="p">){</span><span class="n">x</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="n">y</span><span class="o">=</span><span class="n">t</span><span class="p">;};</span>
+<span class="lineno"> 4</span> <span class="n">border</span> <span class="nf">yellow</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="mf">0.5</span><span class="p">){</span><span class="n">x</span><span class="o">=</span><span class="mi">1</span><span class="o">-</span><span class="n">t</span><span class="p">;</span><span class="n">y</span><span class="o">=</span><span class="mf">0.5</span><span class="p">;};</span>
+<span class="lineno"> 5</span> <span class="n">border</span> <span class="nf">blue</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span><span class="mi">1</span><span class="p">){</span><span class="n">x</span><span class="o">=</span><span class="mf">0.5</span><span class="p">;</span><span class="n">y</span><span class="o">=</span><span class="n">t</span><span class="p">;};</span>
+<span class="lineno"> 6</span> <span class="n">border</span> <span class="nf">orange</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span><span class="mi">1</span><span class="p">){</span><span class="n">x</span><span class="o">=</span><span class="mi">1</span><span class="o">-</span><span class="n">t</span><span class="p">;</span><span class="n">y</span><span class="o">=</span><span class="mi">1</span><span class="p">;};</span>
+<span class="lineno"> 7</span> <span class="n">border</span> <span class="nf">violet</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">){</span><span class="n">x</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span><span class="n">y</span><span class="o">=</span><span class="mi">1</span><span class="o">-</span><span class="n">t</span><span class="p">;};</span>
+<span class="lineno"> 8</span> 
+<span class="lineno"> 9</span> <span class="c1">// Build a mesh over that domain</span>
+<span class="lineno">10</span> <span class="n">mesh</span> <span class="n">Th</span> <span class="o">=</span> <span class="n">buildmesh</span> <span class="p">(</span><span class="n">red</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span> <span class="o">+</span> <span class="n">green</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="o">+</span> <span class="n">yellow</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="o">+</span> <span class="n">blue</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="o">+</span> <span class="n">orange</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="o">+</span> <span class="n">violet</span><span class="p">(</span><span class="mi">6</span><span class="p">));</span>
+<span class="lineno">11</span> 
+<span class="lineno">12</span> <span class="c1">// Define the finite element space, using Lagrange P1 element</span>
+<span class="lineno">13</span> <span class="n">fespace</span> <span class="nf">Vh</span><span class="p">(</span><span class="n">Th</span><span class="p">,</span><span class="n">P1</span><span class="p">);</span>
+<span class="lineno">14</span> 
+<span class="lineno">15</span> <span class="c1">// Define u, the function we are looking for, as well as v, the test function in the weak formulation.</span>
+<span class="lineno">16</span> <span class="n">Vh</span> <span class="n">u</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">v</span><span class="p">;</span>
+<span class="lineno">17</span> 
+<span class="lineno">18</span> <span class="c1">// Define the value of the Laplacian of phi within the domain</span>
+<span class="lineno">19</span> <span class="n">func</span> <span class="n">f</span><span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+<span class="lineno">20</span> 
+<span class="lineno">21</span> <span class="c1">// Define the value of phi on the border of the domain</span>
+<span class="lineno">22</span> <span class="n">func</span> <span class="n">g</span><span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="lineno">23</span> 
+<span class="lineno">24</span> <span class="c1">// Describe the problem using the weak formulation</span>
+<span class="lineno">25</span> <span class="n">problem</span> <span class="nf">Poisson2D</span><span class="p">(</span><span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="p">)</span> <span class="o">=</span>
+<span class="lineno">26</span>     <span class="n">int2d</span><span class="p">(</span><span class="n">Th</span><span class="p">)(</span><span class="n">dx</span><span class="p">(</span><span class="n">u</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">+</span> <span class="n">dy</span><span class="p">(</span><span class="n">u</span><span class="p">)</span><span class="o">*</span><span class="n">dy</span><span class="p">(</span><span class="n">v</span><span class="p">))</span> <span class="c1">// First integral</span>
+<span class="lineno">27</span>   <span class="o">+</span> <span class="n">int2d</span><span class="p">(</span><span class="n">Th</span><span class="p">)</span> <span class="p">(</span><span class="n">v</span><span class="o">*</span><span class="n">f</span><span class="p">)</span>  <span class="c1">// Second integral</span>
+<span class="lineno">28</span>   <span class="o">+</span> <span class="n">on</span><span class="p">(</span><span class="n">red</span><span class="p">,</span><span class="n">green</span><span class="p">,</span><span class="n">yellow</span><span class="p">,</span><span class="n">blue</span><span class="p">,</span><span class="n">orange</span><span class="p">,</span><span class="n">violet</span><span class="p">,</span><span class="n">u</span><span class="o">=</span><span class="n">g</span><span class="p">);</span> <span class="c1">// What happens on the border</span></code></pre></div>
+
+<p>Given that script, FreeFem++ is going to:</p>
+
+<ul>
+  <li>build a mesh;</li>
+  <li>build a system of linear equations: a square matrix <code>\(A\)</code> and a column vector <code>\(b\)</code>. Each DoF (unknown) is the value of the function we are looking for at a given vertex of the mesh (because we choosed Lagrange P1 elements).</li>
+</ul>
+
+<p>Hereafter is the mesh (built by FreeFem++) I am going to work with in the next steps:
+<img src="/assets/schur/poisson2D.mesh.png" alt="Alt Mesh" /></p>
+
+<p>It is made of 7215 triangles and 3735 vertices.</p>
+
+<ul>
+  <li><a href="/assets/schur/poisson2D.mesh">Raw Mesh data</a></li>
+</ul>
+
+<p>Hereafter is the sparsity pattern of the corresponding <code>\(A\)</code> matrix:
+<img src="/assets/schur/spyA.png" alt="Alt Spy A" /></p>
+
+<p>Its size is 3735x3735. It’s a band matrix because of the way FreeFem++ numbered the DoF.</p>
+
+<ul>
+  <li><a href="/assets/schur/poisson2D.A">Raw A matrix data</a></li>
+  <li><a href="/assets/schur/poisson2D.b">Raw b column vector data</a></li>
+</ul>
+
+<h3 id="conclusion-and-spoiler">Conclusion and spoiler</h3>
+
+<p>So there we are, we got all the data needed to get started.
+What needs to be done next is:</p>
+
+<ul>
+  <li>partition the domain</li>
+  <li>reorder the DoF</li>
+  <li>implement the method itself</li>
+  <li>celebrate</li>
+</ul>
+
+<p>By the way, if you want to have a look at the solution to the problem, click <a href="/assets/schur/poisson2D.sol.filled.png">here</a></p>
+
+<h2 id="partitioning-the-domain">Partitioning the domain</h2>
+
+<p>The next stage to illustrate the method is to partition the initial domain into two sub-domains.
+In order to do so, one can use specialized tools such as <a href="http://www.sandia.gov/~bahendr/chaco.html">Chaco</a>
+ or <a href="http://glaros.dtc.umn.edu/gkhome/views/metis">Metis</a>. I’m arbitrarily going to use Metis.</p>
+
+<h3 id="metis">Metis</h3>
+
+<p>Metis input is a graph and a number of sub-domains. It doesn’t use the coordinates of the vertices.
+I generated Metis input graph from the mesh using this one liner:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">perl -ne <span class="s1">&#39;push @T, &quot;$1 $2 $3\n&quot; if /(\d+) (\d+) (\d+) (\d+)/; END{print @T.&quot;\n&quot;; print for @T}&#39;</span> poisson2D.mesh &gt; poisson2D.metis_graph</code></pre></div>
+
+<ul>
+  <li><a href="/assets/schur/poisson2D.metis_graph">Raw Metis input graph data</a></li>
+</ul>
+
+<p>The command <code>mpmetis poisson2D.metis_graph 2</code> will output two files:</p>
+
+<ul>
+  <li><a href="/assets/schur/poisson2D.metis_graph.epart.2">poisson2D.metis_graph.epart.2</a></li>
+  <li><a href="/assets/schur/poisson2D.metis_graph.npart.2">poisson2D.metis_graph.npart.2</a></li>
+</ul>
+
+<p><code>poisson2D.metis_graph.epart.2</code> (respectively <code>poisson2D.metis_graph.npart.2</code>) contains the domain indices (starting from 0) of each
+triangle (respectively vertex) of the mesh. For example, line 42 of <code>poisson2D.metis_graph.epart.2</code> will contain a 0 if triangle number
+42 belongs to the domain number 0.</p>
+
+<h3 id="identifying-the-boundary-vertices">Identifying the boundary vertices</h3>
+
+<p>Sadly, the Metis output doesn’t tell us what are the boundary vertices so that we need to do a little bit of post-processing.
+Remember that we need to identify the boundary DoFs to pack them into a single matrix block in a later stage.
+The script hereafter is going to fan out vertices ids into separate files,<code>domain1.vids</code> (vertices within domain 1 exclusively), <code>domain2.vids</code> and <code>interface.vids</code> (vertices on the interface).</p>
+
+<div class="highlight"><pre><code class="language-perl" data-lang="perl"><span class="lineno"> 1</span> <span class="c1">#! /usr/bin/perl</span>
+<span class="lineno"> 2</span> <span class="k">use</span> <span class="n">strict</span><span class="p">;</span>
+<span class="lineno"> 3</span> <span class="k">use</span> <span class="n">warnings</span><span class="p">;</span>
+<span class="lineno"> 4</span> 
+<span class="lineno"> 5</span> <span class="nb">open</span> <span class="k">my</span> <span class="nv">$FDTRIANGLES</span><span class="p">,</span> <span class="s">&quot;poisson2D.metis_graph&quot;</span><span class="p">;</span>
+<span class="lineno"> 6</span> <span class="nb">open</span> <span class="k">my</span> <span class="nv">$FDIDS</span><span class="p">,</span> <span class="s">&quot;poisson2D.metis_graph.epart.2&quot;</span><span class="p">;</span>
+<span class="lineno"> 7</span> 
+<span class="lineno"> 8</span> <span class="k">my</span> <span class="nv">@vertexToDomain</span><span class="p">;</span>
+<span class="lineno"> 9</span> <span class="k">my</span> <span class="nv">%interface</span><span class="p">;</span>
+<span class="lineno">10</span> 
+<span class="lineno">11</span> <span class="k">while</span> <span class="p">(</span><span class="sr">&lt;$FDTRIANGLES&gt;</span><span class="p">)</span> <span class="p">{</span>
+<span class="lineno">12</span> 	<span class="k">if</span> <span class="p">(</span><span class="sr">/(?&lt;vid1&gt;\d+) (?&lt;vid2&gt;\d+) (?&lt;vid3&gt;\d+)/</span><span class="p">)</span> <span class="p">{</span>
+<span class="lineno">13</span> 		<span class="k">my</span> <span class="nv">$domain</span> <span class="o">=</span> <span class="sr">&lt;$FDIDS&gt;</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+<span class="lineno">14</span> 		<span class="n">CheckVertex</span><span class="p">(</span><span class="vg">$+</span><span class="p">{</span><span class="n">vid1</span><span class="p">},</span> <span class="nv">$domain</span><span class="p">);</span>
+<span class="lineno">15</span> 		<span class="n">CheckVertex</span><span class="p">(</span><span class="vg">$+</span><span class="p">{</span><span class="n">vid2</span><span class="p">},</span> <span class="nv">$domain</span><span class="p">);</span>
+<span class="lineno">16</span> 		<span class="n">CheckVertex</span><span class="p">(</span><span class="vg">$+</span><span class="p">{</span><span class="n">vid3</span><span class="p">},</span> <span class="nv">$domain</span><span class="p">);</span>
+<span class="lineno">17</span> 	<span class="p">}</span>
+<span class="lineno">18</span> <span class="p">}</span>
+<span class="lineno">19</span> 
+<span class="lineno">20</span> <span class="k">my</span> <span class="nv">@DOMAINFD</span><span class="p">;</span>
+<span class="lineno">21</span> <span class="nb">open</span> <span class="nv">$DOMAINFD</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">&quot;&gt; domain1.vids&quot;</span><span class="p">;</span>
+<span class="lineno">22</span> <span class="nb">open</span> <span class="nv">$DOMAINFD</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="s">&quot;&gt; domain2.vids&quot;</span><span class="p">;</span>
+<span class="lineno">23</span> <span class="nb">open</span> <span class="k">my</span> <span class="nv">$INTERFACEFD</span><span class="p">,</span> <span class="s">&quot;&gt; interface.vids&quot;</span><span class="p">;</span>
+<span class="lineno">24</span> <span class="k">while</span> <span class="p">(</span><span class="k">my</span> <span class="p">(</span><span class="nv">$vid</span><span class="p">,</span> <span class="nv">$domain</span><span class="p">)</span> <span class="o">=</span> <span class="nb">each</span> <span class="nv">@vertexToDomain</span><span class="p">)</span> <span class="p">{</span>
+<span class="lineno">25</span> 	<span class="k">next</span> <span class="k">if</span> <span class="o">!</span><span class="nv">$vid</span><span class="p">;</span>
+<span class="lineno">26</span> 	<span class="k">my</span> <span class="nv">$fd</span> <span class="o">=</span> <span class="nb">exists</span> <span class="nv">$interface</span><span class="p">{</span><span class="nv">$vid</span><span class="p">}</span> <span class="p">?</span> <span class="nv">$INTERFACEFD</span> <span class="p">:</span> <span class="nv">$DOMAINFD</span><span class="p">[</span><span class="nv">$domain</span><span class="p">];</span>
+<span class="lineno">27</span> 	<span class="k">print</span> <span class="nv">$fd</span> <span class="nv">$vid</span><span class="o">.</span><span class="s">&quot;\n&quot;</span><span class="p">;</span>
+<span class="lineno">28</span> <span class="p">}</span>
+<span class="lineno">29</span> 
+<span class="lineno">30</span> <span class="c1"># Count the number of domain a vertex belongs to, if it&#39;s greater than 1</span>
+<span class="lineno">31</span> <span class="c1"># that vertex is on the interface</span>
+<span class="lineno">32</span> <span class="k">sub </span><span class="nf">CheckVertex</span> <span class="p">{</span>
+<span class="lineno">33</span> 	<span class="k">my</span> <span class="p">(</span><span class="nv">$vid</span><span class="p">,</span> <span class="nv">$domain</span><span class="p">)</span> <span class="o">=</span> <span class="nv">@_</span><span class="p">;</span>
+<span class="lineno">34</span> 	<span class="k">if</span> <span class="p">(</span><span class="nv">$vertexToDomain</span><span class="p">[</span><span class="nv">$vid</span><span class="p">]</span> <span class="o">&amp;&amp;</span> <span class="nv">$vertexToDomain</span><span class="p">[</span><span class="nv">$vid</span><span class="p">]</span> <span class="o">!=</span> <span class="nv">$domain</span><span class="p">)</span> <span class="p">{</span>
+<span class="lineno">35</span> 		<span class="nv">$interface</span><span class="p">{</span><span class="nv">$vid</span><span class="p">}</span><span class="o">++</span><span class="p">;</span>
+<span class="lineno">36</span> 	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<span class="lineno">37</span> 		<span class="nv">$vertexToDomain</span><span class="p">[</span><span class="nv">$vid</span><span class="p">]</span> <span class="o">=</span> <span class="nv">$domain</span><span class="p">;</span>
+<span class="lineno">38</span> 	<span class="p">}</span>
+<span class="lineno">39</span> <span class="p">}</span></code></pre></div>
+
+<ul>
+  <li><a href="/assets/schur/domain1.vids">domain1.vids</a></li>
+  <li><a href="/assets/schur/domain2.vids">domain2.vids</a></li>
+  <li><a href="/assets/schur/interface.vids]">interface.vids</a></li>
+</ul>
+
+<h3 id="conclusion">Conclusion</h3>
+
+<p>Finally, here is what the partition looks like:</p>
+
+<p><img src="/assets/schur/poisson2D.part2.png" alt="Alt Mesh" /></p>
+
+<p>Domains 1 and 2 respectively contain 1839 and 1834 DoFs. The interface contains 62 DoFs.
+Tools such as Metis are doing a good job at balancing the size of the sub-domains while minimizing the size of the interfaces.</p>
+
+<h2 id="reordering-the-degrees-of-freedom">Reordering the degrees of freedom</h2>
+
+<p>Now that I partitioned the domain, we have everything needed to give the sytem of linear equations the structure needed by the Schur complement method:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{equation}\left[\begin{matrix} A_{11} & 0 & A_{1\Gamma} \\\ 0 & A_{22} & A_{2\Gamma} \\\ A_{\Gamma 1} & A_{\Gamma 2} & A_{\Gamma\Gamma}\end{matrix}\right]\left[\begin{matrix} U_1 \\\ U_2 \\\ U_\Gamma\end{matrix}\right] = \left[\begin{matrix} b_1 \\\ b_2 \\\ b_\Gamma\end{matrix}\right]\label{eq:mainsystem}\end{equation} %]]></script>
+
+<p>where</p>
+
+<ul>
+  <li><code>\(A_{ii}\)</code> is the block coupling the interior of domain <code>\(i\)</code> to itself;</li>
+  <li><code>\(A_{\Gamma\Gamma}\)</code> is the block coupling the interface to itself;</li>
+  <li><code>\(A_{\Gamma i}\)</code> is the block coupling the interface to the interior of domain <code>\(i\)</code>;</li>
+  <li><code>\(A_{i\Gamma}\)</code> is the block coupling the interior of domain <code>\(i\)</code> to the interface</li>
+</ul>
+
+<h3 id="octave">Octave</h3>
+
+<p>From now on, I will be using <a href="http://www.gnu.org/software/octave">Octave</a>.</p>
+
+<p>To do the reordering I’m going to create a permutation matrix <code>\(P\)</code> out of the <code>domain1.vids</code>, <code>domain2.vids</code> and <code>interface.vids</code> and apply it to <code>\(A\)</code> (<code>\(PAP^\top\)</code>) and <code>\(b\)</code> (<code>\(Pb\)</code>) from the first step.</p>
+
+<div class="highlight"><pre><code class="language-octave" data-lang="octave"><span class="lineno">1</span> <span class="nb">load</span><span class="p">(</span><span class="s">&quot;-ascii&quot;</span><span class="p">,</span> <span class="s">&quot;domain1.vids&quot;</span><span class="p">);</span>
+<span class="lineno">2</span> <span class="nb">load</span><span class="p">(</span><span class="s">&quot;-ascii&quot;</span><span class="p">,</span> <span class="s">&quot;domain2.vids&quot;</span><span class="p">);</span>
+<span class="lineno">3</span> <span class="nb">load</span><span class="p">(</span><span class="s">&quot;-ascii&quot;</span><span class="p">,</span> <span class="s">&quot;interface.vids&quot;</span><span class="p">);</span>
+<span class="lineno">4</span> <span class="n">q</span> <span class="p">=</span> <span class="p">[</span><span class="n">domain1</span><span class="p">;</span> <span class="n">domain2</span><span class="p">;</span> <span class="n">interface</span><span class="p">];</span>
+<span class="lineno">5</span> <span class="n">A</span> <span class="p">=</span> <span class="n">A</span><span class="p">(</span><span class="n">q</span><span class="p">,</span><span class="n">q</span><span class="p">);</span>
+<span class="lineno">6</span> <span class="n">b</span> <span class="p">=</span> <span class="n">b</span><span class="p">(</span><span class="n">q</span><span class="p">);</span></code></pre></div>
+
+<p>Hereafter is the spy of the desired block matrix after applying the permutation:
+<img src="/assets/schur/spy_reordered1.png" alt="Alt Spy reordered A" /></p>
+
+<h3 id="matrix-pr0n">Matrix pr0n:</h3>
+
+<p><code>\(A_{11}\)</code>, <code>\(A_{22}\)</code> sparsity patterns are similar to the initial <code>\(A\)</code> matrix one since we took care of preserving the relative order
+of DoFs in the interior of the domains.</p>
+
+<p><code>\(A_{11}\)</code>: <img src="/assets/schur/spyA11.png" alt="Alt Spy A11" />
+<code>\(A_{22}\)</code>: <img src="/assets/schur/spyA22.png" alt="Alt Spy A22" /></p>
+
+<p>However <code>\(A_{TT}\)</code> sparsity pattern doesn’t look great considering that the geometry here is a simple polyline. The initial DoF ordering
+does not make sens on the interface. I’m going to address this in the next section.</p>
+
+<p><code>\(A_{TT}\)</code>: <img src="/assets/schur/spyATT.png" alt="Alt Spy ATT" /></p>
+
+<p><code>\(A_{T1}\)</code>: <img src="/assets/schur/spyAT1.png" alt="Alt Spy A11" /></p>
+
+<p><code>\(A_{T2}\)</code>: <img src="/assets/schur/spyAT2.png" alt="Alt Spy A11" /></p>
+
+<h3 id="att-reloaded"><code>\(A_{TT}\)</code> reloaded</h3>
+<p>I’m going to improve <code>\(A_{TT}\)</code> sparsity pattern.</p>
+
+<p>The idea is to walk the interface from one end to the other, dumping DoF ids as we go.
+This new permutation is going to preserve locality and will greatly improve the sparsity pattern of <code>\(A_{TT}\)</code>.</p>
+
+<div class="highlight"><pre><code class="language-perl" data-lang="perl"><span class="lineno">  1</span> <span class="c1">#! /usr/bin/perl</span>
+<span class="lineno">  2</span> <span class="k">use</span> <span class="n">strict</span><span class="p">;</span>
+<span class="lineno">  3</span> <span class="k">use</span> <span class="n">warnings</span><span class="p">;</span>
+<span class="lineno">  4</span> 
+<span class="lineno">  5</span> <span class="nb">open</span> <span class="k">my</span> <span class="nv">$FDTRIANGLES</span><span class="p">,</span> <span class="s">&quot;poisson2D.metis_graph&quot;</span><span class="p">;</span>
+<span class="lineno">  6</span> <span class="nb">open</span> <span class="k">my</span> <span class="nv">$FDIDS</span><span class="p">,</span> <span class="s">&quot;poisson2D.metis_graph.epart.2&quot;</span><span class="p">;</span>
+<span class="lineno">  7</span> 
+<span class="lineno">  8</span> <span class="k">my</span> <span class="nv">%triangleToVertices</span><span class="p">;</span>
+<span class="lineno">  9</span> <span class="k">my</span> <span class="nv">%vertexToTriangles</span><span class="p">;</span>
+<span class="lineno"> 10</span> <span class="k">my</span> <span class="nv">%interface</span><span class="p">;</span>
+<span class="lineno"> 11</span> <span class="k">my</span> <span class="nv">%interfaceGraph</span><span class="p">;</span>
+<span class="lineno"> 12</span> 
+<span class="lineno"> 13</span> <span class="nb">open</span> <span class="k">my</span> <span class="nv">$INTERFACEFD</span><span class="p">,</span> <span class="s">&quot;interface.vids&quot;</span><span class="p">;</span>
+<span class="lineno"> 14</span> <span class="k">while</span> <span class="p">(</span><span class="sr">&lt;$INTERFACEFD&gt;</span><span class="p">)</span> <span class="p">{</span>
+<span class="lineno"> 15</span> 	<span class="nv">$interface</span><span class="p">{</span><span class="nb">int</span><span class="p">(</span><span class="nv">$_</span><span class="p">)}</span><span class="o">++</span><span class="p">;</span>
+<span class="lineno"> 16</span> <span class="p">}</span>
+<span class="lineno"> 17</span> 
+<span class="lineno"> 18</span> <span class="c1"># Build connectivity and reverse connectivity tables for </span>
+<span class="lineno"> 19</span> <span class="c1"># domain 1 elements on the interface</span>
+<span class="lineno"> 20</span> <span class="k">my</span> <span class="nv">$triangleId</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="lineno"> 21</span> <span class="k">while</span> <span class="p">(</span><span class="sr">&lt;$FDTRIANGLES&gt;</span><span class="p">)</span> <span class="p">{</span>
+<span class="lineno"> 22</span> 	<span class="k">if</span> <span class="p">(</span><span class="sr">/(?&lt;vid1&gt;\d+) (?&lt;vid2&gt;\d+) (?&lt;vid3&gt;\d+)/</span><span class="p">)</span> <span class="p">{</span>
+<span class="lineno"> 23</span> 		<span class="o">++</span><span class="nv">$triangleId</span><span class="p">;</span>
+<span class="lineno"> 24</span> 		<span class="k">my</span> <span class="nv">$domain</span> <span class="o">=</span> <span class="sr">&lt;$FDIDS&gt;</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+<span class="lineno"> 25</span> 		<span class="k">if</span> <span class="p">(</span><span class="nv">$domain</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+<span class="lineno"> 26</span> 			<span class="n">AddVertices</span><span class="p">(</span><span class="nv">$triangleId</span><span class="p">,</span> <span class="nv">$1</span><span class="p">,</span> <span class="nv">$2</span><span class="p">,</span> <span class="nv">$3</span><span class="p">);</span>
+<span class="lineno"> 27</span> 			<span class="n">AddTriangle</span><span class="p">(</span><span class="vg">$+</span><span class="p">{</span><span class="n">vid1</span><span class="p">},</span> <span class="nv">$triangleId</span><span class="p">);</span>
+<span class="lineno"> 28</span> 			<span class="n">AddTriangle</span><span class="p">(</span><span class="vg">$+</span><span class="p">{</span><span class="n">vid2</span><span class="p">},</span> <span class="nv">$triangleId</span><span class="p">);</span>
+<span class="lineno"> 29</span> 			<span class="n">AddTriangle</span><span class="p">(</span><span class="vg">$+</span><span class="p">{</span><span class="n">vid3</span><span class="p">},</span> <span class="nv">$triangleId</span><span class="p">);</span>
+<span class="lineno"> 30</span> 		<span class="p">}</span>
+<span class="lineno"> 31</span> 	<span class="p">}</span>
+<span class="lineno"> 32</span> <span class="p">}</span>
+<span class="lineno"> 33</span> 
+<span class="lineno"> 34</span> <span class="c1"># Go through each edge and check if it&#39;s on the interface</span>
+<span class="lineno"> 35</span> <span class="k">while</span> <span class="p">(</span><span class="k">my</span> <span class="p">(</span><span class="nv">$tid</span><span class="p">,</span> <span class="nv">$vids</span><span class="p">)</span> <span class="o">=</span> <span class="nb">each</span> <span class="nv">%triangleToVertices</span><span class="p">)</span> <span class="p">{</span>
+<span class="lineno"> 36</span> 	<span class="k">for</span> <span class="p">(</span><span class="mi">0</span><span class="o">..</span><span class="nv">$#</span><span class="p">{</span><span class="nv">$vids</span><span class="p">})</span> <span class="p">{</span>
+<span class="lineno"> 37</span> 		<span class="k">my</span> <span class="p">(</span><span class="nv">$vid1</span><span class="p">,</span> <span class="nv">$vid2</span><span class="p">)</span> <span class="o">=</span> <span class="nv">@</span><span class="p">{</span><span class="nv">$vids</span><span class="p">}[</span><span class="nv">$_</span><span class="p">,</span> <span class="p">(</span><span class="nv">$_</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="nv">%</span> <span class="err">@</span><span class="p">{</span><span class="nv">$vids</span><span class="p">}];</span>
+<span class="lineno"> 38</span> 		<span class="k">if</span> <span class="p">(</span><span class="n">IsInterfaceEdge</span><span class="p">(</span><span class="nv">$vid1</span><span class="p">,</span> <span class="nv">$vid2</span><span class="p">))</span> <span class="p">{</span>
+<span class="lineno"> 39</span> 			<span class="n">AddInterfaceEdge</span><span class="p">(</span><span class="nv">$vid1</span><span class="p">,</span> <span class="nv">$vid2</span><span class="p">);</span>
+<span class="lineno"> 40</span> 		<span class="p">}</span>
+<span class="lineno"> 41</span> 	<span class="p">}</span>
+<span class="lineno"> 42</span> <span class="p">}</span>
+<span class="lineno"> 43</span> 
+<span class="lineno"> 44</span> <span class="c1"># Walk the interface</span>
+<span class="lineno"> 45</span> <span class="k">my</span> <span class="nv">$start</span> <span class="o">=</span> <span class="n">FindInterfaceEnd</span><span class="p">();</span>
+<span class="lineno"> 46</span> <span class="n">WalkInterface</span><span class="p">(</span><span class="nv">$start</span><span class="p">,</span> <span class="nv">$start</span><span class="p">);</span>
+<span class="lineno"> 47</span> 
+<span class="lineno"> 48</span> <span class="k">sub </span><span class="nf">AddVertices</span> <span class="p">{</span>
+<span class="lineno"> 49</span> 	<span class="k">my</span> <span class="p">(</span><span class="nv">$tid</span><span class="p">,</span> <span class="nv">$vid1</span><span class="p">,</span> <span class="nv">$vid2</span><span class="p">,</span> <span class="nv">$vid3</span><span class="p">)</span> <span class="o">=</span> <span class="nv">@_</span><span class="p">;</span>
+<span class="lineno"> 50</span> 	<span class="k">if</span> <span class="p">(</span><span class="nb">exists</span> <span class="nv">$interface</span><span class="p">{</span><span class="nv">$vid1</span><span class="p">}</span> <span class="o">||</span> <span class="nb">exists</span> <span class="nv">$interface</span><span class="p">{</span><span class="nv">$vid2</span><span class="p">}</span> <span class="o">||</span> <span class="nb">exists</span> <span class="nv">$interface</span><span class="p">{</span><span class="nv">$vid3</span><span class="p">})</span> <span class="p">{</span>
+<span class="lineno"> 51</span> 		<span class="nv">$triangleToVertices</span><span class="p">{</span><span class="nv">$tid</span><span class="p">}</span> <span class="o">=</span> <span class="p">[</span><span class="nv">$vid1</span><span class="p">,</span> <span class="nv">$vid2</span><span class="p">,</span> <span class="nv">$vid3</span><span class="p">];</span>
+<span class="lineno"> 52</span> 	<span class="p">}</span>
+<span class="lineno"> 53</span> <span class="p">}</span>
+<span class="lineno"> 54</span> 
+<span class="lineno"> 55</span> <span class="k">sub </span><span class="nf">AddTriangle</span> <span class="p">{</span>
+<span class="lineno"> 56</span> 	<span class="k">my</span> <span class="p">(</span><span class="nv">$vid</span><span class="p">,</span> <span class="nv">$tid</span><span class="p">)</span> <span class="o">=</span> <span class="nv">@_</span><span class="p">;</span>
+<span class="lineno"> 57</span> 	<span class="k">if</span> <span class="p">(</span><span class="nb">exists</span> <span class="nv">$interface</span><span class="p">{</span><span class="nv">$vid</span><span class="p">})</span> <span class="p">{</span>
+<span class="lineno"> 58</span> 		<span class="nv">$vertexToTriangles</span><span class="p">{</span><span class="nv">$vid</span><span class="p">}{</span><span class="nv">$tid</span><span class="p">}</span><span class="o">++</span><span class="p">;</span>
+<span class="lineno"> 59</span> 	<span class="p">}</span>
+<span class="lineno"> 60</span> <span class="p">}</span>
+<span class="lineno"> 61</span> 
+<span class="lineno"> 62</span> <span class="k">sub </span><span class="nf">AddInterfaceEdge</span> <span class="p">{</span>
+<span class="lineno"> 63</span> 	<span class="k">my</span> <span class="p">(</span><span class="nv">$vid1</span><span class="p">,</span> <span class="nv">$vid2</span><span class="p">)</span> <span class="o">=</span> <span class="nv">@_</span><span class="p">;</span>
+<span class="lineno"> 64</span> 	<span class="nv">$interfaceGraph</span><span class="p">{</span><span class="nv">$vid1</span><span class="p">}{</span><span class="nv">$vid2</span><span class="p">}</span><span class="o">++</span><span class="p">;</span>
+<span class="lineno"> 65</span> 	<span class="nv">$interfaceGraph</span><span class="p">{</span><span class="nv">$vid2</span><span class="p">}{</span><span class="nv">$vid1</span><span class="p">}</span><span class="o">++</span><span class="p">;</span>
+<span class="lineno"> 66</span> <span class="p">}</span>
+<span class="lineno"> 67</span> 
+<span class="lineno"> 68</span> <span class="c1"># An interface edge has its two vertices on the interface </span>
+<span class="lineno"> 69</span> <span class="c1"># and belongs to one and only one domain 1 triangle.</span>
+<span class="lineno"> 70</span> <span class="k">sub </span><span class="nf">IsInterfaceEdge</span> <span class="p">{</span>
+<span class="lineno"> 71</span> 	<span class="k">my</span> <span class="p">(</span><span class="nv">$vid1</span><span class="p">,</span> <span class="nv">$vid2</span><span class="p">)</span> <span class="o">=</span> <span class="nv">@_</span><span class="p">;</span>
+<span class="lineno"> 72</span> 
+<span class="lineno"> 73</span> 	<span class="k">return</span> <span class="mi">0</span> <span class="k">unless</span> <span class="nb">exists</span> <span class="nv">$interface</span><span class="p">{</span><span class="nv">$vid1</span><span class="p">}</span> <span class="o">&amp;&amp;</span> <span class="nb">exists</span> <span class="nv">$interface</span><span class="p">{</span><span class="nv">$vid2</span><span class="p">};</span>
+<span class="lineno"> 74</span> 
+<span class="lineno"> 75</span> 	<span class="k">my</span> <span class="nv">@tids1</span> <span class="o">=</span> <span class="nb">keys</span> <span class="nv">%</span><span class="p">{</span><span class="nv">$vertexToTriangles</span><span class="p">{</span><span class="nv">$vid1</span><span class="p">}};</span>
+<span class="lineno"> 76</span> 	<span class="k">my</span> <span class="nv">@tids2</span> <span class="o">=</span> <span class="nb">keys</span> <span class="nv">%</span><span class="p">{</span><span class="nv">$vertexToTriangles</span><span class="p">{</span><span class="nv">$vid2</span><span class="p">}};</span>
+<span class="lineno"> 77</span> 
+<span class="lineno"> 78</span> 	<span class="k">my</span> <span class="nv">%union</span><span class="p">;</span>
+<span class="lineno"> 79</span> 	<span class="k">my</span> <span class="nv">$triangleCount</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="lineno"> 80</span> 	<span class="k">for</span> <span class="k">my</span> <span class="nv">$tid</span> <span class="p">(</span><span class="nv">@tids1</span><span class="p">,</span> <span class="nv">@tids2</span><span class="p">)</span> <span class="p">{</span>
+<span class="lineno"> 81</span> 		<span class="k">if</span> <span class="p">(</span><span class="o">++</span><span class="nv">$union</span><span class="p">{</span><span class="nv">$tid</span><span class="p">}</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
+<span class="lineno"> 82</span> 			<span class="nv">$triangleCount</span><span class="o">++</span><span class="p">;</span>
+<span class="lineno"> 83</span> 		<span class="p">}</span>
+<span class="lineno"> 84</span> 	<span class="p">}</span>
+<span class="lineno"> 85</span> 
+<span class="lineno"> 86</span> 	<span class="k">return</span> <span class="nv">$triangleCount</span> <span class="o">==</span> <span class="mi">1</span><span class="p">;</span>
+<span class="lineno"> 87</span> <span class="p">}</span>
+<span class="lineno"> 88</span> 
+<span class="lineno"> 89</span> <span class="c1"># The interface should have two ends.</span>
+<span class="lineno"> 90</span> <span class="c1"># An end is simply a vertex connected to only one other vertex.</span>
+<span class="lineno"> 91</span> <span class="k">sub </span><span class="nf">FindInterfaceEnd</span> <span class="p">{</span>
+<span class="lineno"> 92</span> 	<span class="k">while</span> <span class="p">(</span><span class="k">my</span> <span class="p">(</span><span class="nv">$from</span><span class="p">,</span> <span class="nv">$tos</span><span class="p">)</span> <span class="o">=</span> <span class="nb">each</span> <span class="nv">%interfaceGraph</span><span class="p">)</span> <span class="p">{</span>
+<span class="lineno"> 93</span> 		<span class="k">if</span> <span class="p">(</span><span class="nb">keys</span> <span class="nv">%</span><span class="p">{</span><span class="nv">$tos</span><span class="p">}</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+<span class="lineno"> 94</span> 			<span class="k">return</span> <span class="nv">$from</span><span class="p">;</span>
+<span class="lineno"> 95</span> 		<span class="p">}</span>
+<span class="lineno"> 96</span> 	<span class="p">}</span>
+<span class="lineno"> 97</span> 	<span class="nb">exit</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+<span class="lineno"> 98</span> <span class="p">}</span>
+<span class="lineno"> 99</span> 
+<span class="lineno">100</span> <span class="c1"># Perform a simple DFS to walk the interface </span>
+<span class="lineno">101</span> <span class="c1"># and print the vertex ids as we go.</span>
+<span class="lineno">102</span> <span class="k">sub </span><span class="nf">WalkInterface</span> <span class="p">{</span>
+<span class="lineno">103</span> 	<span class="k">my</span> <span class="p">(</span><span class="nv">$u</span><span class="p">,</span> <span class="nv">$v</span><span class="p">)</span> <span class="o">=</span> <span class="nv">@_</span><span class="p">;</span>
+<span class="lineno">104</span> 	<span class="k">print</span> <span class="nv">$v</span><span class="o">.</span><span class="s">&quot;\n&quot;</span><span class="p">;</span>
+<span class="lineno">105</span> 	<span class="k">for</span> <span class="p">(</span><span class="nb">keys</span> <span class="nv">%</span><span class="p">{</span><span class="nv">$interfaceGraph</span><span class="p">{</span><span class="nv">$v</span><span class="p">}})</span> <span class="p">{</span>
+<span class="lineno">106</span> 		<span class="k">next</span> <span class="k">if</span> <span class="nv">$_</span> <span class="o">==</span> <span class="nv">$u</span><span class="p">;</span>
+<span class="lineno">107</span> 		<span class="k">return</span> <span class="n">WalkInterface</span><span class="p">(</span><span class="nv">$v</span><span class="p">,</span> <span class="nv">$_</span><span class="p">);</span>
+<span class="lineno">108</span> 	<span class="p">}</span>
+<span class="lineno">109</span> <span class="p">}</span></code></pre></div>
+
+<p><a href="/assets/schur/interface2.vids]">interface2.vids</a></p>
+
+<p>And … voila:</p>
+
+<p><code>\(A_{TT}\)</code>: <img src="/assets/schur/spyATT2.png" alt="Alt Spy ATT" /></p>
+
+<p>If you’re wondering how can one interface DoF be coupled to 4 other DoFs, this happens when
+one interface DoF belongs to 2 triangles and each of these triangles has all its
+vertices on the interface.</p>
+
+<h3 id="conclusion-1">Conclusion</h3>
+
+<p>We’re done doing the reordering. Here is the final version:</p>
+
+<p><img src="/assets/schur/spy_reordered21.png" alt="Alt Spy A reordered final" />
+<img src="/assets/schur/spy_reordered22.png" alt="Alt Spy A reordered final detail ATT" /></p>
+
+<p>We’re now ready to define a few more variables in Octave:</p>
+
+<div class="highlight"><pre><code class="language-octave" data-lang="octave"><span class="lineno"> 1</span> <span class="n">i1</span> <span class="p">=</span> <span class="nb">length</span><span class="p">(</span><span class="n">domain1</span><span class="p">);</span>
+<span class="lineno"> 2</span> <span class="n">i2</span> <span class="p">=</span> <span class="n">i1</span> <span class="o">+</span> <span class="nb">length</span><span class="p">(</span><span class="n">domain2</span><span class="p">);</span>
+<span class="lineno"> 3</span> 
+<span class="lineno"> 4</span> <span class="n">A11</span> <span class="p">=</span> <span class="n">AA</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">i1</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="n">i1</span><span class="p">);</span>
+<span class="lineno"> 5</span> <span class="n">A1T</span> <span class="p">=</span> <span class="n">AA</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">i1</span><span class="p">,</span> <span class="n">i2</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="k">end</span><span class="p">);</span>
+<span class="lineno"> 6</span> <span class="n">A22</span> <span class="p">=</span> <span class="n">AA</span><span class="p">(</span><span class="n">i1</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="n">i2</span><span class="p">,</span> <span class="n">i1</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="n">i2</span><span class="p">);</span>
+<span class="lineno"> 7</span> <span class="n">A2T</span> <span class="p">=</span> <span class="n">AA</span><span class="p">(</span><span class="n">i1</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="n">i2</span><span class="p">,</span> <span class="n">i2</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="k">end</span><span class="p">);</span>
+<span class="lineno"> 8</span> <span class="n">AT1</span> <span class="p">=</span> <span class="n">AA</span><span class="p">(</span><span class="n">i2</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="k">end</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="n">i1</span><span class="p">);</span>
+<span class="lineno"> 9</span> <span class="n">AT2</span> <span class="p">=</span> <span class="n">AA</span><span class="p">(</span><span class="n">i2</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="k">end</span><span class="p">,</span> <span class="n">i1</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="n">i2</span><span class="p">);</span>
+<span class="lineno">10</span> <span class="n">ATT</span> <span class="p">=</span> <span class="n">AA</span><span class="p">(</span><span class="n">i2</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="k">end</span><span class="p">,</span> <span class="n">i2</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="k">end</span><span class="p">);</span>
+<span class="lineno">11</span> <span class="n">U</span> <span class="p">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="nb">length</span><span class="p">(</span><span class="n">A</span><span class="p">),</span> <span class="mi">1</span><span class="p">);</span>
+<span class="lineno">12</span> <span class="n">clear</span> <span class="n">A</span><span class="p">;</span>
+<span class="lineno">13</span> 
+<span class="lineno">14</span> <span class="n">F1</span> <span class="p">=</span> <span class="n">F</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">i1</span><span class="p">);</span>
+<span class="lineno">15</span> <span class="n">F2</span> <span class="p">=</span> <span class="n">F</span><span class="p">(</span><span class="n">i1</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="n">i2</span><span class="p">);</span>
+<span class="lineno">16</span> <span class="n">FT</span> <span class="p">=</span> <span class="n">F</span><span class="p">(</span><span class="n">i2</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="k">end</span><span class="p">);</span>
+<span class="lineno">17</span> <span class="n">clear</span> <span class="n">F</span><span class="p">;</span></code></pre></div>
+
+<h2 id="solving-on-the-interface">Solving on the interface</h2>
+
+<h3 id="block-gaussian-elimination">Block Gaussian elimination</h3>
+
+<p>Being able to solve first for the interface without even considering what’s happening in the interior of the subdomains 
+might seem magical: this is nothing more than block Gaussian elimination applied to the matrix we crafted
+in the previous stages. In <code>\(\eqref{eq:mainsystem}\)</code>, multiply the first line by <code>\(A_{T1}A_{11}^{-1}\)</code>, the second line by <code>\(A_{T2}A_{22}^{-1}\)</code>,
+substract both quantities from the third line and you end up with:</p>
+
+<script type="math/tex; mode=display">(A_{TT} - A_{T1}A_{11}^{-1}A_{1T} - A_{T2}A_{22}^{-1}A_{2T})U_{T} = F_{T} - A_{T1}A_{11}^{-1}F_{1} - A_{T2}A_{22}^{-1}F_{2}</script>
+
+<p>In other words, we need to solve:</p>
+
+<script type="math/tex; mode=display">\begin{equation}\Sigma U_{T} = \tilde{b}\label{eq:interfacesystem}\end{equation}</script>
+
+<p>where <code>\(\Sigma = A_{TT} - A_{T1}A_{11}^{-1}A_{1T} - A_{T2}A_{22}^{-1}A_{2T}\)</code>
+and <code>\(\tilde{b} = F_{T} - A_{T1}A_{11}^{-1}F_{1} - A_{T2}A_{22}^{-1}F_{2}\)</code></p>
+
+<h3 id="schur-complement">Schur complement</h3>
+
+<p>In the numerical analysis lingo, <code>\(\Sigma\)</code> is known as the Schur complement of <code>\(A_{TT}\)</code> in <code>\(A\)</code>.</p>
+
+<p>As we can see, both <code>\(\Sigma\)</code> and <code>\(\tilde{b}\)</code> depend on <code>\(A_{11}^{-1}\)</code> and <code>\(A_{22}^{-1}\)</code>.
+However, <code>\(A_{11}\)</code> and <code>\(A_{22}\)</code> are large matrices we should try not to invert.</p>
+
+<p>Anyway, let’s explicitely compute the Schur complement for our baby problem and have a look:</p>
+
+<div class="highlight"><pre><code class="language-octave" data-lang="octave"><span class="lineno">1</span> <span class="c">% Bad bad bad !</span>
+<span class="lineno">2</span> <span class="nb">spy</span><span class="p">(</span><span class="n">ATT</span> <span class="o">-</span> <span class="n">AT1</span> <span class="o">*</span> <span class="nb">inv</span><span class="p">(</span><span class="n">A11</span><span class="p">)</span> <span class="o">*</span> <span class="n">A1T</span> <span class="o">+</span> <span class="n">AT2</span> <span class="o">*</span> <span class="nb">inv</span><span class="p">(</span><span class="n">A22</span><span class="p">)</span> <span class="o">*</span> <span class="n">A2T</span><span class="p">);</span></code></pre></div>
+
+<p>It’s crazy dense!</p>
+
+<p><img src="/assets/schur/spySchur.png" alt="Alt Spy Schur" /></p>
+
+<p>Furthermore Octave tells us that <code>\(A_{11}\)</code> and <code>\(A_{22}\)</code> are singular to machine precision:
+<code>warning: inverse: matrix singular to machine precision, rcond = 1.65116e-30</code></p>
+
+<h3 id="iterative-method">Iterative method</h3>
+
+<p>To summarize we would like to avoid:</p>
+
+<ol>
+  <li>explicitely computing <code>\(\Sigma\)</code> in order to solve <code>\(\eqref{eq:interfacesystem}\)</code>;</li>
+  <li>explicitely inverting <code>\(A_{11}\)</code> or <code>\(A_{22}\)</code></li>
+</ol>
+
+<p>If we try to satisfy these two constraints, it is clear that we can’t use a direct method to solve <code>\(\eqref{eq:interfacesystem}\)</code>.
+On the other hand, if we choose an iterative method such as the preconditioned conjugate gradient method (PCG),
+we just need to mulitply, each iteration of the method, a current solution <code>\(u\)</code> by <code>\(\Sigma\)</code>. Multiplying by <code>\(\Sigma\)</code> is 
+a different story than explicitely computing <code>\(\Sigma\)</code>:</p>
+
+<script type="math/tex; mode=display">\Sigma u = A_{TT}u - A_{T1}A_{11}^{-1}A_{1T}u - A_{T2}A_{22}^{-1}A_{2T}u</script>
+
+<h3 id="decoupled-dirichlet-problems">Decoupled Dirichlet problems</h3>
+
+<p>I’m now going to describe a simple tactic to evaluate <code>\(A_{11}^{-1}A_{1T}u\)</code> and <code>\(A_{22}^{-1}A_{2T}u\)</code> without inverting <code>\(A_{11}\)</code> and <code>\(A_{22}\)</code>.</p>
+
+<p>Assume you’re given a very large invertible matrix <code>\(A\)</code> and one (1) vector <code>\(b\)</code> and you’re tasked to compute the quantity <code>\(A^{-1}b\)</code>.
+Would you explicitely compute <code>\(A^{-1}\)</code> ? 
+Probably not.
+What you would do instead is to find <code>\(x\)</code> such that <code>\(Ax=b\)</code>.
+Then <code>\(x=A^{-1}b\)</code>, which is what you were tasked to compute.</p>
+
+<p>Following this idea, I’m going to use a direct method to compute these quantities: I will compute the LU decomposition of <code>\(A_{11}\)</code> (respectively <code>\(A_{22}\)</code>) once and for all, and every PCG iteration, compute <code>\(b = A_{1T} * u\)</code> (respectively <code>\(b = A_{2T} * u\)</code>) and solve <code>\(A_{11}x=b\)</code> (respectively <code>\(A_{22}x=b\)</code>). The same tactic is used to compute <code>\(A_{11}^{-1}F_{1}\)</code> and <code>\(A_{22}^{-1}F_{2}\)</code> in <code>\(\tilde{b}\)</code>.</p>
+
+<p>Each iteration of the PCG, we end up solving decoupled <a href="http://en.wikipedia.org/wiki/Dirichlet_problem">Dirichlet problems</a> on each domain.</p>
+
+<p>All together, this looks like this:</p>
+
+<div class="highlight"><pre><code class="language-octave" data-lang="octave"><span class="lineno"> 1</span> <span class="p">[</span><span class="n">L11</span><span class="p">,</span> <span class="n">U11</span><span class="p">,</span> <span class="n">p11</span><span class="p">,</span> <span class="n">q11</span><span class="p">]</span> <span class="p">=</span> <span class="nb">lu</span><span class="p">(</span><span class="n">A11</span><span class="p">,</span> <span class="s">&#39;vector&#39;</span><span class="p">);</span>
+<span class="lineno"> 2</span> <span class="n">q11t</span><span class="p">(</span><span class="n">q11</span><span class="p">)</span> <span class="p">=</span> <span class="mi">1</span><span class="p">:</span><span class="nb">length</span><span class="p">(</span><span class="n">q11</span><span class="p">);</span>
+<span class="lineno"> 3</span> <span class="n">clear</span> <span class="n">A11</span><span class="p">;</span>
+<span class="lineno"> 4</span> <span class="n">clear</span> <span class="n">q11</span><span class="p">;</span>
+<span class="lineno"> 5</span> 
+<span class="lineno"> 6</span> <span class="p">[</span><span class="n">L22</span><span class="p">,</span> <span class="n">U22</span><span class="p">,</span> <span class="n">p22</span><span class="p">,</span> <span class="n">q22</span><span class="p">]</span> <span class="p">=</span> <span class="nb">lu</span><span class="p">(</span><span class="n">A22</span><span class="p">,</span> <span class="s">&#39;vector&#39;</span><span class="p">);</span>
+<span class="lineno"> 7</span> <span class="n">q22t</span><span class="p">(</span><span class="n">q22</span><span class="p">)</span> <span class="p">=</span> <span class="mi">1</span><span class="p">:</span><span class="nb">length</span><span class="p">(</span><span class="n">q22</span><span class="p">);</span>
+<span class="lineno"> 8</span> <span class="n">clear</span> <span class="n">A22</span><span class="p">;</span>
+<span class="lineno"> 9</span> <span class="n">clear</span> <span class="n">q22</span><span class="p">;</span>
+<span class="lineno">10</span> 
+<span class="lineno">11</span> <span class="n">FT</span> <span class="o">-=</span> <span class="n">AT1</span> <span class="o">*</span> <span class="p">(</span><span class="n">U11</span> <span class="o">\</span> <span class="p">(</span><span class="n">L11</span> <span class="o">\</span> <span class="n">F1</span><span class="p">(</span><span class="n">p11</span><span class="p">)))(</span><span class="n">q11t</span><span class="p">)</span> <span class="p">...</span>
+<span class="lineno">12</span> 	<span class="o">+</span> <span class="n">AT2</span> <span class="o">*</span> <span class="p">(</span><span class="n">U22</span> <span class="o">\</span> <span class="p">(</span><span class="n">L22</span> <span class="o">\</span> <span class="n">F2</span><span class="p">(</span><span class="n">p22</span><span class="p">)))(</span><span class="n">q22t</span><span class="p">);</span>
+<span class="lineno">13</span> 
+<span class="lineno">14</span> <span class="n">U</span><span class="p">(</span><span class="n">i2</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="k">end</span><span class="p">)</span> <span class="p">=</span> <span class="nb">pcg</span><span class="p">(@(</span><span class="n">x</span><span class="p">)</span> <span class="p">...</span>
+<span class="lineno">15</span> 	<span class="n">ATT</span> <span class="o">*</span> <span class="n">x</span> <span class="p">...</span>
+<span class="lineno">16</span> 	<span class="o">-</span> <span class="n">AT1</span> <span class="o">*</span> <span class="p">(</span><span class="n">U11</span> <span class="o">\</span> <span class="p">(</span><span class="n">L11</span> <span class="o">\</span> <span class="p">(</span><span class="n">A1T</span> <span class="o">*</span> <span class="n">x</span><span class="p">)(</span><span class="n">p11</span><span class="p">)))(</span><span class="n">q11t</span><span class="p">)</span> <span class="p">...</span>
+<span class="lineno">17</span> 	<span class="o">-</span> <span class="n">AT2</span> <span class="o">*</span> <span class="p">(</span><span class="n">U22</span> <span class="o">\</span> <span class="p">(</span><span class="n">L22</span> <span class="o">\</span> <span class="p">(</span><span class="n">A2T</span> <span class="o">*</span> <span class="n">x</span><span class="p">)(</span><span class="n">p22</span><span class="p">)))(</span><span class="n">q22t</span><span class="p">),</span> <span class="n">FT</span><span class="p">,</span> <span class="mf">1.e-9</span><span class="p">,</span> <span class="mi">200</span><span class="p">);</span>
+<span class="lineno">18</span> 
+<span class="lineno">19</span> <span class="n">clear</span> <span class="n">ATT</span><span class="p">;</span>
+<span class="lineno">20</span> <span class="n">clear</span> <span class="n">FT</span><span class="p">;</span></code></pre></div>
+
+<p>Solution on the interface:</p>
+
+<p><img src="/assets/schur/poisson2D.solInterface.png" alt="Alt Solution interface" /></p>
+
+<h3 id="conclusion-2">Conclusion</h3>
+
+<p>I think the method in this post is along the lines of what was described in the wikipedia article:</p>
+
+<blockquote>
+  <p>The important thing to note is that the computation of any quantities involving <code>\(A_{11}^{-1}\)</code> or <code>\(A_{22}^{-1}\)</code> involves solving 
+decoupled Dirichlet problems on each domain, and these can be done in parallel. Consequently, we need not store the Schur complement matrix 
+explicitly; it is sufficient to know how to multiply a vector by it.</p>
+</blockquote>
+
+<p>Note that it is not the only method.</p>
+
+<h2 id="solving-on-the-subdomains">Solving on the subdomains</h2>
+
+<p>Once we computed <code>\(U_{T}\)</code>, the solution on the interface, we can quickly solve in parallel for <code>\(U_{1}\)</code> and <code>\(U_{2}\)</code> as we already computed the LU decomposition of both <code>\(A_{11}\)</code> and <code>\(A_{22}\)</code>.</p>
+
+<h3 id="subdomain-1">Subdomain 1</h3>
+<p>First line of <code>\(\eqref{eq:mainsystem}\)</code> gives us
+<script type="math/tex">A_{11} U_{1} = F_{1} - A_{1T} U_{T}</script></p>
+
+<div class="highlight"><pre><code class="language-octave" data-lang="octave"><span class="lineno">1</span> <span class="n">U</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">i1</span><span class="p">)</span> <span class="p">=</span> <span class="p">(</span><span class="n">U11</span> <span class="o">\</span> <span class="p">(</span><span class="n">L11</span> <span class="o">\</span> <span class="p">(</span><span class="n">F1</span> <span class="o">-</span> <span class="n">A1T</span> <span class="o">*</span> <span class="n">U</span><span class="p">(</span><span class="n">i2</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="k">end</span><span class="p">))(</span><span class="n">p11</span><span class="p">)))(</span><span class="n">q11t</span><span class="p">);</span></code></pre></div>
+
+<p><img src="/assets/schur/poisson2D.sol1.png" alt="Alt Solution domain 1" /></p>
+
+<h3 id="subdomain-2">Subdomain 2</h3>
+<p>Similarly, second line of <code>\(\eqref{eq:mainsystem}\)</code> gives us
+<script type="math/tex">A_{22} U_{2} = F_{2} - A_{2T} U_{T}</script></p>
+
+<div class="highlight"><pre><code class="language-octave" data-lang="octave"><span class="lineno">1</span> <span class="n">U</span><span class="p">(</span><span class="n">i1</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="n">i2</span><span class="p">)</span> <span class="p">=</span> <span class="p">(</span><span class="n">U22</span> <span class="o">\</span> <span class="p">(</span><span class="n">L22</span> <span class="o">\</span> <span class="p">(</span><span class="n">F2</span> <span class="o">-</span> <span class="n">A2T</span> <span class="o">*</span> <span class="n">U</span><span class="p">(</span><span class="n">i2</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="k">end</span><span class="p">))(</span><span class="n">p22</span><span class="p">)))(</span><span class="n">q22t</span><span class="p">);</span></code></pre></div>
+
+<p><img src="/assets/schur/poisson2D.sol2.png" alt="Alt Solution domain 2" /></p>
+
+<p>Ultimately we need to revert ordering of the DoFs to display the solution:</p>
+
+<div class="highlight"><pre><code class="language-octave" data-lang="octave"><span class="lineno">1</span> <span class="c">% Reorder back DoFs</span>
+<span class="lineno">2</span> <span class="n">p</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="p">=</span> <span class="mi">1</span><span class="p">:</span><span class="nb">length</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="lineno">3</span> <span class="n">U</span> <span class="p">=</span> <span class="n">U</span><span class="p">(</span><span class="n">p</span><span class="p">);</span></code></pre></div>
+
+<h3 id="fusiiiiiiiiiiiiion-">Fusiiiiiiiiiiiiion !</h3>
+
+<p><img src="/assets/schur/fusion.png" alt="Alt Fusion" /></p>
+
+<h3 id="boum-o">Boum \o/</h3>
+
+<p><img src="/assets/schur/poisson2D.sol.filled.png" alt="Alt Solution" /></p>
+
+<h2 id="conclusion-3">Conclusion</h2>
+<p>Hopefully, you now have a good overview of how one can implement the Schur complement method.
+I also hope that it wasn’t too boring and that you’re going to reuse that knowledge for your own projects.
+I didn’t talk about implementing the method for more than 2 subdomains, preconditioning, parallel implementation, &amp;c.
+Another time.</p>
+
+<h3 id="in-the-next-episode">In the next episode</h3>
+<p>In the next episode, “The Schur Complement Method: Part 2”, I’m going to describe … the <em>DUAL</em> Schur complement method.
+It’s going to be a little more involved but not that much.</p>
+
+
+    <hr>
+    <div class="pagination btn-group">
+      
+        <a class="btn prev" href="/2013/10/12/hello-world" title="Hello World">&larr; Previous</a>
+      
+        <a class="btn" href="/archive.html">Archive</a>
+      
+        <a class="btn next" href="/home%20automation/2013/12/05/the-chilli-power-board" title="The Chilli Power Board">Next &rarr;</a>
+      
+    </div>
+    <hr>
+    
+
+
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_developer = 1;
+    var disqus_shortname = 'ssrb'; // required: replace example with your forum shortname
+    
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+
+
+  </div>
+  
+  <div class="span4">
+    <section>
+      <h4>Published</h4>
+      <div class="date"><span>22 October 2013</span></div>
+    </section>
+    
+      <section>
+        <h4>Category</h4>
+        <span class="category">
+          Numerical methods
+        </span>
+      </section>
+         
+    
+      <section>
+        <h4>Tags</h4>
+        <ul class="tag_box">
+          
+          
+
+
+  
+     
+    	<li><a href="/tags.html#mathematics-ref">mathematics <span>7</span></a></li>
+     
+    	<li><a href="/tags.html#parallel computing-ref">parallel computing <span>7</span></a></li>
+    
+  
+
+
+
+        </ul>
+      </section>
+             
+  </div>
+</div>
+
+
+      </div>
+
+      <footer>
+        <p>&copy; 2018 Sébastien Bigot
+          with help from <a href="http://jekyllbootstrap.com" target="_blank" title="The Definitive Jekyll Blogging Framework">Jekyll Bootstrap</a>
+          and <a href="http://github.com/dhulihan/hooligan" target="_blank">The Hooligan Theme</a>
+        </p>
+      </footer>
+    </div> <!-- /container -->
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="/assets/themes/hooligan/js/jquery.min.js"><\/script>')</script>
+    <script src="/assets/themes/hooligan/bootstrap/js/bootstrap.min.js"></script>
+    
+    
+    
+  </body>
+</html>
+

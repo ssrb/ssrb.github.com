@@ -1,0 +1,282 @@
+<html>
+<body onload="main()" onresize="canvas.resize()">
+<script src="js/CanvasMatrix.js" type="text/javascript"></script>
+<script src="js/Controls.js" type="text/javascript"></script>
+<!--script src="js/mesh.js" type="text/javascript"></script>
+<script src="http://www.numericjs.com/lib/numeric-1.2.6.min.js" type="text/javascript"></script-->
+
+<script id="shader-vs" type="x-shader/x-vertex">
+  attribute vec2 aPos;
+  //attribute float aSol;
+  varying float sol;
+
+  uniform mat4 mvMatrix;
+  uniform mat4 prMatrix;
+
+  //uniform float solMin, solMax;
+
+  void main(void) {
+    //z = 10. * aSol
+     gl_Position = prMatrix * mvMatrix * vec4(aPos, 0., 1.);
+     sol = 0.1;//1. - (aSol - solMin) / (solMax - solMin);
+  }
+</script> 
+ 
+<script id="shader-fs" type="x-shader/x-fragment"> 
+precision highp float;
+varying float sol;
+
+vec3 heatcolor() {
+
+  float h = 4. * sol, 
+  s = 1., 
+  v = 0.8,
+  f = h - floor(h),
+  p = v * (1. - s),
+  q = v * (1. - s * f),
+  t = v * (1. - s * (1. - f));
+
+  if (h <= 1.) {
+    return vec3(v, t, p);
+  }
+
+  if (h <= 2.) {
+    return vec3(q, v, p);
+  }
+
+  if (h <= 3.) {
+    return vec3(p, v, t);
+  }
+
+  return vec3(p, q, v);
+}
+
+void main(void) {
+   gl_FragColor = vec4(heatcolor(), 1.);
+}
+</script> 
+
+<script type="text/javascript">  
+
+var prg_show, c_w, c_h, mvMatLoc, rotMat, posLocation, vertex2Border;
+
+function epsg3857ToGoogle(x, y) {
+  var earthRadius = 6378137;
+  return { x: 256 * (0.5 + x / (2 * Math.PI * earthRadius)) , y: 256 * (0.5 - y / (2 * Math.PI * earthRadius))}
+}
+
+var pi_180 = Math.PI / 180.0;
+var pi_4 = Math.PI * 4;
+
+function LatLongToPixelXY(latitude, longitude) {
+
+  var sinLatitude = Math.sin(latitude * pi_180);
+  var pixelY = (0.5 - Math.log((1 + sinLatitude) / (1 - sinLatitude)) /(pi_4)) * 256;
+  var pixelX = ((longitude + 180) / 360) * 256;
+
+  //var pixel = new Object();
+  //pixel.x = (0.5 + pixelX) | 0;
+  //pixel.y = (0.5 + pixelY) | 0;
+
+  var pixel =  { x: pixelX, y: pixelY};
+  
+  return pixel;
+}
+
+  var d = 0.00955042966330666;
+  var xmin = 250.816739768889;
+  var ymin = 162.523014276134;
+
+function main() {
+
+    var req = new XMLHttpRequest();
+    req.open('GET', '/assets/lyttelton/lyttelton.mesh', false);
+    req.send();
+    if (req.readyState == XMLHttpRequest.DONE) {
+      var lines = req.responseText.split("\n");
+      var index = 0;
+      for (;index < lines.length && lines[index] != "Vertices"; ++index) {
+      }
+      ++index;
+      
+      var nbVertice = parseInt(lines[index], 10);
+      ++index;
+
+      var i;
+      vertices = [];
+      
+   
+
+      for (i = 0; i < nbVertice; ++i, ++index) {
+        var array = lines[index].match(/^([-e\d\.]+) ([-e\d\.]+) ([\d]+)$/);
+            vertices[2 * i] =  parseFloat(array[1]) ;
+            vertices[2 * i + 1] = parseFloat(array[2]);
+
+            // var pt = epsg3857ToGoogle(vertices[2 * i], vertices[2 * i + 1]);
+            // vertices[2 * i] = pt.x;
+            // vertices[2 * i + 1] = pt.y;          
+      }
+
+      // var xmin = vertices[0], xmax = vertices[0], ymin = vertices[1], ymax = vertices[1];
+     
+      // for (i = 0; i < nbVertice; ++i) {
+      //   xmin = Math.min(xmin, vertices[2 * i]);
+      //   xmax = Math.max(xmax, vertices[2 * i]);
+      //   ymin = Math.min(ymin, vertices[2 * i + 1]);
+      //   ymax = Math.max(ymax, vertices[2 * i + 1]);
+      // }
+
+      // var d = Math.max(xmax - xmin, ymax - ymin);
+
+      // for (i = 0; i < nbVertice; ++i) {
+      //   vertices[2 * i] = (vertices[2 * i] - xmin) / d;
+      //   vertices[2 * i + 1] = (vertices[2 * i + 1] - ymin) / d;
+      // }
+
+      for (;index < lines.length && lines[index] != "Edges"; ++index) {
+      }
+      ++index;
+
+      var nbEdges = parseInt(lines[index], 10);
+      ++index;
+
+      vertex2Border = [];
+      border = [];
+      for (i = 0; i < nbEdges; ++i, ++index) {
+        var array = lines[index].match(/^([\d]+) ([\d]+) ([\d]+)$/);
+        vertex2Border[array[1] - 1] = 1;
+        vertex2Border[array[2] - 1] = 1;
+
+        border[2 * i] = array[1] - 1;
+        border[2 * i + 1] = array[2] - 1;
+      }
+
+      for (;index < lines.length && lines[index] != "Triangles"; ++index) {
+      }
+      ++index;
+
+      var nbTriangle = parseInt(lines[index], 10);
+      ++index;
+
+      triangles = [];
+      for (i = 0; i < nbTriangle; ++i, ++index) {
+        var array = lines[index].match(/^([\d]+) ([\d]+) ([\d]+) ([\d]+)$/);
+        triangles[3 * i] = array[1] - 1;
+        triangles[3 * i + 1] = array[2] - 1;
+        triangles[3 * i + 2] = array[3] - 1;
+      }
+    }
+
+  vertex2Border = [];
+  for (i = 0; i < border.length; ++i) {
+    vertex2Border[border[i]] = 1;
+  }
+
+   initGL();
+   transl = -1.5;
+   c_w = window.innerWidth - 50;
+   c_h = window.innerHeight - 10;
+   canvas.width = c_w;   canvas.height = c_h;
+   var err = "Your browser does not support ";
+   var ext;
+   try { ext = gl.getExtension("OES_texture_float");
+   } catch(e) {}
+   if ( !ext ) {alert(err + "OES_texture_float extension"); return;}
+   if (gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) == 0){
+     alert(err + "Vertex texture"); return;}
+
+   prog_show  = gl.createProgram();
+   gl.attachShader(prog_show, getShader( gl, "shader-vs" ));
+   gl.attachShader(prog_show, getShader( gl, "shader-fs" ));
+   gl.linkProgram(prog_show);
+   gl.useProgram(prog_show);
+
+   var posLocation = gl.getAttribLocation(prog_show, "aPos");
+   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+   gl.vertexAttribPointer(posLocation, 2, gl.FLOAT, false, 0, 0);
+   gl.enableVertexAttribArray( posLocation );
+
+   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
+   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(triangles), gl.STATIC_DRAW);
+
+   gl.viewport(0, 0, c_w, c_h);
+
+   prMatrix = new CanvasMatrix4();
+   prMatrix.perspective(45, c_w/c_h, 0.000001, 100);
+   gl.uniformMatrix4fv( gl.getUniformLocation(prog_show,"prMatrix"),
+      false, new Float32Array([2/c_w, 0, 0, 0, 0, -2/c_h, 0, 0, 0, 0, 0, 0, -1, 1, 0, 1] /*prMatrix.getAsArray()*/) );
+  
+   mvMatLoc = gl.getUniformLocation(prog_show,"mvMatrix");
+
+   gl.enable(gl.DEPTH_TEST);
+   gl.depthFunc(gl.LEQUAL);
+   gl.clearDepth(1.0);
+   gl.clearColor(0, 0, 0, 1);
+
+   anim();
+
+  canvas.resize = function (){
+    c_w = window.innerWidth - 50;  c_h = window.innerHeight - 10;
+    canvas.width = c_w;   canvas.height = c_h;
+
+    gl.viewport(0, 0, c_w, c_h);
+    gl.uniformMatrix4fv( gl.getUniformLocation(prog_show,"prMatrix"),
+      false, new Float32Array([2/c_w, 0, 0, 0, 0, -2/c_h, 0, 0, 0, 0, 0, 0, -1, 1, 0, 1]));
+
+    drawScene();
+  }
+}
+
+function scaleMatrix(matrix, scaleX, scaleY) {
+      // scaling x and y, which is just scaling first two columns of matrix
+      matrix[0] *= scaleX;
+      matrix[1] *= scaleX;
+      matrix[2] *= scaleX;
+      matrix[3] *= scaleX;
+
+      matrix[4] *= scaleY;
+      matrix[5] *= scaleY;
+      matrix[6] *= scaleY;
+      matrix[7] *= scaleY;
+    }
+
+function translateMatrix(matrix, tx, ty, tz) {
+  // translation is in last column of matrix
+  matrix[12] += matrix[0]*tx + matrix[4]*ty + matrix[8]*tz;
+  matrix[13] += matrix[1]*tx + matrix[5]*ty + matrix[9]*tz;
+  matrix[14] += matrix[2]*tx + matrix[6]*ty + matrix[10]*tz;
+  matrix[15] += matrix[3]*tx + matrix[7]*ty + matrix[11]*tz;
+}
+
+function drawScene(){
+
+   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+  var pt = LatLongToPixelXY(-43.60838714253866, 172.717281961498);
+
+   var mvMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+   
+   var scale = Math.pow(2, 16);
+   scaleMatrix(mvMatrix, scale, scale);
+
+   //translateMatrix(mvMatrix, -pt.x + xmin, -pt.y + ymin, 0);
+
+    scaleMatrix(mvMatrix, d, d);
+
+   gl.uniformMatrix4fv( mvMatLoc, false, new Float32Array(mvMatrix) );
+
+   gl.drawElements(gl.TRIANGLES, triangles.length, gl.UNSIGNED_SHORT ,0);
+
+   gl.flush();
+}
+
+function anim(){
+   drawScene();
+   requestAnimationFrame(anim);
+}
+</script>
+
+<canvas id="canvas" width="400" height="300"></canvas>
+</body>
+</html>

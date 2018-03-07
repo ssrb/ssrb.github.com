@@ -1,0 +1,696 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>
+      
+        Recycling old video game controllers - 
+      
+      Seb's blog
+    </title>
+    <meta name="description" content="">
+    <meta name="author" content="Sébastien Bigot">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+
+    <link href="/assets/themes/hooligan/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/themes/hooligan/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">    
+    <link rel="stylesheet" type="text/css" href="/assets/themes/hooligan/css-social-buttons/css/zocial.stripped.css">
+    <link href="/assets/themes/hooligan/css/pygments.css" rel="stylesheet" type="text/css" media="all">
+    <link href="/assets/themes/hooligan/css/darkstrap.css" rel="stylesheet" type="text/css" media="all">    
+    <link href="/assets/themes/hooligan/css/style.css?body=1" rel="stylesheet" type="text/css" media="all">
+
+    
+    <!-- fav and touch icons -->
+  <!-- Update these with your own images
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
+  -->
+
+    <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      TeX: { equationNumbers: { autoNumber: "AMS" } },
+        tex2jax: {
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      }
+    });
+    MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for(i=0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+    </script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    </script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.js">
+    </script>
+    <script type="text/javascript" src="/galleria/galleria-1.3.3.min.js">
+    </script>
+    <style>
+      .galleria{ width: 700px; height: 400px; background: #000 }
+    </style>
+  </head>
+
+  <body>
+    <div class="navbar">
+      <div class="navbar-inner">
+        <div class="container">
+          <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>      
+
+
+          <a class="brand" href="/">Seb's blog</a>
+
+
+          <div class="nav-collapse">
+            <ul class="nav">
+              
+              
+              
+
+
+  
+    
+      
+      	
+      	<li><a href="/archive.html">Archive</a></li>
+      	
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/categories.html">Categories</a></li>
+      	
+      
+    
+  
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/tags.html">Tags</a></li>
+      	
+      
+    
+  
+
+
+
+            </ul>
+            <ul class="nav pull-right social visible-desktop">
+              <li class="divider-vertical"></li>
+              
+                <li>
+                  <a href="https://github.com/ssrb" class="zocial github icon" target="_blank">
+                    <span class="hidden-desktop">Github</span>
+                  </a>
+                </li>
+              
+                  
+                                        
+                         
+                                  
+              
+              <li>
+                <a class="zocial icon rss" target="_blank" href="/rss.xml">
+                  <span class="hidden-desktop">ATOM Feed</a>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="content">
+        
+<div class="page-header">
+  <h1>
+    Recycling old video game controllers 
+    
+  </h1>
+</div>
+
+<div class="row">
+  <div class="span8">
+    
+<p>In this post I will show you how to use a USB capable AVR MCU such as the <a href="http://www.atmel.com/Images/Atmel-7766-8-bit-AVR-ATmega16U4-32U4_Summary.pdf">atmega 32u4</a>
+and the <a href="http://www.fourwalledcubicle.com/LUFA.php">LUFA framework</a> in order to create USB joystick and joypad <a href="https://en.wikipedia.org/wiki/USB_human_interface_device_class">HID</a> adapters.</p>
+
+<!-- more -->
+
+<h2 id="lufa">LUFA</h2>
+
+<p>LUFA is a USB stack targetting USB-capable AVR MCUs.
+It comes with many demos such as MIDI HID, joystick HID , mass storage, CDC/ACM …
+Using LUFA, an AVR MCU and your ingenuity, you can implement your own USB devices.
+Today, I’m going to build some USB joysticks and joypads adapters using an Arduino clone.
+The board says “Freaduino Micro V1.2” on the PCB but it doesn’t really matter. All we need to know is that it’s 32u4 based and quite similar to an official <a href="http://arduino.cc/en/Main/ArduinoBoardMicro">Arduino Micro</a> board. I got that one from <a href="https://www.dx.com">dealextreme</a> for 23US$.</p>
+
+<p>Since it’s going to deal a little bit with low level USB details, I recommend having a look at <a href="http://www.beyondlogic.org/usbnutshell/usb1.shtml">USB in a nutshell</a> whenever I’m unclear or skeeping too many details.</p>
+
+<h3 id="lets-get-started">Let’s get started</h3>
+
+<p>As a starting point, we will modify the LUFA joystick demo found in <code>Demos/Device/ClassDriver/Joystick</code> so that it builds with the Arduino toolchain. LUFA is written in C99 and heavily uses designated initializer in order to define USB descriptors whereas the Arduino framework is a mix of C and C++. Since mixing C++ and C99 source code is a pain, I will only consume the C APIs from the Arduino framework whenever needed.</p>
+
+<p>LUFA comes with its own build system which relies on <a href="http://gcc.gnu.org/wiki/avr-gcc">avr-gcc</a>.
+I will be using the avr-gcc distribution shipped with the Arduino framework.
+I set my PATH accordingly with something like that:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nb">export </span><span class="nv">PATH</span><span class="o">=</span><span class="nv">$HOME</span>/arduino-1.5.5/hardware/tools/avr/bin:<span class="nv">$PATH</span></code></pre></div>
+
+<p>First thing is to make a copy of the joystick demo folder and edit the makefile. Luckily LUFA has some support for the Arduino Leonardo through the preprocessor symbol <code>BOARD_LEONARDO</code>.
+Leonardo is 32u4 based too but its pin mapping between “AVR world” and “Arduino world” is slightly different from the Micro: be careful as it can be tricky.
+Here are the makefile variables which need to be updated:</p>
+
+<div class="highlight"><pre><code class="language-makefile" data-lang="makefile"><span class="nv">MCU</span>          <span class="o">=</span> atmega32u4
+<span class="nv">ARCH</span>         <span class="o">=</span> AVR8
+<span class="nv">BOARD</span>        <span class="o">=</span> LEONARDO
+<span class="nv">F_CPU</span>        <span class="o">=</span> 16000000
+<span class="nv">F_USB</span>        <span class="o">=</span> <span class="k">$(</span>F_CPU<span class="k">)</span>
+<span class="nv">LUFA_PATH</span>    <span class="o">=</span> /home/sb/Hacking/LUFA/LUFA</code></pre></div>
+
+<p><code>make</code> won’t succeed out of the box though:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">In file included from Joystick.h:48,
+                 from Joystick.c:37:
+../../../../LUFA/../LUFA/Drivers/Board/Joystick.h:125:31: error: Board/Joystick.h: No such file or directory
+In file included from Joystick.h:50,
+                 from Joystick.c:37:
+../../../../LUFA/../LUFA/Drivers/Board/Buttons.h:163:30: error: Board/Buttons.h: No such file or directory
+Joystick.c: In <span class="k">function</span> ‘SetupHardware’:
+Joystick.c:103: warning: implicit declaration of <span class="k">function</span> ‘Joystick_Init’
+Joystick.c:105: warning: implicit declaration of <span class="k">function</span> ‘Buttons_Init’
+Joystick.c: In <span class="k">function</span> ‘CALLBACK_HID_Device_CreateHIDReport’:
+Joystick.c:163: warning: implicit declaration of <span class="k">function</span> ‘Joystick_GetStatus’
+Joystick.c:164: warning: implicit declaration of <span class="k">function</span> ‘Buttons_GetStatus’
+Joystick.c:166: error: ‘JOY_UP’ undeclared <span class="o">(</span>first use in this <span class="k">function</span><span class="o">)</span>
+Joystick.c:166: error: <span class="o">(</span>Each undeclared identifier is reported only once
+Joystick.c:166: error: <span class="k">for</span> each <span class="k">function</span> it appears in.<span class="o">)</span>
+Joystick.c:168: error: ‘JOY_DOWN’ undeclared <span class="o">(</span>first use in this <span class="k">function</span><span class="o">)</span>
+Joystick.c:171: error: ‘JOY_LEFT’ undeclared <span class="o">(</span>first use in this <span class="k">function</span><span class="o">)</span>
+Joystick.c:173: error: ‘JOY_RIGHT’ undeclared <span class="o">(</span>first use in this <span class="k">function</span><span class="o">)</span>
+Joystick.c:176: error: ‘JOY_PRESS’ undeclared <span class="o">(</span>first use in this <span class="k">function</span><span class="o">)</span>
+Joystick.c:179: error: ‘BUTTONS_BUTTON1’ undeclared <span class="o">(</span>first use in this <span class="k">function</span><span class="o">)</span>
+make: *** <span class="o">[</span>Joystick.o<span class="o">]</span> Error 1</code></pre></div>
+
+<p>The reason is that the joystick demo assumes that the targeted hardware do have a joystick and some buttons you can access through the stuff
+in <code>Buttons.h</code> and <code>Joystick.h</code>. This won’t be the case for that board and we simply should neither include <code>LUFA/Drivers/Board/Joystick.h</code> and <code>LUFA/Drivers/Board/Buttons.h</code> nor reference any <code>JOY_*</code> variable. Instead we’re going to write our own code to probe the real controllers.</p>
+
+<p><a href="https://github.com/ssrb/ArduJoypadsToHID/tree/master/dummyJoystick">Here</a> is a cleaned up and building version of the joystick demo. It does nothing special except describing itself as a USB joystick HID. Here is what happens when I plug the provisioned MCU to my computer:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>dmesg
+<span class="o">[</span>24622.916180<span class="o">]</span> usb 2-1: new full-speed USB device number <span class="m">5</span> using uhci_hcd
+<span class="o">[</span>24623.097587<span class="o">]</span> usb 2-1: New USB device found, <span class="nv">idVendor</span><span class="o">=</span>03eb, <span class="nv">idProduct</span><span class="o">=</span>2043
+<span class="o">[</span>24623.097603<span class="o">]</span> usb 2-1: New USB device strings: <span class="nv">Mfr</span><span class="o">=</span>1, <span class="nv">Product</span><span class="o">=</span>2, <span class="nv">SerialNumber</span><span class="o">=</span>0
+<span class="o">[</span>24623.097614<span class="o">]</span> usb 2-1: Product: LUFA Joystick Demo
+<span class="o">[</span>24623.097623<span class="o">]</span> usb 2-1: Manufacturer: Dean Camera
+<span class="o">[</span>24623.105948<span class="o">]</span> input: Dean Camera LUFA Joystick Demo as /devices/pci0000:00/0000:00:1d.0/usb2/2-1/2-1:1.0/input/input14
+<span class="o">[</span>24623.106779<span class="o">]</span> hid-generic 0003:03EB:2043.0004: input,hidraw0: USB HID v1.11 Joystick <span class="o">[</span>Dean Camera LUFA Joystick Demo<span class="o">]</span> on usb-0000:00:1d.0-1/input0
+
+<span class="nv">$ </span>lsusb
+Bus <span class="m">002</span> Device 005: ID 03eb:2043 Atmel Corp. LUFA Joystick Demo Application
+
+<span class="nv">$ </span>jstest /dev/input/js0
+Driver version is 2.1.0.
+Joystick <span class="o">(</span>Dean Camera LUFA Joystick Demo<span class="o">)</span> has <span class="m">3</span> axes <span class="o">(</span>X, Y, Z<span class="o">)</span>
+and <span class="m">2</span> buttons <span class="o">(</span>Trigger, ThumbBtn<span class="o">)</span>.
+Testing ... <span class="o">(</span>interrupt to <span class="nb">exit</span><span class="o">)</span>
+Axes:  0:     <span class="m">0</span>  1:     <span class="m">0</span>  2:     <span class="m">0</span> Buttons:  0:off  1:off</code></pre></div>
+
+<h3 id="the-workflow">The workflow</h3>
+
+<p>Here is the workflow to implement a controller:</p>
+
+<ul>
+  <li>create and send an HID report descriptor for the controller: number of axis, buttons, their
+range and resolution;</li>
+  <li>create HID reports of the controller state whenever it’s being probed by the USB host.</li>
+</ul>
+
+<h2 id="level-1-petes-arcade-stick">Level 1: Pete’s arcade stick</h2>
+
+<p>Let’s start with something easy. This is Pete’s heavy duty arcade stick.
+It’s massive. It’s obviously a 2 axis stick and uses 4 momentary microswitches: that’s enough to play PacMan.</p>
+
+<div class="galleria">
+   <a href="/assets/recyclingcontrollers/arcade_front.jpg">
+      <img src="/assets/recyclingcontrollers/arcade_front.jpg" data-title="" data-description="" data-big="/assets/recyclingcontrollers/arcade_front.jpg" />
+   </a>
+   <a href="/assets/recyclingcontrollers/arcade_back.jpg">
+      <img src="/assets/recyclingcontrollers/arcade_back.jpg" data-title="" data-description="" data-big="/assets/recyclingcontrollers/arcade_back.jpg" />
+   </a>
+</div>
+
+<p>The firmware code for this stick can be found <a href="https://github.com/ssrb/ArduJoypadsToHID/tree/master/ArcadeStickToUSBJoystick">here</a></p>
+
+<h3 id="descriptor">Descriptor</h3>
+
+<p>A descriptor is a binary string describing device capabilities that the USB host uses
+to decode the state of that device. Writing a valid descriptor from scratch is a pain
+and if you’re a beginner like me, I suggest you start modifying a valid joystick descriptor.</p>
+
+<h4 id="using-lufa-macros">Using LUFA macros</h4>
+<p>LUFA defines a set of macros to create HID descriptors.
+Here is one for the joystick using LUFA stuff:</p>
+
+<div class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="cp">#define HID_RI_USAGE_JOYSTICK HID_RI_USAGE(8, 0x04)</span>
+<span class="cp">#define HID_RI_USAGE_X HID_RI_USAGE(8, 0x30)</span>
+<span class="cp">#define HID_RI_USAGE_Y HID_RI_USAGE(8, 0x31)</span>
+<span class="cp">#define HID_DESCRIPTOR_PETE_JOYSTICK \</span>
+<span class="cp">    HID_RI_USAGE_PAGE(8, 0x01),                 \</span>
+<span class="cp">    HID_RI_USAGE_JOYSTICK,                      \</span>
+<span class="cp">    HID_RI_COLLECTION(8, 0x00),                 \</span>
+<span class="cp">            HID_RI_USAGE_X,                     \</span>
+<span class="cp">            HID_RI_USAGE_Y,                     \</span>
+<span class="cp">            HID_RI_LOGICAL_MINIMUM(16, -1),     \</span>
+<span class="cp">            HID_RI_LOGICAL_MAXIMUM(16, 1),      \</span>
+<span class="cp">            HID_RI_PHYSICAL_MINIMUM(16, -1),    \</span>
+<span class="cp">            HID_RI_PHYSICAL_MAXIMUM(16, 1),     \</span>
+<span class="cp">            HID_RI_REPORT_COUNT(8, 2),          \</span>
+<span class="cp">            HID_RI_REPORT_SIZE(8, 8),           \</span>
+<span class="cp">            HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE), \</span>
+<span class="cp">    HID_RI_END_COLLECTION(0)</span>
+
+<span class="k">const</span> <span class="n">USB_Descriptor_HIDReport_Datatype_t</span> <span class="n">PROGMEM</span> <span class="n">JoystickReport</span><span class="p">[]</span> <span class="o">=</span>
+<span class="p">{</span>
+        <span class="n">HID_DESCRIPTOR_PETE_JOYSTICK</span>
+<span class="p">};</span></code></pre></div>
+
+<h4 id="using-the-hid-descriptor-tool">Using the HID Descriptor tool</h4>
+
+<p>Another way to do that is to use the HID Descriptor Tool from the <a href="http://www.usb.org/developers/hidpage/">USB Implementers Forum website</a>. It’s a MS windows software but runs ok under <a href="https://winehq.org">wine</a>.</p>
+
+<div class="galleria">
+   <a href="/assets/recyclingcontrollers/HIDTool.png">
+      <img src="/assets/recyclingcontrollers/HIDTool.png" data-title="" data-description="" data-big="/assets/recyclingcontrollers/HIDTool.png" />
+   </a>
+</div>
+
+<p>You can then export the descriptor to a C header file and use it in your project:</p>
+
+<div class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="c1">// Z:\home\sb\Hacking\ArduJoypadsToHID\ArcadeStickToUSBJoystick\joystick.hid.h</span>
+
+
+<span class="kt">char</span> <span class="n">ReportDescriptor</span><span class="p">[</span><span class="mi">34</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mh">0x05</span><span class="p">,</span> <span class="mh">0x01</span><span class="p">,</span>                    <span class="c1">// USAGE_PAGE (Generic Desktop)</span>
+    <span class="mh">0x15</span><span class="p">,</span> <span class="mh">0x00</span><span class="p">,</span>                    <span class="c1">// LOGICAL_MINIMUM (0)</span>
+    <span class="mh">0x09</span><span class="p">,</span> <span class="mh">0x04</span><span class="p">,</span>                    <span class="c1">// USAGE (Joystick)</span>
+    <span class="mh">0xa1</span><span class="p">,</span> <span class="mh">0x01</span><span class="p">,</span>                    <span class="c1">// COLLECTION (Application)</span>
+    <span class="mh">0x05</span><span class="p">,</span> <span class="mh">0x01</span><span class="p">,</span>                    <span class="c1">//   USAGE_PAGE (Generic Desktop)</span>
+    <span class="mh">0x09</span><span class="p">,</span> <span class="mh">0x01</span><span class="p">,</span>                    <span class="c1">//   USAGE (Pointer)</span>
+    <span class="mh">0xa1</span><span class="p">,</span> <span class="mh">0x00</span><span class="p">,</span>                    <span class="c1">//   COLLECTION (Physical)</span>
+    <span class="mh">0x09</span><span class="p">,</span> <span class="mh">0x30</span><span class="p">,</span>                    <span class="c1">//     USAGE (X)</span>
+    <span class="mh">0x09</span><span class="p">,</span> <span class="mh">0x31</span><span class="p">,</span>                    <span class="c1">//     USAGE (Y)</span>
+    <span class="mh">0x15</span><span class="p">,</span> <span class="mh">0xff</span><span class="p">,</span>                    <span class="c1">//     LOGICAL_MINIMUM (-1)</span>
+    <span class="mh">0x25</span><span class="p">,</span> <span class="mh">0x01</span><span class="p">,</span>                    <span class="c1">//     LOGICAL_MAXIMUM (1)</span>
+    <span class="mh">0x35</span><span class="p">,</span> <span class="mh">0xff</span><span class="p">,</span>                    <span class="c1">//     PHYSICAL_MINIMUM (-1)</span>
+    <span class="mh">0x45</span><span class="p">,</span> <span class="mh">0x01</span><span class="p">,</span>                    <span class="c1">//     PHYSICAL_MAXIMUM (1)</span>
+    <span class="mh">0x95</span><span class="p">,</span> <span class="mh">0x02</span><span class="p">,</span>                    <span class="c1">//     REPORT_COUNT (2)</span>
+    <span class="mh">0x75</span><span class="p">,</span> <span class="mh">0x08</span><span class="p">,</span>                    <span class="c1">//     REPORT_SIZE (8)</span>
+    <span class="mh">0x81</span><span class="p">,</span> <span class="mh">0x02</span><span class="p">,</span>                    <span class="c1">//     INPUT (Data,Var,Abs)</span>
+    <span class="mh">0xc0</span><span class="p">,</span>                          <span class="c1">//   END_COLLECTION</span>
+    <span class="mh">0xc0</span>                           <span class="c1">// END_COLLECTION</span>
+<span class="p">};</span></code></pre></div>
+
+<p>One added value of this tool is that it can validate your descriptor.</p>
+
+<h3 id="report">Report</h3>
+<p>The HID report should be structured accordingly to the descriptor, that is 1 byte (since <code>REPORT_SIZE</code> is 8 bits) for each of the two axis:</p>
+
+<div class="highlight"><pre><code class="language-c" data-lang="c"><span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
+	<span class="kt">int8_t</span>  <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">USB_JoystickReport_Data_t</span><span class="p">;</span></code></pre></div>
+
+<p>Here is how we create a report:</p>
+
+<div class="highlight"><pre><code class="language-c" data-lang="c"><span class="cp">#define JOY_UP 2</span>
+<span class="cp">#define JOY_DOWN  3</span>
+<span class="cp">#define JOY_LEFT 4</span>
+<span class="cp">#define JOY_RIGHT 5</span>
+
+<span class="kt">bool</span> <span class="nf">CALLBACK_HID_Device_CreateHIDReport</span><span class="p">(</span><span class="n">USB_ClassInfo_HID_Device_t</span><span class="o">*</span> <span class="k">const</span> <span class="n">HIDInterfaceInfo</span><span class="p">,</span>
+                                         <span class="kt">uint8_t</span><span class="o">*</span> <span class="k">const</span> <span class="n">ReportID</span><span class="p">,</span>
+                                         <span class="k">const</span> <span class="kt">uint8_t</span> <span class="n">ReportType</span><span class="p">,</span>
+                                         <span class="kt">void</span><span class="o">*</span> <span class="n">ReportData</span><span class="p">,</span>
+                                         <span class="kt">uint16_t</span><span class="o">*</span> <span class="k">const</span> <span class="n">ReportSize</span><span class="p">)</span> <span class="p">{</span>
+	<span class="n">USB_JoystickReport_Data_t</span><span class="o">*</span> <span class="n">JoystickReport</span> <span class="o">=</span> <span class="p">(</span><span class="n">USB_JoystickReport_Data_t</span><span class="o">*</span><span class="p">)</span><span class="n">ReportData</span><span class="p">;</span>
+	<span class="o">*</span><span class="n">ReportSize</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">USB_JoystickReport_Data_t</span><span class="p">);</span>
+
+	<span class="n">JoystickReport</span><span class="o">-&gt;</span><span class="n">X</span> <span class="o">=</span> <span class="n">ReadAxis</span><span class="p">(</span><span class="n">JOY_LEFT</span><span class="p">,</span> <span class="n">JOY_RIGHT</span><span class="p">);</span>
+	<span class="n">JoystickReport</span><span class="o">-&gt;</span><span class="n">Y</span> <span class="o">=</span> <span class="n">ReadAxis</span><span class="p">(</span><span class="n">JOY_DOWN</span><span class="p">,</span> <span class="n">JOY_UP</span><span class="p">);</span>
+
+	<span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">char</span> <span class="nf">ReadAxis</span><span class="p">(</span><span class="kt">int</span> <span class="n">negDirPin</span><span class="p">,</span> <span class="kt">int</span> <span class="n">posDirPin</span><span class="p">)</span> <span class="p">{</span>
+	<span class="k">if</span><span class="p">(</span><span class="n">digitalRead</span><span class="p">(</span><span class="n">negDirPin</span><span class="p">))</span> <span class="p">{</span>
+ 		<span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+	<span class="p">}</span> 
+	<span class="k">if</span><span class="p">(</span><span class="n">digitalRead</span><span class="p">(</span><span class="n">posDirPin</span><span class="p">))</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre></div>
+
+<p>Since we use functions from the Arduino framework such as <code>digitalRead</code>, we must update the makefile:</p>
+
+<div class="highlight"><pre><code class="language-makefile" data-lang="makefile"><span class="nv">ARDUINO_AVR_LIBS</span> <span class="o">=</span> /home/sb/Hacking/arduino-1.5.5/hardware/arduino/avr
+<span class="nv">SRC</span>          <span class="o">=</span> <span class="k">$(</span>TARGET<span class="k">)</span>.c Descriptors.c <span class="k">$(</span>ARDUINO_AVR_LIBS<span class="k">)</span>/cores/arduino/wiring_digital.c <span class="k">$(</span>LUFA_SRC_USB<span class="k">)</span> <span class="k">$(</span>LUFA_SRC_USBCLASS<span class="k">)</span>
+<span class="nv">CC_FLAGS</span>     <span class="o">=</span> -DUSE_LUFA_CONFIG_HEADER -IConfig/ -I<span class="k">$(</span>ARDUINO_AVR_LIBS<span class="k">)</span>/cores/arduino<span class="se">\</span>
+	-I<span class="k">$(</span>ARDUINO_AVR_LIBS<span class="k">)</span>/variants/leonardo</code></pre></div>
+
+<h3 id="test">Test</h3>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>dmesg
+<span class="o">[</span> 9894.915804<span class="o">]</span> input: Pete Massive arcade stick as /devices/pci0000:00/0000:00:1d.0/usb2/2-1/2-1:1.0/input/input36
+<span class="o">[</span> 9894.917119<span class="o">]</span> hid-generic 0003:03EB:2043.001A: input,hidraw0: USB HID v1.11 Joystick <span class="o">[</span>Pete Massive arcade stick<span class="o">]</span> on usb-0000:00:1d.0-1/input0
+
+<span class="nv">$ </span>jstest /dev/input/js0
+Driver version is 2.1.0.
+Joystick <span class="o">(</span>Pete Massive arcade stick<span class="o">)</span> has <span class="m">2</span> axes <span class="o">(</span>X, Y<span class="o">)</span>
+and <span class="m">0</span> buttons <span class="o">()</span>.
+Testing ... <span class="o">(</span>interrupt to <span class="nb">exit</span><span class="o">)</span>
+Axes:  0:     <span class="m">0</span>  1:     <span class="m">0</span> 
+Axes:  0:     <span class="m">0</span>  1: 32767
+Axes:  0:     <span class="m">0</span>  1:-32767</code></pre></div>
+
+<p>and it works.</p>
+
+<h2 id="level-2-sega-genesis">Level 2: Sega Genesis</h2>
+
+<p>This gamepad features 2 axis, and 4 buttons (labeled A,B,C &amp; Start).
+It uses a standard DB9 connector which is really handy.</p>
+
+<div class="galleria">
+   <a href="/assets/recyclingcontrollers/genesis_pad.jpg">
+      <img src="/assets/recyclingcontrollers/genesis_pad.jpg" data-title="" data-description="" data-big="/assets/recyclingcontrollers/genesis_pad.jpg" />
+   </a>
+   <a href="/assets/recyclingcontrollers/genesis_db9.jpg">
+      <img src="/assets/recyclingcontrollers/genesis_db9.jpg" data-title="" data-description="" data-big="/assets/recyclingcontrollers/genesis_db9.jpg" />
+   </a>
+   <a href="/assets/recyclingcontrollers/genesis_arduino.jpg">
+      <img src="/assets/recyclingcontrollers/genesis_arduino.jpg" data-title="" data-description="" data-big="/assets/recyclingcontrollers/genesis_arduino.jpg" />
+   </a>
+   <a href="/assets/recyclingcontrollers/genesis_joystick.gif">
+      <img src="/assets/recyclingcontrollers/genesis_joystick.gif" data-title="" data-description="" data-big="/assets/recyclingcontrollers/genesis_joystick.gif" />
+   </a>
+</div>
+
+<p>The firmware for this controller can be found <a href="https://github.com/ssrb/ArduJoypadsToHID/tree/master/SegaGenesisToUSBJoystick">here</a>
+The updated, generated HID descriptor is <a href="https://github.com/ssrb/ArduJoypadsToHID/blob/master/SegaGenesisToUSBJoystick/joypad.hid.h">here</a> and here is how you build a report:</p>
+
+<div class="highlight"><pre><code class="language-c" data-lang="c"><span class="cp">#define SEGA_GENESIS_JOY_UP 2</span>
+<span class="cp">#define SEGA_GENESIS_JOY_DOWN  3</span>
+<span class="cp">#define SEGA_GENESIS_JOY_LEFT 4</span>
+<span class="cp">#define SEGA_GENESIS_JOY_RIGHT 5</span>
+<span class="cp">#define SEGA_GENESIS_JOY_A 6</span>
+<span class="cp">#define SEGA_GENESIS_JOY_B 6</span>
+<span class="cp">#define SEGA_GENESIS_JOY_SELECT 7</span>
+<span class="cp">#define SEGA_GENESIS_JOY_C 8</span>
+<span class="cp">#define SEGA_GENESIS_JOY_START  8</span>
+
+<span class="kt">bool</span> <span class="nf">CALLBACK_HID_Device_CreateHIDReport</span><span class="p">(</span><span class="n">USB_ClassInfo_HID_Device_t</span><span class="o">*</span> <span class="k">const</span> <span class="n">HIDInterfaceInfo</span><span class="p">,</span>
+                                         <span class="kt">uint8_t</span><span class="o">*</span> <span class="k">const</span> <span class="n">ReportID</span><span class="p">,</span>
+                                         <span class="k">const</span> <span class="kt">uint8_t</span> <span class="n">ReportType</span><span class="p">,</span>
+                                         <span class="kt">void</span><span class="o">*</span> <span class="n">ReportData</span><span class="p">,</span>
+                                         <span class="kt">uint16_t</span><span class="o">*</span> <span class="k">const</span> <span class="n">ReportSize</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">USB_JoystickReport_Data_t</span><span class="o">*</span> <span class="n">JoystickReport</span> <span class="o">=</span> <span class="p">(</span><span class="n">USB_JoystickReport_Data_t</span><span class="o">*</span><span class="p">)</span><span class="n">ReportData</span><span class="p">;</span>
+  <span class="n">JoystickReport</span><span class="o">-&gt;</span><span class="n">Button</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+  <span class="n">digitalWrite</span><span class="p">(</span><span class="n">SEGA_GENESIS_JOY_SELECT</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+
+  <span class="n">JoystickReport</span><span class="o">-&gt;</span><span class="n">X</span> <span class="o">=</span> <span class="n">ReadAxis</span><span class="p">(</span><span class="n">SEGA_GENESIS_JOY_LEFT</span><span class="p">,</span> <span class="n">SEGA_GENESIS_JOY_RIGHT</span><span class="p">);</span>
+  <span class="n">JoystickReport</span><span class="o">-&gt;</span><span class="n">Y</span> <span class="o">=</span> <span class="n">ReadAxis</span><span class="p">(</span><span class="n">SEGA_GENESIS_JOY_DOWN</span><span class="p">,</span> <span class="n">SEGA_GENESIS_JOY_UP</span><span class="p">);</span>
+
+  <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">digitalRead</span><span class="p">(</span><span class="n">SEGA_GENESIS_JOY_B</span><span class="p">))</span> <span class="p">{</span>
+    <span class="n">bitSet</span><span class="p">(</span><span class="n">JoystickReport</span><span class="o">-&gt;</span><span class="n">Button</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">digitalRead</span><span class="p">(</span><span class="n">SEGA_GENESIS_JOY_C</span><span class="p">))</span> <span class="p">{</span>
+    <span class="n">bitSet</span><span class="p">(</span><span class="n">JoystickReport</span><span class="o">-&gt;</span><span class="n">Button</span><span class="p">,</span> <span class="mi">2</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="n">digitalWrite</span><span class="p">(</span><span class="n">SEGA_GENESIS_JOY_SELECT</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+
+  <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">digitalRead</span><span class="p">(</span><span class="n">SEGA_GENESIS_JOY_A</span><span class="p">))</span> <span class="p">{</span>
+    <span class="n">bitSet</span><span class="p">(</span><span class="n">JoystickReport</span><span class="o">-&gt;</span><span class="n">Button</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">digitalRead</span><span class="p">(</span><span class="n">SEGA_GENESIS_JOY_START</span><span class="p">))</span> <span class="p">{</span>
+    <span class="n">bitSet</span><span class="p">(</span><span class="n">JoystickReport</span><span class="o">-&gt;</span><span class="n">Button</span><span class="p">,</span> <span class="mi">3</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="o">*</span><span class="n">ReportSize</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">USB_JoystickReport_Data_t</span><span class="p">);</span>
+  
+  <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">char</span> <span class="nf">ReadAxis</span><span class="p">(</span><span class="kt">int</span> <span class="n">negDirPin</span><span class="p">,</span> <span class="kt">int</span> <span class="n">posDirPin</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">digitalRead</span><span class="p">(</span><span class="n">negDirPin</span><span class="p">))</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span> 
+  <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">digitalRead</span><span class="p">(</span><span class="n">posDirPin</span><span class="p">))</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span></code></pre></div>
+
+<p>and it works:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$dmesg</span>
+<span class="o">[</span> 4582.479386<span class="o">]</span> input: SEGA Genesis gamepad as /devices/pci0000:00/0000:00:1d.0/usb2/2-1/2-1:1.0/input/input20
+<span class="o">[</span> 4582.480812<span class="o">]</span> hid-generic 0003:03EB:2043.000A: input,hidraw0: USB HID v1.11 Gamepad <span class="o">[</span>SEGA Genesis gamepad<span class="o">]</span> on usb-0000:00:1d.0-1/input0
+
+<span class="nv">$ </span>jstest /dev/input/js0
+Driver version is 2.1.0.
+Joystick <span class="o">(</span>SEGA Genesis gamepad<span class="o">)</span> has <span class="m">2</span> axes <span class="o">(</span>X, Y<span class="o">)</span>
+and <span class="m">4</span> buttons <span class="o">(</span>BtnX, BtnY, BtnZ, BtnTL<span class="o">)</span>.
+Testing ... <span class="o">(</span>interrupt to <span class="nb">exit</span><span class="o">)</span>
+Axes:  0:     <span class="m">0</span>  1:     <span class="m">0</span> Buttons:  0:on   1:off  2:off  3:off</code></pre></div>
+
+<h2 id="level-3-nintendo-nes-gamepad">Level 3: Nintendo NES gamepad</h2>
+
+<p>The NES gamepad features 2 axis and 4 buttons (labeled A, B, start &amp; select) just as the Genesis one so that their report descriptors are similar.
+The NES gamepad uses a <a href="/assets/recyclingcontrollers/HD14021B.pdf">shift register</a> to communicate its state: the data, clock and latch pins of the register are accessed via the (non-standard) NES connector.
+The firmware for the NES gamepad can be found <a href="https://github.com/ssrb/ArduJoypadsToHID/tree/master/NESToUSBJoystick">here</a></p>
+
+<div class="galleria">
+   <a href="/assets/recyclingcontrollers/nes_arduino.jpg">
+      <img src="/assets/recyclingcontrollers/nes_arduino.jpg" data-title="" data-description="" data-big="/assets/recyclingcontrollers/nes_arduino.jpg" />
+   </a>
+   <a href="/assets/recyclingcontrollers/nes-controller-pinout.png">
+      <img src="/assets/recyclingcontrollers/nes-controller-pinout.png" data-title="" data-description="" data-big="/assets/recyclingcontrollers/nes-controller-pinout.png" />
+   </a>
+</div>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$dmesg</span>
+<span class="o">[</span> 5972.096103<span class="o">]</span> usb 2-1: new full-speed USB device number <span class="m">5</span> using uhci_hcd
+<span class="o">[</span> 5972.279082<span class="o">]</span> usb 2-1: New USB device found, <span class="nv">idVendor</span><span class="o">=</span>03eb, <span class="nv">idProduct</span><span class="o">=</span>2043
+<span class="o">[</span> 5972.279099<span class="o">]</span> usb 2-1: New USB device strings: <span class="nv">Mfr</span><span class="o">=</span>1, <span class="nv">Product</span><span class="o">=</span>2, <span class="nv">SerialNumber</span><span class="o">=</span>0
+<span class="o">[</span> 5972.279110<span class="o">]</span> usb 2-1: Product: NES gamepad
+<span class="o">[</span> 5972.279119<span class="o">]</span> usb 2-1: Manufacturer: Nintendo
+<span class="o">[</span> 5972.287324<span class="o">]</span> input: Nintendo NES gamepad as /devices/pci0000:00/0000:00:1d.0/usb2/2-1/2-1:1.0/input/input13
+<span class="o">[</span> 5972.288383<span class="o">]</span> hid-generic 0003:03EB:2043.0003: input,hidraw0: USB HID v1.11 Gamepad <span class="o">[</span>Nintendo NES gamepad<span class="o">]</span> on usb-0000:00:1d.0-1/input0</code></pre></div>
+
+<h2 id="level-4-the-gamecube-arcade-stick">Level 4: The GameCube arcade stick</h2>
+
+<p>The GameCube arcade stick is actually quite useless for the GameCube itself.
+It’s missing analog sticks and triggers. However it’s perfect to play Metal Slug on OUYA.
+It’s using bi-directional serial communication over a single wire.
+Communication is a bit more involved. Good ressources about the communication protocol are:</p>
+
+<ul>
+  <li><a href="http://www.raphnet.net/electronique/gc_n64_usb/index_en.php">http://www.raphnet.net/electronique/gc_n64_usb/index_en.php</a></li>
+  <li><a href="https://github.com/brownan/Gamecube-N64-Controller">https://github.com/brownan/Gamecube-N64-Controller</a></li>
+</ul>
+
+<p>The firmware for this GameCube controller can be found <a href="https://github.com/ssrb/ArduJoypadsToHID/tree/master/GCArcadeToUSBJoystick">here</a></p>
+
+<div class="galleria">
+   <a href="/assets/recyclingcontrollers/gamecube_arduino_front.jpg">
+      <img src="/assets/recyclingcontrollers/gamecube_arduino_front.jpg" data-title="" data-description="" data-big="/assets/recyclingcontrollers/gamecube_arduino_front.jpg" />
+   </a>
+   <a href="/assets/recyclingcontrollers/gamecube_arduino_back.jpg">
+      <img src="/assets/recyclingcontrollers/gamecube_arduino_back.jpg" data-title="" data-description="" data-big="/assets/recyclingcontrollers/gamecube_arduino_back.jpg" />
+   </a>
+</div>
+
+<h2 id="bonus-level-1-composite-hid">Bonus level 1: Composite HID</h2>
+
+<p>A popular solution among people building <a href="http://mamedev.org">MAME</a> arcade cabinet is to use a device such as the <a href="http://www.ultimarc.com/ipac1.html">I-PAC</a> to hook-up the arcade controls to the MAME machine.
+This device cost around US$40.
+You can make your own by having a single USB-capable AVR handle all the arcade controls.
+The MCU notifies the host that it will report for multiple HIDs and will communicate a report descriptor for each of the input device. When probing controllers, the host will indicate which one it’s interested in so that the MCU can read the state of the corresponding controller.
+If running out of AVR digital inputs for the arcade controls one can simply use shift registers or even cheap I2C I/O expanders such as the <a href="http://www.nxp.com/documents/data_sheet/PCF8574.pdf">PCF8574</a> (less than 1NZ$ on ebay).</p>
+
+<p>A “proof of concept” is available <a href="https://github.com/ssrb/ArduJoypadsToHID/tree/master/MultiArcadeStickToUSBJoystick">here</a>.</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$dmesg</span>
+<span class="o">[</span>23159.804203<span class="o">]</span> usb 2-1: New USB device strings: <span class="nv">Mfr</span><span class="o">=</span>1, <span class="nv">Product</span><span class="o">=</span>2, <span class="nv">SerialNumber</span><span class="o">=</span>0
+<span class="o">[</span>23159.804211<span class="o">]</span> usb 2-1: Product: Massive arcade sticks
+<span class="o">[</span>23159.804219<span class="o">]</span> usb 2-1: Manufacturer: Pete
+<span class="o">[</span>23159.811337<span class="o">]</span> input: Pete Massive arcade stick as /devices/pci0000:00/0000:00:1d.0/usb2/2-1/2-1:1.0/input/input16
+<span class="o">[</span>23159.811937<span class="o">]</span> hid-generic 0003:03EB:2043.0006: input,hidraw0: USB HID v1.11 Joystick <span class="o">[</span>Pete Massive arcade sticks<span class="o">]</span> on usb-0000:00:1d.0-1/input0
+<span class="o">[</span>23159.815344<span class="o">]</span> input: Pete Massive arcade stick as /devices/pci0000:00/0000:00:1d.0/usb2/2-1/2-1:1.1/input/input17
+<span class="o">[</span>23159.815877<span class="o">]</span> hid-generic 0003:03EB:2043.0007: input,hidraw1: USB HID v1.11 Joystick <span class="o">[</span>Pete Massive arcade sticks<span class="o">]</span> on usb-0000:00:1d.0-1/input1
+<span class="nv">$ </span>ll /dev/input/js*
+crw-r--r-- <span class="m">1</span> root root 13, <span class="m">0</span> May <span class="m">21</span> 16:46 /dev/input/js0
+crw-r--r-- <span class="m">1</span> root root 13, <span class="m">1</span> May <span class="m">21</span> 16:46 /dev/input/js1</code></pre></div>
+
+<h2 id="bonus-level-2-targeting-ouya">Bonus level 2: Targeting OUYA</h2>
+
+<p>Finally if you want to use your gamepad on OUYA, you might want to map one of the button to the middle OUYA button as it is heavily used in the interface.</p>
+
+<p>First step is to gather information about the OUYA controller.</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>sudo apt-get install bluez-compat
+<span class="o">[</span>...<span class="o">]</span>
+
+<span class="nv">$ </span>sudo hcitool scan
+Scanning ...
+  B8:5A:F7:C4:13:62 OUYA Game Controller
+<span class="nv">$ </span>sudo hidd --connect B8:5A:F7:C4:13:62
+
+<span class="nv">$ </span>dmesg
+<span class="o">[</span>25944.709312<span class="o">]</span> input: OUYA Game Controller as /devices/pci0000:00/0000:00:1d.0/usb2/2-2/2-2:1.0/bluetooth/hci0/hci0:71/input20
+<span class="o">[</span>25944.710351<span class="o">]</span> hid-generic 0005:2836:0001.000A: input,hidraw0: BLUETOOTH HID v1.03 Mouse <span class="o">[</span>OUYA Game Controller<span class="o">]</span> on 00:02:5b:92:14:01
+
+<span class="nv">$ </span>jstest /dev/input/js0 
+Driver version is 2.1.0.
+Joystick <span class="o">(</span>OUYA Game Controller<span class="o">)</span> has <span class="m">9</span> axes <span class="o">(</span>X, Y, Z, Rx, Ry, Rz, <span class="o">(</span>null<span class="o">)</span>, <span class="o">(</span>null<span class="o">)</span>, <span class="o">(</span>null<span class="o">))</span>
+and <span class="m">19</span> buttons <span class="o">(</span>BtnX, BtnY, BtnZ, BtnTL, BtnTR, BtnTL2, BtnTR2, BtnSelect, BtnStart, BtnMode, BtnThumbL, BtnThumbR, ?, ?, ?, ?, LeftBtn, RightBtn, MiddleBtn<span class="o">)</span>.
+Testing ... <span class="o">(</span>interrupt to <span class="nb">exit</span><span class="o">)</span>
+Axes:  0:     <span class="m">0</span>  1:     <span class="m">0</span>  2:     <span class="m">0</span>  3:     <span class="m">0</span>  4:     <span class="m">0</span>  5:     <span class="m">0</span>  6:     <span class="m">0</span>  7:     <span class="m">0</span>  8:     <span class="m">0</span> Buttons:  0:off  1:off  2:off <span class="o">[</span>...<span class="o">]</span></code></pre></div>
+
+<p>As we see, the OUYA controller got 19 buttons. When pressing the “OUYA” button, it’s being reported as button number 15.
+All we have to do now is to update the descriptor to report 19, or even just 15 buttons and set
+the corresponding bit whenever the choosen physical button is pressed.</p>
+
+<script type="text/javascript" src="/rungalleria.js"></script>
+
+
+    <hr>
+    <div class="pagination btn-group">
+      
+        <a class="btn prev" href="/numerical%20methods/2014/04/12/the-lyttelton-port-wave-penetration-project-part-3" title="The Lyttelton port wave penetration project: Part 3">&larr; Previous</a>
+      
+        <a class="btn" href="/archive.html">Archive</a>
+      
+        <a class="btn next" href="/computer%20graphics/2014/12/05/the-wave-penetration-project-blender-interlude" title="The wave penetration project: Blender interlude">Next &rarr;</a>
+      
+    </div>
+    <hr>
+    
+
+
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_developer = 1;
+    var disqus_shortname = 'ssrb'; // required: replace example with your forum shortname
+    
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+
+
+  </div>
+  
+  <div class="span4">
+    <section>
+      <h4>Published</h4>
+      <div class="date"><span>11 May 2014</span></div>
+    </section>
+    
+      <section>
+        <h4>Category</h4>
+        <span class="category">
+          Gaming
+        </span>
+      </section>
+         
+    
+      <section>
+        <h4>Tags</h4>
+        <ul class="tag_box">
+          
+          
+
+
+  
+     
+    	<li><a href="/tags.html#arduino-ref">arduino <span>2</span></a></li>
+     
+    	<li><a href="/tags.html#electronics-ref">electronics <span>2</span></a></li>
+    
+  
+
+
+
+        </ul>
+      </section>
+             
+  </div>
+</div>
+
+
+      </div>
+
+      <footer>
+        <p>&copy; 2018 Sébastien Bigot
+          with help from <a href="http://jekyllbootstrap.com" target="_blank" title="The Definitive Jekyll Blogging Framework">Jekyll Bootstrap</a>
+          and <a href="http://github.com/dhulihan/hooligan" target="_blank">The Hooligan Theme</a>
+        </p>
+      </footer>
+    </div> <!-- /container -->
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="/assets/themes/hooligan/js/jquery.min.js"><\/script>')</script>
+    <script src="/assets/themes/hooligan/bootstrap/js/bootstrap.min.js"></script>
+    
+    
+    
+  </body>
+</html>
+

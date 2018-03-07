@@ -1,0 +1,1500 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>
+      
+        The Lyttelton port wave penetration project: Part 2 - 
+      
+      Seb's blog
+    </title>
+    <meta name="description" content="">
+    <meta name="author" content="Sébastien Bigot">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+
+    <link href="/assets/themes/hooligan/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/themes/hooligan/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">    
+    <link rel="stylesheet" type="text/css" href="/assets/themes/hooligan/css-social-buttons/css/zocial.stripped.css">
+    <link href="/assets/themes/hooligan/css/pygments.css" rel="stylesheet" type="text/css" media="all">
+    <link href="/assets/themes/hooligan/css/darkstrap.css" rel="stylesheet" type="text/css" media="all">    
+    <link href="/assets/themes/hooligan/css/style.css?body=1" rel="stylesheet" type="text/css" media="all">
+
+    
+    <!-- fav and touch icons -->
+  <!-- Update these with your own images
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
+  -->
+
+    <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      TeX: { equationNumbers: { autoNumber: "AMS" } },
+        tex2jax: {
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      }
+    });
+    MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for(i=0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+    </script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    </script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.js">
+    </script>
+    <script type="text/javascript" src="/galleria/galleria-1.3.3.min.js">
+    </script>
+    <style>
+      .galleria{ width: 700px; height: 400px; background: #000 }
+    </style>
+  </head>
+
+  <body>
+    <div class="navbar">
+      <div class="navbar-inner">
+        <div class="container">
+          <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>      
+
+
+          <a class="brand" href="/">Seb's blog</a>
+
+
+          <div class="nav-collapse">
+            <ul class="nav">
+              
+              
+              
+
+
+  
+    
+      
+      	
+      	<li><a href="/archive.html">Archive</a></li>
+      	
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/categories.html">Categories</a></li>
+      	
+      
+    
+  
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/tags.html">Tags</a></li>
+      	
+      
+    
+  
+
+
+
+            </ul>
+            <ul class="nav pull-right social visible-desktop">
+              <li class="divider-vertical"></li>
+              
+                <li>
+                  <a href="https://github.com/ssrb" class="zocial github icon" target="_blank">
+                    <span class="hidden-desktop">Github</span>
+                  </a>
+                </li>
+              
+                  
+                                        
+                         
+                                  
+              
+              <li>
+                <a class="zocial icon rss" target="_blank" href="/rss.xml">
+                  <span class="hidden-desktop">ATOM Feed</a>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="content">
+        
+<div class="page-header">
+  <h1>
+    The Lyttelton port wave penetration project: Part 2 
+    
+  </h1>
+</div>
+
+<div class="row">
+  <div class="span8">
+    
+<p>In this second mini-post, I’m not going to talk about the mild-slope equation : this will be for the third post.
+One of the main reason I’m postponing it, is that I’ve been granted access, for a limited amount of time, to a <a href="http://www.microway.com/products/hpc-clusters/tesla-gpu-clusters/">Tesla-accelerated compute cluster</a> (kudos to Mike and Eliot).
+I gratefully acknowledge Microway for providing access to a Tesla-accelerated compute cluster.</p>
+
+<p>The plan is to first implement a prototype of the parallel solver in Octave and then rewrite it in C++ to target the cluster.</p>
+
+<p>Even though I stick to the Poisson equation, all the material presented in this post will still be usable when switching to the mild-slope equation in mini-post 3.</p>
+
+<!-- more -->
+
+<h2 id="the-prototype">The Prototype</h2>
+
+<p>The reasons I’m spending some time writting an Octave prototype first rather than writting C++ targetting the cluster straightaway are:</p>
+
+<ul>
+  <li>It’s easy to quickly test &amp; debug new ideas in Octave.</li>
+  <li>C++ makes you unproductive and I wouldn’t start writting C++ unless I know exactly where I’m going. In my opinion, writting C++ straightaway should be considered as a premature optimization.</li>
+</ul>
+
+<p>So let’s see how we can write distributed Octave scripts.</p>
+
+<h3 id="mpi-with-octave">MPI with Octave</h3>
+
+<p>One way of writting distributed application is via <a href="http://en.wikipedia.org/wiki/Message-passing">message passing</a>.
+A popular message passing middleware in the <a href="http://en.wikipedia.org/wiki/High-performance_computing">HPC</a> world is <a href="http://en.wikipedia.org/wiki/Message_Passing_Interface">MPI</a>.</p>
+
+<p>I found two sets of Octave wrappers for MPI:</p>
+
+<ol>
+  <li><a href="http://octave.sourceforge.net/mpi">the MPI package on Octave-forge</a></li>
+  <li><a href="http://www.ugr.es/~jfernand/mpitb.html">MPI Toolbox for Octave</a></li>
+</ol>
+
+<p>The former supports modern version of Octave (3.6-ish) but version 1.2.0 only wraps a spartan subset of the MPI API:</p>
+
+<ul>
+  <li><code>MPI_Comm_Load</code></li>
+  <li><code>MPI_Comm_Test</code></li>
+  <li><code>MPI_Comm_rank</code></li>
+  <li><code>MPI_Comm_size</code></li>
+  <li><code>MPI_Finalize</code></li>
+  <li><code>MPI_Finalized</code></li>
+  <li><code>MPI_Get_processor_name</code></li>
+  <li><code>MPI_Init</code></li>
+  <li><code>MPI_Iprobe</code></li>
+  <li><code>MPI_Initialized</code></li>
+  <li><code>MPI_Probe</code></li>
+  <li><code>MPI_Recv</code></li>
+  <li><code>MPI_Send</code></li>
+</ul>
+
+<p>wheras the later wraps (almost) the entire MPI2 API but was last updated in 2007 and only support Octave 2.9.</p>
+
+<p>So I decided the MPI Toolbox needed some love and spent a couple of nights making it works with modern version of Octave.
+It’s available on github <a href="https://github.com/ssrb/mpitb">here</a>. I will integrate that repo in <a href="https://travis-ci.org">Travis CI</a> later one. Enjoy !</p>
+
+<p>We got the tool now. Let’s see how we’re going to use it.</p>
+
+<h3 id="from-two-to-many-subdomains-in-parallel">From two to many subdomains, in parallel</h3>
+
+<p>I implemented a sequential two domains solver in the first two domain decomposition posts.
+Moving from two to many subdomains in parallel is easy enough, here is the plan:</p>
+
+<ol>
+  <li>Each processor will assemble a local linear system involving the unknow of its subdomain plus <em>all</em> the interface unknows, that is, regardless of the subdomains these unknowns are interfacing. As for the two subdomains case, we distinguish between interior and interface unknowns.</li>
+  <li>Each processor will LU-factorize the interior of its subdomain.</li>
+  <li>Each processor will compute its contribution to the right hand side of the Schur complement system. Contributions will then be accumulated using a <code>MPI_Allreduce</code> collective operation.</li>
+  <li>The processors will, collectively, solve the Schur complement system using a distributed gradient descent: every iteration of the gradient descent algorithm, each processor will compute a local contribution to the product of the Schur complement matrix with a vector. Contributions will then be accumulated using a <code>MPI_Allreduce</code> collective operation.</li>
+  <li>Once the gradient descent converges, the solution for the trace is known to all the processors: they can now proceed with solving for the interior of their subdomain.</li>
+  <li>Ultimately, a designated processor will consolidate subdomain solutions into a global solution using <code>MPI_Gatherv</code> calls.</li>
+</ol>
+
+<p>Hereafter is the Octave code doing that, including details of the gradient descent function:</p>
+
+<div class="highlight"><pre><code class="language-octave" data-lang="octave"><span class="lineno"> 1</span> <span class="k">function</span><span class="w"> </span><span class="nf">mpiSchur</span><span class="p">()</span><span class="w"></span>
+<span class="lineno"> 2</span> 
+<span class="lineno"> 3</span> <span class="w">  </span><span class="n">pkg</span> <span class="nb">load</span> <span class="n">mpitb</span><span class="p">;</span>
+<span class="lineno"> 4</span> 
+<span class="lineno"> 5</span>   <span class="n">MPI_Init</span><span class="p">;</span>
+<span class="lineno"> 6</span> 
+<span class="lineno"> 7</span>   <span class="p">[</span><span class="n">mpistatus</span><span class="p">,</span> <span class="n">mpirank</span><span class="p">]</span> <span class="p">=</span> <span class="n">MPI_Comm_rank</span><span class="p">(</span><span class="n">MPI_COMM_WORLD</span><span class="p">);</span>
+<span class="lineno"> 8</span>   <span class="p">[</span><span class="n">mpistatus</span><span class="p">,</span> <span class="n">mpicommsize</span><span class="p">]</span> <span class="p">=</span> <span class="n">MPI_Comm_size</span><span class="p">(</span><span class="n">MPI_COMM_WORLD</span><span class="p">);</span>
+<span class="lineno"> 9</span> 
+<span class="lineno">10</span>   <span class="p">[</span><span class="n">vertices</span><span class="p">,</span> <span class="n">triangles</span><span class="p">,</span> <span class="n">border</span><span class="p">,</span> <span class="n">interface</span><span class="p">,</span> <span class="n">vids</span><span class="p">]</span> <span class="p">=</span> <span class="p">...</span>
+<span class="lineno">11</span>         <span class="n">readMesh</span><span class="p">(</span><span class="s">&quot;lyttelton.mesh&quot;</span><span class="p">,</span> <span class="s">&quot;interface2.vids&quot;</span><span class="p">,</span> <span class="n">mpirank</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
+<span class="lineno">12</span>   
+<span class="lineno">13</span>   <span class="c">% Assemble *local* stiffness matrix and load vector</span>
+<span class="lineno">14</span>   <span class="p">[</span><span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">]</span> <span class="p">=</span> <span class="n">assemble</span><span class="p">(</span><span class="n">vertices</span><span class="p">,</span> <span class="n">triangles</span><span class="p">,</span> <span class="n">border</span><span class="p">);</span>
+<span class="lineno">15</span> 
+<span class="lineno">16</span>   <span class="n">nbInterior</span> <span class="p">=</span> <span class="nb">length</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">-</span> <span class="nb">length</span><span class="p">(</span><span class="n">interface</span><span class="p">);</span>
+<span class="lineno">17</span> 
+<span class="lineno">18</span>   <span class="c">% LU-factorize the interior of the subdomains, we&#39;re going to reuse this everywhere </span>
+<span class="lineno">19</span>   <span class="p">[</span><span class="n">L</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">tmp</span><span class="p">]</span> <span class="p">=</span> <span class="nb">lu</span><span class="p">(</span><span class="n">A</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">nbInterior</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="n">nbInterior</span><span class="p">),</span> <span class="s">&#39;vector&#39;</span><span class="p">);</span>
+<span class="lineno">20</span>   <span class="n">q</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span> <span class="p">=</span> <span class="mi">1</span><span class="p">:</span><span class="nb">length</span><span class="p">(</span><span class="n">tmp</span><span class="p">);</span>
+<span class="lineno">21</span> 
+<span class="lineno">22</span>   <span class="c">% We solve for the trace first: we need to compute the second member of the Schur</span>
+<span class="lineno">23</span>   <span class="c">% complement system local contribution</span>
+<span class="lineno">24</span>   <span class="n">bti</span> <span class="p">=</span> <span class="n">computeBTildI</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">nbInterior</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">);</span>
+<span class="lineno">25</span>   <span class="n">bt</span> <span class="p">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="nb">size</span><span class="p">(</span><span class="n">bti</span><span class="p">));</span>
+<span class="lineno">26</span> 
+<span class="lineno">27</span>   <span class="c">% Sum contributions</span>
+<span class="lineno">28</span>   <span class="n">mpistatus</span> <span class="p">=</span> <span class="n">MPI_Allreduce</span><span class="p">(</span><span class="n">bti</span><span class="p">,</span> <span class="n">bt</span><span class="p">,</span> <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">);</span>
+<span class="lineno">29</span> 
+<span class="lineno">30</span>   <span class="n">epsilon</span> <span class="p">=</span> <span class="mf">1.e-30</span><span class="p">;</span>
+<span class="lineno">31</span>   <span class="n">maxIter</span> <span class="p">=</span> <span class="mi">600</span><span class="p">;</span>
+<span class="lineno">32</span> 
+<span class="lineno">33</span>   <span class="c">% Solve for the trace doing distributed gradient descent</span>
+<span class="lineno">34</span>   <span class="n">trcSol</span> <span class="p">=</span> <span class="nb">pcg</span><span class="p">(</span> <span class="p">@(</span><span class="n">x</span><span class="p">)</span> <span class="n">parallelMultiplyBySchurComplement</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">nbInterior</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">x</span><span class="p">),</span> <span class="p">...</span>
+<span class="lineno">35</span>           <span class="n">bt</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">,</span> <span class="n">maxIter</span><span class="p">);</span>
+<span class="lineno">36</span>   
+<span class="lineno">37</span>   <span class="c">% Solve for the local interior</span>
+<span class="lineno">38</span>   <span class="n">localISol</span> <span class="p">=</span> <span class="p">(</span><span class="n">U</span> <span class="o">\</span> <span class="p">(</span><span class="n">L</span> <span class="o">\</span> <span class="p">(</span><span class="n">b</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">nbInterior</span><span class="p">)</span> <span class="o">-</span> <span class="n">A</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">nbInterior</span><span class="p">,</span> <span class="n">nbInterior</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:</span> <span class="k">end</span><span class="p">)</span> <span class="o">*</span> <span class="n">trcSol</span><span class="p">)(</span><span class="n">p</span><span class="p">)))(</span><span class="n">q</span><span class="p">);</span>
+<span class="lineno">39</span> 
+<span class="lineno">40</span>   <span class="c">% Consolidate solutions</span>
+<span class="lineno">41</span>   <span class="c">% Gather sizes of the subdomains</span>
+<span class="lineno">42</span>   <span class="n">allNbInterior</span> <span class="p">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="n">mpicommsize</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+<span class="lineno">43</span>   <span class="n">MPI_Gather</span><span class="p">(</span><span class="n">nbInterior</span><span class="p">,</span> <span class="n">allNbInterior</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">);</span>
+<span class="lineno">44</span> 
+<span class="lineno">45</span>   <span class="n">sumNbInterior</span> <span class="p">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">allNbInterior</span><span class="p">);</span>
+<span class="lineno">46</span> 
+<span class="lineno">47</span>   <span class="n">disps</span> <span class="p">=</span> <span class="nb">cumsum</span><span class="p">([</span><span class="mi">0</span><span class="p">;</span> <span class="n">allNbInterior</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="k">end</span><span class="o">-</span><span class="mi">1</span><span class="p">)]);</span>
+<span class="lineno">48</span> 
+<span class="lineno">49</span>   <span class="c">% Concatenate local =&gt; global mappings of the unknowns</span>
+<span class="lineno">50</span>   <span class="n">globalISol</span> <span class="p">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="n">sumNbInterior</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+<span class="lineno">51</span>   <span class="n">MPI_Gatherv</span><span class="p">(</span><span class="n">localISol</span><span class="p">,</span> <span class="n">globalISol</span><span class="p">,</span> <span class="n">allNbInterior</span><span class="p">,</span> <span class="n">disps</span><span class="p">,</span> <span class="mi">0</span> <span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">);</span>
+<span class="lineno">52</span>   
+<span class="lineno">53</span>   <span class="c">% Concatenate solutions</span>
+<span class="lineno">54</span>   <span class="n">allVids</span> <span class="p">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="n">sumNbInterior</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+<span class="lineno">55</span>   <span class="n">vids</span> <span class="p">=</span> <span class="n">vids</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">nbInterior</span><span class="p">);</span>
+<span class="lineno">56</span>   <span class="n">MPI_Gatherv</span><span class="p">(</span><span class="n">vids</span><span class="p">,</span> <span class="n">allVids</span><span class="p">,</span> <span class="n">allNbInterior</span><span class="p">,</span> <span class="n">disps</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">);</span>
+<span class="lineno">57</span> 
+<span class="lineno">58</span>   <span class="k">if</span> <span class="n">mpirank</span> <span class="o">==</span> <span class="mi">0</span>
+<span class="lineno">59</span>     <span class="c">% Reorder the global solution</span>
+<span class="lineno">60</span>     <span class="n">solution</span> <span class="p">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="n">sumNbInterior</span> <span class="o">+</span> <span class="nb">length</span><span class="p">(</span><span class="n">interface</span><span class="p">),</span> <span class="mi">1</span><span class="p">);</span>
+<span class="lineno">61</span>     <span class="n">solution</span><span class="p">(</span><span class="n">allVids</span><span class="p">)</span> <span class="p">=</span> <span class="n">globalISol</span><span class="p">;</span>
+<span class="lineno">62</span>     <span class="n">solution</span><span class="p">(</span><span class="n">interface</span><span class="p">)</span> <span class="p">=</span> <span class="n">trcSol</span><span class="p">;</span>
+<span class="lineno">63</span>     <span class="n">writeSolution</span><span class="p">(</span><span class="s">&quot;lyttelton.sol&quot;</span><span class="p">,</span> <span class="n">solution</span><span class="p">);</span>
+<span class="lineno">64</span>   <span class="k">end</span>
+<span class="lineno">65</span> 
+<span class="lineno">66</span>   <span class="n">MPI_Finalize</span><span class="p">;</span>
+<span class="lineno">67</span> <span class="k">endfunction</span>
+<span class="lineno">68</span> 
+<span class="lineno">69</span> <span class="k">function</span><span class="w"> </span>[res] <span class="p">=</span><span class="w"> </span><span class="nf">parallelMultiplyBySchurComplement</span><span class="p">(</span>A, nbInterior, L, U, p, q, x<span class="p">)</span><span class="w"></span>
+<span class="lineno">70</span> <span class="w">  </span><span class="c">% Compute the product of the *local* Schur complement with a x</span>
+<span class="lineno">71</span>   <span class="n">local</span> <span class="p">=</span> <span class="n">A</span><span class="p">(</span><span class="n">nbInterior</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:</span> <span class="k">end</span><span class="p">,</span> <span class="n">nbInterior</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:</span> <span class="k">end</span><span class="p">)</span> <span class="o">*</span> <span class="n">x</span> <span class="p">...</span>
+<span class="lineno">72</span>     <span class="o">-</span> <span class="n">A</span><span class="p">(</span><span class="n">nbInterior</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:</span> <span class="k">end</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="n">nbInterior</span><span class="p">)</span> <span class="o">*</span> <span class="p">...</span>
+<span class="lineno">73</span>     <span class="p">(</span><span class="n">U</span> <span class="o">\</span> <span class="p">(</span><span class="n">L</span> <span class="o">\</span> <span class="p">(</span><span class="n">A</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">nbInterior</span><span class="p">,</span> <span class="n">nbInterior</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:</span> <span class="k">end</span><span class="p">)</span> <span class="o">*</span> <span class="n">x</span><span class="p">)(</span><span class="n">p</span><span class="p">)))(</span><span class="n">q</span><span class="p">);</span>
+<span class="lineno">74</span>   <span class="n">res</span> <span class="p">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="nb">size</span><span class="p">(</span><span class="n">local</span><span class="p">));</span>
+<span class="lineno">75</span> 
+<span class="lineno">76</span>   <span class="c">% Sum contributions</span>
+<span class="lineno">77</span>   <span class="n">MPI_Allreduce</span><span class="p">(</span><span class="n">local</span><span class="p">,</span> <span class="n">res</span><span class="p">,</span> <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">);</span>
+<span class="lineno">78</span> <span class="k">endfunction</span></code></pre></div>
+
+<p>The entire script can be found <a href="https://github.com/ssrb/ssrb.github.com/blob/master/assets/lyttelton/mpiSchur.m">here</a></p>
+
+<h3 id="running-an-octavempi-script">Running an Octave/MPI script</h3>
+
+<p>I think it’s worth spending a few lines describing how to run the script as it is tricky.
+I’m using the <a href="http://www.open-mpi.org">Open MPI</a> implementation of the standard.</p>
+
+<p>Here is how to run an Octave/MPI script on five processors:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">LD_PRELOAD</span><span class="o">=</span>/usr/lib/libmpi.so mpirun -c <span class="m">5</span> --tag-output octave -q --eval <span class="s2">&quot;mpiSchur&quot;</span></code></pre></div>
+
+<p>The <code>LD_PRELOAD=/usr/lib/libmpi.so mpirun</code> is necessary with Octave scripts otherwise you get an</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">symbol lookup error: /usr/lib/openmpi/lib/openmpi/mca_paffinity_linux.so: undefined symbol: mca_base_param_reg_int</code></pre></div>
+
+<p>My understanding is that the executable calling <code>MPI_Init</code> is expected to be linked to <code>libmpi.so</code> in order to work. But the <code>octave</code> interpreter itself is
+“MPI agnostic”:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">ldd <span class="k">$(</span>which octave<span class="k">)</span> <span class="p">|</span> grep mpi</code></pre></div>
+
+<p>returns nothing.</p>
+
+<p>What, however, has been linked to <code>libmpi.so</code> is the set of Octave &lt;=&gt; C++ MPI wrappers:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">ldd /usr/share/octave/packages/mpitb/MPI_Init.oct  <span class="p">|</span> grep mpi
+  libmpi.so.0 <span class="o">=</span>&gt; /usr/lib/libmpi.so.0 <span class="o">(</span>0x00007f7cda752000<span class="o">)</span></code></pre></div>
+
+<p>These <code>.oct</code> dynamic shared objects are loaded just-in-time at runtime by the interpreter, as the script consumes the MPI API, by invoking <code>dlopen</code>(3).
+According to the man page, <code>dlopen</code> takes care of loading dependencies such as <code>libmpi.so</code> but this doesn’t seem to help.
+I don’t know why but I theorize it has to do with the flags Octave pass to <code>dlopen</code> when loading <code>.oct</code> files (<code>RTLD_LAZY</code> vs <code>RTLD_NOW</code>) as well as the way the <a href="http://www.open-mpi.org/faq/?category=tuning#mca-def">Open MPI Modular Component Architecure</a> look-up the MPI modules.</p>
+
+<p>Anyway, the workaround is to pre-load <code>/usr/lib/libmpi.so</code>. If you know the reason why it’s not working without pre-loading, please let me know.</p>
+
+<h3 id="results">Results</h3>
+
+<p>Here I’m sequentially displaying what is being computed in parallel:
+<img src="/assets/lyttelton/lyttelton_poisson.gif" alt="Solution" /></p>
+
+<h3 id="vectorizing-assembly">Vectorizing assembly</h3>
+
+<p>In that part, I’m going to spend some time optimizing the linear system assemby.</p>
+
+<h4 id="sloooooow-">Sloooooow …</h4>
+
+<p>Here is one processor performance profile as generated by the <code>profile</code> and <code>profshow</code> functions:</p>
+
+<div class="highlight"><pre><code class="language-text" data-lang="text">#                                   Function Attr     Time (s)        Calls
+------------------------------------------------------------------------------
+  44                          mpiSchur&gt;assemble           199.813            1
+   2                          mpiSchur&gt;readMesh             2.664            1
+  12                                     fscanf             2.199        96114
+  45                                        det             0.966        17350
+  47                                        mod             0.711       306330
+   9                             mpiSchur&gt;fgoto             0.681            2
+  74                     mpiSchur&gt;writeSolution             0.653            1
+  69                                    fprintf             0.632        44443
+  11                                   prefix !             0.512       252244
+  53                                   binary \             0.434          474
+   5                                      fgetl             0.371        46538
+   1                                   binary +             0.328       307512
+  42                        mpiSchur&gt;fskipLines             0.287         8868
+  40                                      fgets             0.279        35567
+  49                                   prefix -             0.180        51361
+  61 mpiSchur&gt;parallelMultiplyBySchurComplement             0.167          235
+  46                                   binary *             0.161       172159
+  48                                   binary /             0.160       204995
+  51                                         lu             0.117            1
+  41                                      zeros             0.109        17595</code></pre></div>
+
+<p>It’s spending most of the time assembling the linear system.</p>
+
+<p>The initial version of the <code>assemble</code> function loops over the triangles and then the vertices,
+ignoring the border since we got a vanishing Dirichlet boundary condition.
+Here is the code doing that:</p>
+
+<div class="highlight"><pre><code class="language-octave" data-lang="octave"><span class="lineno"> 1</span> <span class="k">function</span><span class="w"> </span>[A, b] <span class="p">=</span><span class="w"> </span><span class="nf">assemble</span><span class="p">(</span>vertices, triangles, border<span class="p">)</span><span class="w"></span>
+<span class="lineno"> 2</span> <span class="w">  </span><span class="n">nvertices</span> <span class="p">=</span> <span class="nb">length</span><span class="p">(</span><span class="n">vertices</span><span class="p">);</span>
+<span class="lineno"> 3</span>   <span class="n">ntriangles</span> <span class="p">=</span> <span class="nb">length</span><span class="p">(</span><span class="n">triangles</span><span class="p">);</span>
+<span class="lineno"> 4</span> 
+<span class="lineno"> 5</span>   <span class="n">iis</span> <span class="p">=</span> <span class="p">[];</span>
+<span class="lineno"> 6</span>   <span class="n">jjs</span> <span class="p">=</span> <span class="p">[];</span>
+<span class="lineno"> 7</span>   <span class="n">vs</span> <span class="p">=</span> <span class="p">[];</span>
+<span class="lineno"> 8</span> 
+<span class="lineno"> 9</span>   <span class="n">b</span> <span class="p">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="n">nvertices</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+<span class="lineno">10</span>   <span class="k">for</span> <span class="n">tid</span><span class="p">=</span><span class="mi">1</span><span class="p">:</span><span class="n">ntriangles</span>
+<span class="lineno">11</span>     <span class="n">q</span> <span class="p">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">);</span>
+<span class="lineno">12</span>     <span class="n">q</span><span class="p">(</span><span class="mi">1</span><span class="p">,:)</span> <span class="p">=</span> <span class="n">vertices</span><span class="p">(</span><span class="n">triangles</span><span class="p">(</span><span class="n">tid</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">:)</span> <span class="o">-</span> <span class="n">vertices</span><span class="p">(</span><span class="n">triangles</span><span class="p">(</span><span class="n">tid</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">:);</span>
+<span class="lineno">13</span>     <span class="n">q</span><span class="p">(</span><span class="mi">2</span><span class="p">,:)</span> <span class="p">=</span> <span class="n">vertices</span><span class="p">(</span><span class="n">triangles</span><span class="p">(</span><span class="n">tid</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">:)</span> <span class="o">-</span> <span class="n">vertices</span><span class="p">(</span><span class="n">triangles</span><span class="p">(</span><span class="n">tid</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="p">:);</span>
+<span class="lineno">14</span>     <span class="n">q</span><span class="p">(</span><span class="mi">3</span><span class="p">,:)</span> <span class="p">=</span> <span class="n">vertices</span><span class="p">(</span><span class="n">triangles</span><span class="p">(</span><span class="n">tid</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="p">:)</span> <span class="o">-</span> <span class="n">vertices</span><span class="p">(</span><span class="n">triangles</span><span class="p">(</span><span class="n">tid</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">:);</span>
+<span class="lineno">15</span>     <span class="nb">area</span> <span class="p">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="nb">det</span><span class="p">(</span><span class="n">q</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span> <span class="p">:));</span>
+<span class="lineno">16</span>     <span class="k">for</span> <span class="n">i</span><span class="p">=</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span>
+<span class="lineno">17</span>       <span class="n">ii</span> <span class="p">=</span> <span class="n">triangles</span><span class="p">(</span><span class="n">tid</span><span class="p">,</span><span class="n">i</span><span class="p">);</span>
+<span class="lineno">18</span>       <span class="k">if</span> <span class="o">!</span><span class="n">border</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span>
+<span class="lineno">19</span>         <span class="k">for</span> <span class="n">j</span><span class="p">=</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span>
+<span class="lineno">20</span>           <span class="n">jj</span> <span class="p">=</span> <span class="n">triangles</span><span class="p">(</span><span class="n">tid</span><span class="p">,</span><span class="n">j</span><span class="p">);</span>
+<span class="lineno">21</span>           <span class="k">if</span> <span class="o">!</span><span class="n">border</span><span class="p">(</span><span class="n">jj</span><span class="p">)</span>
+<span class="lineno">22</span>             <span class="n">hi</span> <span class="p">=</span> <span class="n">q</span><span class="p">(</span><span class="nb">mod</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:);</span>
+<span class="lineno">23</span>             <span class="n">hj</span> <span class="p">=</span> <span class="n">q</span><span class="p">(</span><span class="nb">mod</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:);</span>
+<span class="lineno">24</span>             
+<span class="lineno">25</span>             <span class="n">v</span> <span class="p">=</span> <span class="p">(</span><span class="n">hi</span> <span class="o">*</span> <span class="n">hj</span><span class="o">&#39;</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="nb">area</span><span class="p">);</span>
+<span class="lineno">26</span> 
+<span class="lineno">27</span>             <span class="n">iis</span> <span class="p">=</span> <span class="p">[</span><span class="n">iis</span> <span class="n">ii</span><span class="p">];</span>
+<span class="lineno">28</span>             <span class="n">jjs</span> <span class="p">=</span> <span class="p">[</span><span class="n">jjs</span> <span class="n">jj</span><span class="p">];</span>
+<span class="lineno">29</span>             <span class="n">vs</span> <span class="p">=</span> <span class="p">[</span><span class="n">vs</span> <span class="n">v</span><span class="p">];</span>
+<span class="lineno">30</span>           <span class="k">end</span>
+<span class="lineno">31</span>         <span class="k">end</span>
+<span class="lineno">32</span>         <span class="n">b</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span> <span class="o">+=</span> <span class="o">-</span><span class="nb">area</span> <span class="o">/</span> <span class="mi">3</span><span class="p">;</span>
+<span class="lineno">33</span>       <span class="k">end</span>
+<span class="lineno">34</span>     <span class="k">end</span>
+<span class="lineno">35</span>   <span class="k">end</span>
+<span class="lineno">36</span>   <span class="n">A</span> <span class="p">=</span> <span class="nb">sparse</span><span class="p">(</span><span class="n">iis</span><span class="p">,</span> <span class="n">jjs</span><span class="p">,</span> <span class="n">vs</span><span class="p">,</span> <span class="n">nvertices</span><span class="p">,</span> <span class="n">nvertices</span><span class="p">,</span> <span class="s">&quot;sum&quot;</span><span class="p">);</span>
+<span class="lineno">37</span> <span class="k">endfunction</span></code></pre></div>
+
+<h4 id="an-efficient-way-to-perform-the-assembly-of-finite-element-matrices-in-matlab-and-octave">An efficient way to perform the assembly of finite element matrices in Matlab and Octave</h4>
+
+<p>Some people say Octave sucks at loops. Suffice it to say it’s much better at vector operations as we will see.
+I made a few research about vectorizing FEM linear system assembly and found an awesome May 2013 research report 
+by François Cuvelier, Caroline Japhet &amp; Gilles Scarella at <a href="http://www.inria.fr/en">Inria</a> titled <a href="http://arxiv.org/pdf/1305.3122.pdf">“An efficient way to perform the assembly of
+finite element matrices in Matlab and Octave”</a>
+Exactly what I needed. Hereafter is the new version applying technics from these guys research:</p>
+
+<div class="highlight"><pre><code class="language-octave" data-lang="octave"><span class="lineno"> 1</span> <span class="k">function</span><span class="w"> </span>[A, b] <span class="p">=</span><span class="w"> </span><span class="nf">assemble</span><span class="p">(</span>vertices, triangles, border<span class="p">)</span><span class="w"></span>
+<span class="lineno"> 2</span> <span class="w">  </span><span class="n">nvertices</span> <span class="p">=</span> <span class="nb">length</span><span class="p">(</span><span class="n">vertices</span><span class="p">);</span>
+<span class="lineno"> 3</span>   <span class="n">ntriangles</span> <span class="p">=</span> <span class="nb">length</span><span class="p">(</span><span class="n">triangles</span><span class="p">);</span>
+<span class="lineno"> 4</span> 
+<span class="lineno"> 5</span>   <span class="n">q1</span> <span class="p">=</span> <span class="n">vertices</span><span class="p">(</span><span class="n">triangles</span><span class="p">(:,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">:);</span>
+<span class="lineno"> 6</span>   <span class="n">q2</span> <span class="p">=</span> <span class="n">vertices</span><span class="p">(</span><span class="n">triangles</span><span class="p">(:,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">:);</span>
+<span class="lineno"> 7</span>   <span class="n">q3</span> <span class="p">=</span> <span class="n">vertices</span><span class="p">(</span><span class="n">triangles</span><span class="p">(:,</span> <span class="mi">3</span><span class="p">),</span> <span class="p">:);</span>
+<span class="lineno"> 8</span> 
+<span class="lineno"> 9</span>   <span class="n">u</span> <span class="p">=</span> <span class="n">q2</span> <span class="o">-</span> <span class="n">q3</span><span class="p">;</span>
+<span class="lineno">10</span>   <span class="n">v</span> <span class="p">=</span> <span class="n">q3</span> <span class="o">-</span> <span class="n">q1</span><span class="p">;</span>
+<span class="lineno">11</span>   <span class="n">w</span> <span class="p">=</span> <span class="n">q1</span> <span class="o">-</span> <span class="n">q2</span><span class="p">;</span>
+<span class="lineno">12</span> 
+<span class="lineno">13</span>   <span class="n">a</span><span class="p">(:,</span><span class="mi">1</span><span class="p">,:)</span> <span class="p">=</span> <span class="n">v</span><span class="o">&#39;</span><span class="p">;</span>
+<span class="lineno">14</span>   <span class="n">a</span><span class="p">(:,</span><span class="mi">2</span><span class="p">,:)</span> <span class="p">=</span> <span class="n">w</span><span class="o">&#39;</span><span class="p">;</span>
+<span class="lineno">15</span>   <span class="n">areas</span> <span class="p">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="nb">cellfun</span><span class="p">(@</span><span class="nb">det</span><span class="p">,</span> <span class="n">num2cell</span><span class="p">(</span><span class="n">a</span><span class="p">,[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]))(:);</span>
+<span class="lineno">16</span>   <span class="n">areas4</span> <span class="p">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">areas</span><span class="p">;</span>
+<span class="lineno">17</span> 
+<span class="lineno">18</span>   <span class="n">val</span><span class="p">(:,</span> <span class="mi">1</span><span class="p">)</span> <span class="p">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">u</span><span class="o">.*</span><span class="n">u</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">./</span> <span class="n">areas4</span><span class="p">;</span>
+<span class="lineno">19</span>   <span class="n">val</span><span class="p">(:,</span> <span class="mi">2</span><span class="p">)</span> <span class="p">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">u</span><span class="o">.*</span><span class="n">v</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">./</span> <span class="n">areas4</span><span class="p">;</span>
+<span class="lineno">20</span>   <span class="n">val</span><span class="p">(:,</span> <span class="mi">3</span><span class="p">)</span> <span class="p">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">u</span><span class="o">.*</span><span class="n">w</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">./</span> <span class="n">areas4</span><span class="p">;</span>
+<span class="lineno">21</span>   <span class="n">val</span><span class="p">(:,</span> <span class="mi">5</span><span class="p">)</span> <span class="p">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">v</span><span class="o">.*</span><span class="n">v</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">./</span> <span class="n">areas4</span><span class="p">;</span>
+<span class="lineno">22</span>   <span class="n">val</span><span class="p">(:,</span> <span class="mi">6</span><span class="p">)</span> <span class="p">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">v</span><span class="o">.*</span><span class="n">w</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">./</span> <span class="n">areas4</span><span class="p">;</span>
+<span class="lineno">23</span>   <span class="n">val</span><span class="p">(:,</span> <span class="mi">9</span><span class="p">)</span> <span class="p">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">w</span><span class="o">.*</span><span class="n">w</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">./</span> <span class="n">areas4</span><span class="p">;</span>
+<span class="lineno">24</span>   <span class="n">val</span><span class="p">(:,</span> <span class="p">[</span> <span class="mi">4</span> <span class="p">,</span> <span class="mi">7</span> <span class="p">,</span> <span class="mi">8</span><span class="p">])</span> <span class="p">=</span> <span class="n">val</span><span class="p">(:,</span> <span class="p">[</span> <span class="mi">2</span> <span class="p">,</span> <span class="mi">3</span> <span class="p">,</span> <span class="mi">6</span> <span class="p">]);</span>
+<span class="lineno">25</span> 
+<span class="lineno">26</span>   <span class="n">col</span> <span class="p">=</span> <span class="n">triangles</span><span class="p">(:,</span> <span class="p">[</span><span class="mi">1</span> <span class="mi">1</span> <span class="mi">1</span> <span class="mi">2</span> <span class="mi">2</span> <span class="mi">2</span> <span class="mi">3</span> <span class="mi">3</span> <span class="mi">3</span><span class="p">]);</span>
+<span class="lineno">27</span>   <span class="n">row</span> <span class="p">=</span> <span class="n">triangles</span><span class="p">(:,</span> <span class="p">[</span><span class="mi">1</span> <span class="mi">2</span> <span class="mi">3</span> <span class="mi">1</span> <span class="mi">2</span> <span class="mi">3</span> <span class="mi">1</span> <span class="mi">2</span> <span class="mi">3</span><span class="p">]);</span>
+<span class="lineno">28</span> 
+<span class="lineno">29</span>   <span class="n">A</span> <span class="p">=</span> <span class="nb">sparse</span><span class="p">(</span><span class="n">col</span><span class="p">(:),</span> <span class="n">row</span><span class="p">(:),</span> <span class="n">val</span><span class="p">(:),</span> <span class="n">nvertices</span><span class="p">,</span> <span class="n">nvertices</span><span class="p">);</span>
+<span class="lineno">30</span>   <span class="c">% Dirichet penalty</span>
+<span class="lineno">31</span>   <span class="n">A</span> <span class="o">+=</span> <span class="nb">spdiags</span><span class="p">(</span><span class="mf">1e30</span> <span class="o">*</span> <span class="o">!!</span><span class="n">border</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">nvertices</span><span class="p">,</span> <span class="n">nvertices</span><span class="p">);</span>
+<span class="lineno">32</span> 
+<span class="lineno">33</span>   <span class="n">b</span> <span class="p">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="n">nvertices</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+<span class="lineno">34</span>   <span class="k">for</span> <span class="n">tid</span><span class="p">=</span><span class="mi">1</span><span class="p">:</span><span class="n">ntriangles</span>
+<span class="lineno">35</span>     <span class="n">b</span><span class="p">(</span><span class="n">triangles</span><span class="p">(</span><span class="n">tid</span><span class="p">,:))</span> <span class="o">+=</span> <span class="o">-</span><span class="n">areas</span><span class="p">(</span><span class="n">tid</span><span class="p">)</span> <span class="o">/</span> <span class="mi">3</span><span class="p">;</span>
+<span class="lineno">36</span>   <span class="k">end</span>
+<span class="lineno">37</span> 
+<span class="lineno">38</span> <span class="k">endfunction</span></code></pre></div>
+
+<h4 id="dirichlet-penalty">Dirichlet penalty</h4>
+
+<p>In the vectorized assembly, I also used a trick of the trade (ripped off from FreeFem++) to handle the Dirichlet boundary condition without testing for boundary vertices:
+treat these vertices as unknowns in their own rights, tweaking coefficients of the linear system
+so that the solution on the boundary matches the Dirichlet condition. It’s sometime refered as “handling
+ Dirichlet boundary condition with a penalty”. Let’s say we want to make <code>\(x_{i}\)</code> equal to <code>\(d\)</code> in the solution. Here is how it goes:
+choose a very very large value <code>\(P\)</code> (the penalty), add <code>\(P * d\)</code> to <code>\(b_{i}\)</code> in the load vector and add <code>\(P\)</code> to <code>\(A_{i,i}\)</code> in the stiffness matrix.
+And …  <code>\(A_{i}x \thickapprox A_{i,i}x_{i} \thickapprox P*x_{i} = b_{i} \thickapprox P*d\)</code> which is the same as <code>\(x_{i} = d\)</code>.</p>
+
+<h4 id="fast">… Fast</h4>
+
+<p>Here is the new perf profile:</p>
+
+<div class="highlight"><pre><code class="language-text" data-lang="text">#                                   Function Attr     Time (s)        Calls
+------------------------------------------------------------------------------
+   2                          mpiSchur&gt;readMesh             2.900            1
+  12                                     fscanf             2.453        96114
+  63                                   binary \             2.366         2006
+  71 mpiSchur&gt;parallelMultiplyBySchurComplement             0.741         1001
+   9                             mpiSchur&gt;fgoto             0.703            2
+  80                     mpiSchur&gt;writeSolution             0.655            1
+  81                                    fprintf             0.635        44441
+  66                              MPI_Allreduce             0.479         1002
+   5                                      fgetl             0.394        46538
+  44                          mpiSchur&gt;assemble             0.368            1
+  42                        mpiSchur&gt;fskipLines             0.285         8868
+  40                                      fgets             0.281        35567
+  67                                        pcg             0.229            1
+  48                                        det             0.211        17350
+  49                                   binary *             0.112         7009
+  13                                  binary ==             0.086        87273
+  61                                         lu             0.073            1
+  70                                      feval             0.056         1001
+  10                                     strcmp             0.042        46104
+  11                                   prefix !             0.038        46113</code></pre></div>
+
+<p>0.368s instead of 199.813s, not too bad ;-)
+Another good reason to spend time vectorizing Octave code is that it’s easier to make good use of the GPUs or translate the code into <a href="https://developer.nvidia.com/about-cuda">Cuda</a> kernels as we will see.
+Note that I didn’t take advantage of the symmetric structure of the linear system (I will do that in the C++ version of the solver) because I could not find a way to use the <code>Sparse</code> and <code>matrix_type</code> functions together to tell Octave that the matrix is symmetric allowing me to only store the upper triangular part. If you know how to do that, please tell me.</p>
+
+<h2 id="tesla-accelerated-compute-cluster">Tesla-accelerated compute cluster</h2>
+
+<p>In that part I will describe <a href="http://www.microway.com">Microway</a>’s Test Drive Cluster hardware as well as how to compile and run software targetting it.</p>
+
+<h3 id="cluster-hardware">Cluster hardware</h3>
+
+<p>I will be using the “benchmark” partition of the cluster:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="o">[</span>seba@head ~<span class="o">]</span><span class="nv">$ </span>sinfo
+PARTITION   AVAIL  TIMELIMIT  NODES  STATE NODELIST
+month-long   down 31-00:00:0      <span class="m">1</span>  alloc node3
+week-long      up 7-00:00:00      <span class="m">1</span>  alloc node3
+day-long       up 1-00:00:00      <span class="m">1</span>  alloc node3
+day-long       up 1-00:00:00      <span class="m">2</span>   idle node<span class="o">[</span>4-5<span class="o">]</span>
+day-long       up 1-00:00:00      <span class="m">1</span>   down node2
+benchmark*     up    8:00:00      <span class="m">1</span>  alloc node3
+benchmark*     up    8:00:00      <span class="m">2</span>   idle node<span class="o">[</span>4-5<span class="o">]</span>
+benchmark*     up    8:00:00      <span class="m">1</span>   down node2
+short          up      30:00      <span class="m">1</span>  alloc node3
+short          up      30:00      <span class="m">2</span>   idle node<span class="o">[</span>4-5<span class="o">]</span>
+short          up      30:00      <span class="m">1</span>   down node2
+interactive    up    8:00:00      <span class="m">1</span>  alloc node3
+interactive    up    8:00:00      <span class="m">2</span>   idle node<span class="o">[</span>4-5<span class="o">]</span>
+interactive    up    8:00:00      <span class="m">1</span>   down node2</code></pre></div>
+
+<p>A partition is a subset of the cluster. At that time, the “benchmark” partition has 3 nodes up:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Node</th>
+      <th>CPUs</th>
+      <th>Memory</th>
+      <th>GPUs</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>I  node3</td>
+      <td>I  2x 10-core Xeon E5-2680v2 @ 2.80GHz</td>
+      <td>I  64GB DDR3 1866MHz</td>
+      <td>I  2x NVIDIA Tesla K40</td>
+    </tr>
+    <tr>
+      <td>I  node4</td>
+      <td>I  2x 10-core Xeon E5-2680v2 @ 2.80GHz</td>
+      <td>I  64GB DDR3 1866MHz</td>
+      <td>I  2x NVIDIA Tesla K40</td>
+    </tr>
+    <tr>
+      <td>I  node5</td>
+      <td>I  2x 10-core Xeon E5-2680v2 @ 2.80GHz</td>
+      <td>I  128GB DDR3 1866MHz</td>
+      <td>I  3x NVIDIA Tesla K20</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The nodes use <a href="http://en.wikipedia.org/wiki/InfiniBand">InfiniBand</a> to talk to each others:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="o">[</span>seba@head ~<span class="o">]</span><span class="nv">$ </span>ip addr show ib0
+4: ib0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu <span class="m">2044</span> qdisc pfifo_fast state UP qlen 256
+    link/infiniband 80:00:00:48:fe:80:00:00:00:00:00:00:00:1e:67:03:00:29:47:6f brd 00:ff:ff:ff:ff:12:40:1b:ff:ff:00:00:00:00:00:00:ff:ff:ff:ff
+    inet 10.10.0.254/16 brd 10.10.255.255 scope global ib0
+    inet6 fe80::21e:6703:29:476f/64 scope link 
+       valid_lft forever preferred_lft forever</code></pre></div>
+
+<h3 id="cluster-environment">Cluster environment</h3>
+
+<h4 id="slurm">SLURM</h4>
+
+<p><img src="/assets/lyttelton/slurm_mckenzie.jpg" alt="SLURM McKenzie" /></p>
+
+<p>Cluster ressources management is handled by <a href="https://computing.llnl.gov/linux/slurm">SLURM</a>.
+SLURM allows you to submit jobs into a priority queue.
+A job priority depends on several factors among which the ressources required by the job.
+SLURM provides command such as <code>sinfo</code>, <code>sbatch</code>, <code>srun</code>, <code>scancel</code>, <code>squeue</code> to manage jobs.</p>
+
+<p>Job submission is done passing a submission script to the <code>sbatch</code> command.
+A submission script is just a shell script with extra directives in comment. 
+For example here is the submission script I’m using to run babyhares with 5 processors on two nodes with 6 CPUs (cores) by processor and 2 K40 GPUs per node:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="c">#!/bin/bash</span>
+
+<span class="c"># Describe the required ressources</span>
+<span class="c">#SBATCH --ntasks=5 --cpus-per-task=6 --nodes=2</span>
+<span class="c">#SBATCH --gres=gpu:2</span>
+<span class="c">#SBATCH --constraint=K40</span>
+<span class="c">#SBATCH --mem=32768</span>
+<span class="c">#SBATCH --time=10:00</span>
+<span class="c">#SBATCH --job-name=LytteltonWaveSimulation</span>
+<span class="c">#SBATCH --error=LytteltonWaveSimulation.%j.output.errors</span>
+<span class="c">#SBATCH --output=LytteltonWaveSimulation.%j.output.log</span>
+<span class="nv">gpus_per_node</span><span class="o">=</span>2
+<span class="nb">source</span> /mcms/core/slurm/scripts/libexec/slurm.jobstart_messages.sh
+
+<span class="c"># Setup the runtime environment</span>
+<span class="c"># Intel C++/MKL runtime</span>
+module load intel
+<span class="c"># MPI over infiniband</span>
+module load mvapich2
+<span class="c"># Cuda</span>
+module load cuda
+module list 2&gt;<span class="p">&amp;</span>1
+<span class="nb">echo</span><span class="p">;</span> <span class="nb">echo</span><span class="p">;</span>
+
+<span class="c"># Run the parallel solver (srun works like mpirun), never worked without --exclusive </span>
+<span class="c"># If using OpenMPI, you can use mpirun</span>
+srun -vvvvvvv -n <span class="m">5</span> -c <span class="m">6</span> -N <span class="m">2</span> --exclusive /home/seba/work/ssrb.github.com/assets/lyttelton/BabyHares/babyhares_k40 /home/seba/work/ssrb.github.com/assets/lyttelton/BabyHares/lyttelton.mesh /home/seba/work/ssrb.github.com/assets/lyttelton/BabyHares/interface2.vids</code></pre></div>
+
+<p>Then we can submit the job and check that it’s indeed queued. Like so:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="o">[</span>seba@head ~<span class="o">]</span><span class="nv">$ </span>sbatch -v work/ssrb.github.com/assets/lyttelton/seba-babyhares-lyttelton-port-5-subdomains-TeslaK40.sh
+sbatch: auth plugin <span class="k">for</span> Munge <span class="o">(</span>http://code.google.com/p/munge/<span class="o">)</span> loaded
+Submitted batch job 18
+<span class="o">[</span>seba@head ~<span class="o">]</span><span class="nv">$ </span>squeue
+             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST<span class="o">(</span>REASON<span class="o">)</span>
+                <span class="m">18</span> benchmark Lyttelto     seba PD       0:00      <span class="m">2</span> <span class="o">(</span>Resources<span class="o">)</span>
+                 <span class="m">5</span> week-long vlao-job     vlao  R 1-20:30:06      <span class="m">1</span> node3</code></pre></div>
+
+<p>As we can see in this example, a job is currently running on one of the K40 node (node3).
+Since I just wanted to demonstrate job submission, I will cancel my job:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="o">[</span>seba@head ~<span class="o">]</span><span class="nv">$ </span>scancel 18
+<span class="o">[</span>seba@head ~<span class="o">]</span><span class="nv">$ </span>squeue
+             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST<span class="o">(</span>REASON<span class="o">)</span>
+                 <span class="m">5</span> week-long vlao-job     vlao  R 1-20:39:21      <span class="m">1</span> node3</code></pre></div>
+
+<p>Depending on SLURM’s configuration, a job can pre-empt another one based on its priority.</p>
+
+<p>On the cluster, the SLURM scheduler isn’t configured to be pre-emptive:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="o">[</span>seba@head ~<span class="o">]</span><span class="nv">$ </span>sinfo -a -o  <span class="s2">&quot;%P %p %M&quot;</span>
+PARTITION PRIORITY PREEMPT_MODE
+month-long <span class="m">5000</span> OFF
+week-long <span class="m">10000</span> OFF
+day-long <span class="m">20000</span> OFF
+benchmark* <span class="m">30000</span> OFF
+short <span class="m">40000</span> OFF
+interactive <span class="m">50000</span> OFF</code></pre></div>
+
+<p>My understandig is that my job would never have interfered with the other job even though the “benchmark” partition priority
+is greater than the “week-long” partition one.</p>
+
+<p>I noticed that I can’t book all the 40 CPUs on the two K40 nodes for a single job. The limit seems to be 30 CPUs. 
+My guess is that the 10 CPUs for the “interactive” partition should always be available, but I’m not sure. 
+If you know the reason, please tell me.</p>
+
+<p>Enough SLURM !</p>
+
+<p><img src="/assets/lyttelton/slurm_fry.jpg" alt="SLURM Fry" /></p>
+
+<h4 id="lmod">lmod</h4>
+
+<p>Node configuration is handled using <a href="https://www.tacc.utexas.edu/tacc-projects/lmod">lmod</a>.
+It allows you to easily switch compilers, MPI implementations, Cuda versions and so one.
+Here is an example of what lmod is doing:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="o">[</span>seba@head ~<span class="o">]</span><span class="nv">$ </span>interactive -g gpu:2 -f K40
+salloc: Granted job allocation 22
+srun: Job step created
+<span class="o">[</span>seba@node3 ~<span class="o">]</span><span class="nv">$ </span><span class="nb">echo</span> <span class="nv">$LD_LIBRARY_PATH</span>
+/mcms/core/slurm/lib:/usr/lib64/nvidia:/usr/local/cuda-5.5/lib64
+<span class="o">[</span>seba@node3 ~<span class="o">]</span><span class="nv">$ </span>mpicc
+bash: mpicc : commande introuvable <span class="p">;</span>-<span class="o">)</span>
+<span class="o">[</span>seba@node3 ~<span class="o">]</span><span class="nv">$ </span>module load gcc
+<span class="o">[</span>seba@node3 ~<span class="o">]</span><span class="nv">$ </span>module load openmpi
+<span class="o">[</span>seba@node3 ~<span class="o">]</span><span class="nv">$ </span><span class="nb">echo</span> <span class="nv">$LD_LIBRARY_PATH</span>
+/mcms/core/openmpi/1.7.3/gcc/4.4.7/lib:/mcms/core/slurm/lib:/usr/lib64/nvidia:/usr/local/cuda-5.5/lib64
+<span class="o">[</span>seba@node3 ~<span class="o">]</span><span class="nv">$ </span>mpicc -show
+gcc -I/mcms/core/openmpi/1.7.3/gcc/4.4.7/include -pthread -L/mcms/core/openmpi/1.7.3/gcc/4.4.7/lib -lmpi
+<span class="o">[</span>seba@node3 ~<span class="o">]</span><span class="nv">$ </span>module swap gcc intel
+
+Due to MODULEPATH changes the following have been reloaded:
+  1<span class="o">)</span> openmpi/1.7.3
+
+<span class="o">[</span>seba@node3 ~<span class="o">]</span><span class="nv">$ </span><span class="nb">echo</span> <span class="nv">$LD_LIBRARY_PATH</span>
+/mcms/core/openmpi/1.7.3/intel/2013_sp1.0.080/lib:/opt/intel/composer_xe_2013_sp1.0.080/tbb/lib/intel64/gcc4.4:/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64:/opt/intel/composer_xe_2013_sp1.0.080/ipp/lib/intel64:/opt/intel/composer_xe_2013_sp1.0.080/mpirt/lib/intel64:/opt/intel/composer_xe_2013_sp1.0.080/compiler/lib/intel64:/mcms/core/slurm/lib:/usr/lib64/nvidia:/usr/local/cuda-5.5/lib64
+<span class="o">[</span>seba@node3 ~<span class="o">]</span><span class="nv">$ </span>mpicc -show
+icc -I/mcms/core/openmpi/1.7.3/intel/2013_sp1.0.080/include -pthread -L/mcms/core/openmpi/1.7.3/intel/2013_sp1.0.080/lib -lmpi
+<span class="o">[</span>seba@node3 ~<span class="o">]</span><span class="nv">$ </span>module swap openmpi mvapich2
+<span class="o">[</span>seba@node3 ~<span class="o">]</span><span class="nv">$ </span>mpicc -show
+icc -I/mcms/core/slurm/2.6.5/include -I/usr/local/cuda-5.5/include -L/mcms/core/slurm/2.6.5/lib64 -L/mcms/core/slurm/2.6.5/lib -L/usr/local/cuda-5.5/lib64 -L/usr/local/cuda-5.5/lib -L/mcms/core/slurm/2.6.5/lib64 -L/mcms/core/slurm/2.6.5/lib -I/mcms/core/mvapich2/1.9/intel/2013_sp1.0.080/include -L/mcms/core/mvapich2/1.9/intel/2013_sp1.0.080/lib -Wl,-rpath -Wl,/mcms/core/mvapich2/1.9/intel/2013_sp1.0.080/lib -lmpich -lpmi -lopa -lmpl -lcudart -lcuda -libmad -lrdmacm -libumad -libverbs -lrt -lhwloc -lpmi -lpthread -lhwloc</code></pre></div>
+
+<p>I noticed that when loading Cuda and OpenMPI with either gcc or icc, the Cuda related compiler switches are not added by lmod:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="o">[</span>seba@node3 ~<span class="o">]</span><span class="nv">$ </span>module load gcc
+<span class="o">[</span>seba@node3 ~<span class="o">]</span><span class="nv">$ </span>module load openmpi
+<span class="o">[</span>seba@node3 ~<span class="o">]</span><span class="nv">$ </span>mpicc -show
+gcc -I/mcms/core/openmpi/1.7.3/gcc/4.4.7/include -pthread -L/mcms/core/openmpi/1.7.3/gcc/4.4.7/lib -lmpi
+<span class="o">[</span>seba@node3 ~<span class="o">]</span><span class="nv">$ </span>module load cuda
+<span class="o">[</span>seba@node3 ~<span class="o">]</span><span class="nv">$ </span>mpicc -show
+gcc -I/mcms/core/openmpi/1.7.3/gcc/4.4.7/include -pthread -L/mcms/core/openmpi/1.7.3/gcc/4.4.7/lib -lmpi
+<span class="o">[</span>seba@node3 ~<span class="o">]</span><span class="nv">$ </span>module swap gcc intel
+
+Due to MODULEPATH changes the following have been reloaded:
+  1<span class="o">)</span> openmpi/1.7.3
+
+<span class="o">[</span>seba@node3 ~<span class="o">]</span><span class="nv">$ </span>mpicc -show
+icc -I/mcms/core/openmpi/1.7.3/intel/2013_sp1.0.080/include -pthread -L/mcms/core/openmpi/1.7.3/intel/2013_sp1.0.080/lib -lmpi</code></pre></div>
+
+<p>so that if you want to compile OpenMPI+Cuda code you have to add these switches yourself:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">mpicc -I/usr/local/cuda-5.5/include -L/usr/local/cuda-5.5/lib64 -L/usr/local/cuda-5.5/lib -lcuda -lcudart -lcusparse</code></pre></div>
+
+<p>Maybe we’re supposed to  always use <a href="http://mvapich.cse.ohio-state.edu/overview/mvapich2/">mvapich2</a> ?</p>
+
+<p>I also noticed that when using mvapich2, the <code>rdmacm</code>, <code>ibumad</code>, <code>ibverbs</code> and <code>hwloc</code> libraries cannot be found by mpicc so that you can’t compile out of the box.
+I believe that’s because these libs are missing the “.so” symlinks in <code>/usr/lib64</code>. Anyway you don’t have to explicitely link
+with these InfiniBand/hwloc related libs as shown by <code>ldd</code>:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="o">[</span>seba@node3 ~<span class="o">]</span><span class="nv">$ </span>module load intel
+<span class="o">[</span>seba@node3 ~<span class="o">]</span><span class="nv">$ </span>module load mvapich2
+<span class="o">[</span>seba@node3 BabyHares<span class="o">]</span><span class="nv">$ </span>mpicc -pthread  -openmp -mkl<span class="o">=</span>parallel -lcusparse *.cpp -o babyhares
+ld: cannot find -libmad
+<span class="o">[</span>seba@node3 BabyHares<span class="o">]</span><span class="nv">$ </span>mpicc -show
+icc -I/mcms/core/slurm/2.6.5/include -I/usr/local/cuda-5.5/include -L/mcms/core/slurm/2.6.5/lib64 -L/mcms/core/slurm/2.6.5/lib -L/usr/local/cuda-5.5/lib64 -L/usr/local/cuda-5.5/lib -L/mcms/core/slurm/2.6.5/lib64 -L/mcms/core/slurm/2.6.5/lib -I/mcms/core/mvapich2/1.9/intel/2013_sp1.0.080/include -L/mcms/core/mvapich2/1.9/intel/2013_sp1.0.080/lib -Wl,-rpath -Wl,/mcms/core/mvapich2/1.9/intel/2013_sp1.0.080/lib -lmpich -lpmi -lopa -lmpl -lcudart -lcuda -libmad -lrdmacm -libumad -libverbs -lrt -lhwloc -lpmi -lpthread -lhwloc
+<span class="c"># Removing -libmad -lrdmacm -libumad -libverbs -lhwloc</span>
+<span class="o">[</span>seba@node3 BabyHares<span class="o">]</span><span class="nv">$ </span>icc -I/mcms/core/slurm/2.6.5/include -I/usr/local/cuda-5.5/include -L/mcms/core/slurm/2.6.5/lib64 -L/mcms/core/slurm/2.6.5/lib -L/usr/local/cuda-5.5/lib64 -L/usr/local/cuda-5.5/lib -I/mcms/core/mvapich2/1.9/intel/2013_sp1.0.080/include -L/mcms/core/mvapich2/1.9/intel/2013_sp1.0.080/lib -Wl,-rpath -Wl,/mcms/core/mvapich2/1.9/intel/2013_sp1.0.080/lib -lmpich -lpmi -lopa -lmpl -lcudart -lcuda -lrt -lpthread  -openmp -mkl<span class="o">=</span>parallel -lcusparse  *.cpp -o babyhares
+<span class="o">[</span>seba@node3 BabyHares<span class="o">]</span><span class="nv">$ </span><span class="nb">echo</span> <span class="nv">$?</span>
+0
+<span class="o">[</span>seba@node3 BabyHares<span class="o">]</span><span class="nv">$ </span>ldd babyhares
+  ...
+  libmpich.so.10 <span class="o">=</span>&gt; /mcms/core/mvapich2/1.9/intel/2013_sp1.0.080/lib/libmpich.so.10 <span class="o">(</span>0x00007f11b7eaa000<span class="o">)</span>
+  ...
+  libibmad.so.5 <span class="o">=</span>&gt; /usr/lib64/libibmad.so.5 <span class="o">(</span>0x00007f11a9c72000<span class="o">)</span>
+  librdmacm.so.1 <span class="o">=</span>&gt; /usr/lib64/librdmacm.so.1 <span class="o">(</span>0x00007f11a9a5d000<span class="o">)</span>
+  libibumad.so.3 <span class="o">=</span>&gt; /usr/lib64/libibumad.so.3 <span class="o">(</span>0x00007f11a9857000<span class="o">)</span>
+  libibverbs.so.1 <span class="o">=</span>&gt; /usr/lib64/libibverbs.so.1 <span class="o">(</span>0x00007f11a964a000<span class="o">)</span>
+  libslurm.so.26 <span class="o">=</span>&gt; /mcms/core/slurm/2.6.5/lib/libslurm.so.26 <span class="o">(</span>0x00007f11a9328000<span class="o">)</span>
+  libhwloc.so.5 <span class="o">=</span>&gt; /usr/lib64/libhwloc.so.5 <span class="o">(</span>0x00007f11a9100000<span class="o">)</span>
+  ...
+<span class="o">[</span>seba@node3 BabyHares<span class="o">]</span><span class="nv">$ </span>ldd /mcms/core/mvapich2/1.9/intel/2013_sp1.0.080/lib/libmpich.so.10
+  ...
+  libibmad.so.5 <span class="o">=</span>&gt; /usr/lib64/libibmad.so.5 <span class="o">(</span>0x00007f8bb3933000<span class="o">)</span>
+  librdmacm.so.1 <span class="o">=</span>&gt; /usr/lib64/librdmacm.so.1 <span class="o">(</span>0x00007f8bb371f000<span class="o">)</span>
+  libibumad.so.3 <span class="o">=</span>&gt; /usr/lib64/libibumad.so.3 <span class="o">(</span>0x00007f8bb3519000<span class="o">)</span>
+  libibverbs.so.1 <span class="o">=</span>&gt; /usr/lib64/libibverbs.so.1 <span class="o">(</span>0x00007f8bb330b000<span class="o">)</span>
+  ...</code></pre></div>
+
+<h2 id="the-c-solver">The C++ Solver</h2>
+
+<p>In that part I will discuss some of the C++ code. Since I will be using the Intel compiler, I won’t use C++11 as it’s not well supported.
+The code can be found <a href="https://github.com/ssrb/ssrb.github.com/tree/master/assets/lyttelton/BabyHares">here</a>.</p>
+
+<h3 id="hybrid-cpugpu-linear-system-assembly">Hybrid CPU/GPU linear system assembly</h3>
+
+<p>The Octave prototype assembles a single linear system for each subdomain and then accesses the different blocks using range indexing.
+In C++, I will manipulate 3 matrices, the “interior-interior” matrix, the “interface-interface” matrix and the “interior-interface” matrix.
+The matrices will be stored in <a href="http://en.wikipedia.org/wiki/Sparse_matrix#Compressed_sparse_row_.28CSR_or_CRS.29">CSR</a> format.
+This time we take advantage of the symmetry of the “interior-interior” and “interface-interface” matrices.</p>
+
+<p>Computing the profile of the matrices is done on the CPU.</p>
+
+<div class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="kt">void</span>  <span class="n">PartialDifferentialEquation</span><span class="o">::</span><span class="n">countNZCoefficents</span><span class="p">(</span><span class="k">const</span> <span class="n">MeshConstPtr</span> <span class="o">&amp;</span><span class="n">mesh</span><span class="p">)</span> <span class="p">{</span>
+  
+<span class="kt">int</span> <span class="n">nbInteriorVertices</span> <span class="o">=</span> <span class="n">mesh</span><span class="o">-&gt;</span><span class="n">_vertices</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">-</span> <span class="n">mesh</span><span class="o">-&gt;</span><span class="n">_nbInterfaceVertices</span><span class="p">;</span>
+
+<span class="n">_nbNonNullCoefficentsAII</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> 
+<span class="n">_nbNonNullCoefficentsAIG</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="n">_nbNonNullCoefficentsAGG</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">color</span><span class="p">(</span><span class="n">mesh</span><span class="o">-&gt;</span><span class="n">_vertices</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+<span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">row</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">row</span> <span class="o">&lt;</span> <span class="n">mesh</span><span class="o">-&gt;</span><span class="n">_vertices</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="o">++</span><span class="n">row</span><span class="p">)</span> <span class="p">{</span>
+   <span class="k">const</span> <span class="n">Vertex</span> <span class="o">&amp;</span><span class="n">vi</span><span class="p">(</span><span class="n">mesh</span><span class="o">-&gt;</span><span class="n">_vertices</span><span class="p">[</span><span class="n">row</span><span class="p">]);</span>
+   <span class="c1">// Inspect each triangle connected to vertex row</span>
+   <span class="k">for</span> <span class="p">(</span><span class="n">RCTI</span> <span class="n">ti</span> <span class="o">=</span> <span class="n">_rct</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="n">row</span><span class="p">);</span> <span class="n">ti</span> <span class="o">!=</span> <span class="n">_rct</span><span class="p">.</span><span class="n">end</span><span class="p">();</span> <span class="o">++</span><span class="n">ti</span><span class="p">)</span> <span class="p">{</span>
+     <span class="k">const</span> <span class="n">Triangle</span> <span class="o">&amp;</span><span class="n">triangle</span><span class="p">(</span><span class="n">mesh</span><span class="o">-&gt;</span><span class="n">_triangles</span><span class="p">[</span><span class="o">*</span><span class="n">ti</span><span class="p">]);</span>
+     <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">sj</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">sj</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">;</span> <span class="o">++</span><span class="n">sj</span><span class="p">)</span> <span class="p">{</span>
+       <span class="kt">int</span> <span class="n">column</span> <span class="o">=</span> <span class="n">triangle</span><span class="p">.</span><span class="n">v</span><span class="p">[</span><span class="n">sj</span><span class="p">];</span>
+       <span class="k">const</span> <span class="n">Vertex</span> <span class="o">&amp;</span><span class="n">vj</span><span class="p">(</span><span class="n">mesh</span><span class="o">-&gt;</span><span class="n">_vertices</span><span class="p">[</span><span class="n">column</span><span class="p">]);</span>
+       <span class="c1">// Do not count coefficient twice</span>
+       <span class="k">if</span> <span class="p">(</span><span class="n">color</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">!=</span> <span class="n">row</span><span class="p">)</span> <span class="p">{</span>
+         <span class="n">color</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">=</span> <span class="n">row</span><span class="p">;</span>
+         <span class="c1">// AII or AIG</span>
+         <span class="k">if</span> <span class="p">(</span><span class="n">row</span> <span class="o">&lt;</span> <span class="n">nbInteriorVertices</span><span class="p">)</span> <span class="p">{</span>      
+           <span class="c1">// AII     </span>
+           <span class="k">if</span> <span class="p">(</span><span class="n">column</span> <span class="o">&lt;</span> <span class="n">nbInteriorVertices</span><span class="p">)</span> <span class="p">{</span>
+             <span class="c1">// AII is symmetric</span>
+             <span class="k">if</span> <span class="p">(</span><span class="n">row</span> <span class="o">&lt;=</span> <span class="n">column</span><span class="p">)</span> <span class="p">{</span>
+              <span class="o">++</span><span class="n">_nbNonNullCoefficentsAII</span><span class="p">;</span>
+             <span class="p">}</span>
+           <span class="c1">// AIG</span>
+           <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+            <span class="o">++</span><span class="n">_nbNonNullCoefficentsAIG</span><span class="p">;</span>
+           <span class="p">}</span>
+          <span class="c1">// AGG</span>
+          <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+            <span class="c1">// AGG is symmetric</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">row</span> <span class="o">&lt;=</span> <span class="n">column</span><span class="p">)</span> <span class="p">{</span>
+             <span class="o">++</span><span class="n">_nbNonNullCoefficentsAGG</span><span class="p">;</span>
+            <span class="p">}</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span></code></pre></div>
+
+<p>In order to efficiently iterate over the triangles connected to a given vertex in the previous code, we need to build a reverse connectivity table:</p>
+
+<div class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="cp">#pragma once</span>
+<span class="cp">#include &quot;Mesh.h&quot;</span>
+
+<span class="cp">#include &lt;vector&gt;</span>
+
+<span class="k">namespace</span> <span class="n">BabyHares</span> <span class="p">{</span>
+  <span class="k">class</span> <span class="nc">ReverseConnectivityTable</span> <span class="p">{</span>
+    <span class="k">public</span><span class="o">:</span>
+      <span class="kt">void</span> <span class="n">init</span><span class="p">(</span><span class="k">const</span> <span class="n">MeshConstPtr</span> <span class="o">&amp;</span><span class="n">mesh</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">_head</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="n">mesh</span><span class="o">-&gt;</span><span class="n">_vertices</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+        <span class="n">_next</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">mesh</span><span class="o">-&gt;</span><span class="n">_triangles</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">ti</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">ti</span> <span class="o">&lt;</span> <span class="n">mesh</span><span class="o">-&gt;</span><span class="n">_triangles</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="o">++</span><span class="n">ti</span><span class="p">)</span> <span class="p">{</span>
+          <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">si</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">si</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">;</span> <span class="o">++</span><span class="n">si</span><span class="p">,</span> <span class="o">++</span><span class="n">p</span><span class="p">)</span> <span class="p">{</span>
+            <span class="kt">int</span> <span class="n">vi</span> <span class="o">=</span> <span class="n">mesh</span><span class="o">-&gt;</span><span class="n">_triangles</span><span class="p">[</span><span class="n">ti</span><span class="p">].</span><span class="n">v</span><span class="p">[</span><span class="n">si</span><span class="p">];</span>
+            <span class="n">_next</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">_head</span><span class="p">[</span><span class="n">vi</span><span class="p">];</span>
+            <span class="c1">// (p / 3) = ti, is the triangle number, </span>
+            <span class="c1">// the new head of the list of triangles for vertex vi;</span>
+            <span class="n">_head</span><span class="p">[</span><span class="n">vi</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="p">;</span> 
+          <span class="p">}</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    
+      <span class="k">class</span> <span class="nc">Iter</span> <span class="p">{</span>
+        <span class="k">public</span><span class="o">:</span>
+          <span class="k">friend</span> <span class="k">class</span> <span class="nc">ReverseConnectivityTable</span><span class="p">;</span>
+          <span class="k">const</span> <span class="n">Iter</span> <span class="k">operator</span><span class="o">++</span><span class="p">()</span> <span class="p">{</span>
+            <span class="n">_p</span> <span class="o">=</span> <span class="n">_rct</span><span class="o">-&gt;</span><span class="n">_next</span><span class="p">[</span><span class="n">_p</span><span class="p">];</span>
+            <span class="k">return</span> <span class="o">*</span><span class="k">this</span><span class="p">;</span>
+          <span class="p">}</span>
+          <span class="kt">int</span> <span class="k">operator</span><span class="o">*</span><span class="p">()</span> <span class="k">const</span><span class="p">{</span>
+            <span class="k">return</span> <span class="n">_p</span> <span class="o">/</span> <span class="mi">3</span><span class="p">;</span>
+          <span class="p">}</span>
+          <span class="kt">bool</span> <span class="k">operator</span><span class="o">!=</span><span class="p">(</span><span class="k">const</span> <span class="n">Iter</span> <span class="o">&amp;</span><span class="n">rhs</span><span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
+            <span class="k">return</span>  <span class="n">_p</span> <span class="o">!=</span> <span class="n">rhs</span><span class="p">.</span><span class="n">_p</span> <span class="o">||</span> <span class="n">_rct</span> <span class="o">!=</span> <span class="n">rhs</span><span class="p">.</span><span class="n">_rct</span><span class="p">;</span>
+          <span class="p">}</span>
+        <span class="k">private</span><span class="o">:</span>
+          <span class="k">const</span> <span class="n">ReverseConnectivityTable</span> <span class="o">*</span><span class="n">_rct</span><span class="p">;</span>
+          <span class="kt">int</span> <span class="n">_p</span><span class="p">;</span>
+      <span class="p">};</span>
+        
+      <span class="n">Iter</span> <span class="n">find</span><span class="p">(</span><span class="kt">int</span> <span class="n">vi</span><span class="p">)</span> <span class="k">const</span> <span class="p">{</span> 
+        <span class="n">Iter</span> <span class="n">iter</span><span class="p">;</span>
+        <span class="n">iter</span><span class="p">.</span><span class="n">_rct</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+        <span class="n">iter</span><span class="p">.</span><span class="n">_p</span> <span class="o">=</span> <span class="n">_head</span><span class="p">[</span><span class="n">vi</span><span class="p">];</span>
+        <span class="k">return</span> <span class="n">iter</span><span class="p">;</span>
+      <span class="p">}</span>
+      
+      <span class="n">Iter</span> <span class="n">end</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
+        <span class="n">Iter</span> <span class="n">iter</span><span class="p">;</span>
+        <span class="n">iter</span><span class="p">.</span><span class="n">_rct</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+        <span class="n">iter</span><span class="p">.</span><span class="n">_p</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+        <span class="k">return</span> <span class="n">iter</span><span class="p">;</span>
+      <span class="p">}</span>
+      
+    <span class="k">private</span><span class="o">:</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span>  <span class="n">_head</span><span class="p">,</span> <span class="n">_next</span><span class="p">;</span>
+   <span class="p">};</span>
+<span class="p">}</span></code></pre></div>
+
+<p>Computing the coefficents is done on the GPU. The method is identical to the vectorized Octave assembly.</p>
+
+<div class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="cp">#include &quot;GpuAssembly.h&quot;</span>
+<span class="cp">#include &quot;Mesh.h&quot;</span>
+
+<span class="cp">#include &lt;thrust/device_vector.h&gt;</span>
+<span class="cp">#include &lt;thrust/copy.h&gt;</span>
+<span class="cp">#include &lt;vector&gt;</span>
+
+<span class="k">namespace</span> <span class="n">BabyHares</span> <span class="p">{</span>
+ <span class="k">namespace</span> <span class="p">{</span>
+  
+  <span class="n">__global__</span>
+  <span class="kt">void</span> <span class="n">ComputeAreas</span><span class="p">(</span><span class="k">const</span> <span class="kt">float</span> <span class="o">*</span><span class="n">u</span><span class="p">,</span> <span class="k">const</span> <span class="kt">float</span> <span class="o">*</span><span class="n">v</span><span class="p">,</span> <span class="kt">float</span> <span class="o">*</span><span class="n">areas</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">nbTriangles</span><span class="p">)</span> <span class="p">{</span>
+  
+   <span class="kt">float</span> <span class="o">*</span><span class="n">su</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">shmem</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">*</span><span class="n">sv</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">su</span><span class="p">[</span><span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="p">];</span>
+  
+   <span class="kt">int</span> <span class="n">myCoordId</span> <span class="o">=</span> <span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
+   <span class="k">if</span> <span class="p">(</span><span class="n">myCoordId</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nbTriangles</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">su</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="n">myCoordId</span><span class="p">];</span>
+      <span class="n">sv</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="n">myCoordId</span><span class="p">];</span>
+   <span class="p">}</span>
+  
+   <span class="n">__syncthreads</span><span class="p">();</span>
+  
+   <span class="kt">int</span> <span class="n">myTriangleId</span> <span class="o">=</span> <span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="n">blockDim</span><span class="p">.</span><span class="n">x</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
+   <span class="k">if</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">&lt;</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span> <span class="o">&amp;&amp;</span> <span class="n">myTriangleId</span> <span class="o">&lt;</span> <span class="n">nbTriangles</span><span class="p">)</span> <span class="p">{</span>
+     <span class="n">areas</span><span class="p">[</span><span class="n">myTriangleId</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5f</span> <span class="o">*</span> <span class="p">(</span><span class="n">su</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">*</span> <span class="n">sv</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+                                 <span class="o">-</span> <span class="n">su</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">sv</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]);</span>
+   <span class="p">}</span>
+  <span class="p">}</span>
+  
+  <span class="n">__global__</span>
+  <span class="kt">void</span> <span class="n">ComputeStiffness</span><span class="p">(</span><span class="k">const</span> <span class="kt">float</span> <span class="o">*</span><span class="n">u</span><span class="p">,</span>
+                        <span class="k">const</span> <span class="kt">float</span> <span class="o">*</span><span class="n">v</span><span class="p">,</span> 
+                        <span class="k">const</span> <span class="kt">float</span> <span class="o">*</span><span class="n">w</span><span class="p">,</span>
+                        <span class="k">const</span> <span class="kt">float</span> <span class="o">*</span><span class="n">areas</span><span class="p">,</span> 
+                        <span class="kt">float</span> <span class="o">*</span><span class="n">stiffnessOnGpu</span><span class="p">,</span>
+                        <span class="kt">size_t</span> <span class="n">nbTriangles</span><span class="p">)</span> <span class="p">{</span>
+  
+   <span class="kt">int</span> <span class="n">trianglesPerBlock</span> <span class="o">=</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span> <span class="o">/</span> <span class="mi">2</span><span class="p">;</span>
+   
+   <span class="kt">float</span> <span class="o">*</span><span class="n">su</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">shmem</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+         <span class="o">*</span><span class="n">sv</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">su</span><span class="p">[</span><span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="p">],</span>
+         <span class="o">*</span><span class="n">sw</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">sv</span><span class="p">[</span><span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="p">],</span>
+         <span class="o">*</span><span class="n">sareas</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">sw</span><span class="p">[</span><span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="p">],</span>
+         <span class="o">*</span><span class="n">sstiffness</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">sareas</span><span class="p">[</span><span class="n">trianglesPerBlock</span><span class="p">];</span>
+   
+   <span class="kt">int</span> <span class="n">myCoordId</span> <span class="o">=</span> <span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
+   <span class="k">if</span> <span class="p">(</span><span class="n">myCoordId</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nbTriangles</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">su</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="n">myCoordId</span><span class="p">];</span>
+      <span class="n">sv</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="n">myCoordId</span><span class="p">];</span>
+      <span class="n">sw</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">w</span><span class="p">[</span><span class="n">myCoordId</span><span class="p">];</span>
+   <span class="p">}</span>
+   
+   <span class="kt">int</span> <span class="n">myTriangleId</span> <span class="o">=</span> <span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">trianglesPerBlock</span> <span class="o">+</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
+   <span class="k">if</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">&lt;</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span> <span class="o">&amp;&amp;</span> <span class="n">myTriangleId</span> <span class="o">&lt;</span> <span class="n">nbTriangles</span><span class="p">)</span> <span class="p">{</span>
+   
+     <span class="n">sareas</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">areas</span><span class="p">[</span><span class="n">myTriangleId</span><span class="p">];</span>
+   
+      <span class="n">__syncthreads</span><span class="p">();</span>
+   
+     <span class="kt">float</span> <span class="o">*</span><span class="n">myStiffness</span> <span class="o">=</span> <span class="n">sstiffness</span> <span class="o">+</span> <span class="mi">9</span> <span class="o">*</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
+   
+     <span class="kt">float</span> <span class="n">u1</span> <span class="o">=</span> <span class="n">su</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">];</span>
+     <span class="kt">float</span> <span class="n">u2</span> <span class="o">=</span> <span class="n">su</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">];</span>
+     <span class="kt">float</span> <span class="n">v1</span> <span class="o">=</span> <span class="n">sv</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">];</span>
+     <span class="kt">float</span> <span class="n">v2</span> <span class="o">=</span> <span class="n">sv</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">];</span>
+     <span class="kt">float</span> <span class="n">w1</span> <span class="o">=</span> <span class="n">sw</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">];</span>
+     <span class="kt">float</span> <span class="n">w2</span> <span class="o">=</span> <span class="n">sw</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">];</span>
+   
+     <span class="kt">float</span> <span class="n">uu</span> <span class="o">=</span> <span class="n">u1</span> <span class="o">*</span> <span class="n">u1</span> <span class="o">+</span> <span class="n">u2</span> <span class="o">*</span> <span class="n">u2</span><span class="p">;</span>
+     <span class="kt">float</span> <span class="n">uv</span> <span class="o">=</span> <span class="n">u1</span> <span class="o">*</span> <span class="n">v1</span> <span class="o">+</span> <span class="n">u2</span> <span class="o">*</span> <span class="n">v2</span><span class="p">;</span>
+     <span class="kt">float</span> <span class="n">uw</span> <span class="o">=</span> <span class="n">u1</span> <span class="o">*</span> <span class="n">w1</span> <span class="o">+</span> <span class="n">u2</span> <span class="o">*</span> <span class="n">w2</span><span class="p">;</span>
+     <span class="kt">float</span> <span class="n">vv</span> <span class="o">=</span> <span class="n">v1</span> <span class="o">*</span> <span class="n">v1</span> <span class="o">+</span> <span class="n">v2</span> <span class="o">*</span> <span class="n">v2</span><span class="p">;</span>
+     <span class="kt">float</span> <span class="n">vw</span> <span class="o">=</span> <span class="n">v1</span> <span class="o">*</span> <span class="n">w1</span> <span class="o">+</span> <span class="n">v2</span> <span class="o">*</span> <span class="n">w2</span><span class="p">;</span>
+     <span class="kt">float</span> <span class="n">ww</span> <span class="o">=</span> <span class="n">w1</span> <span class="o">*</span> <span class="n">w1</span> <span class="o">+</span> <span class="n">w2</span> <span class="o">*</span> <span class="n">w2</span><span class="p">;</span>
+     <span class="kt">float</span> <span class="n">area4</span> <span class="o">=</span> <span class="mf">4.0f</span> <span class="o">*</span> <span class="n">sareas</span><span class="p">[</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">];</span>
+   
+     <span class="n">myStiffness</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">uu</span> <span class="o">/</span> <span class="n">area4</span><span class="p">;</span>
+     <span class="n">myStiffness</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">uv</span> <span class="o">/</span> <span class="n">area4</span><span class="p">;</span>
+     <span class="n">myStiffness</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">uw</span> <span class="o">/</span> <span class="n">area4</span><span class="p">;</span>
+     <span class="n">myStiffness</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">vv</span> <span class="o">/</span> <span class="n">area4</span><span class="p">;</span>
+     <span class="n">myStiffness</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">=</span> <span class="n">vw</span> <span class="o">/</span> <span class="n">area4</span><span class="p">;</span>
+     <span class="n">myStiffness</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span> <span class="o">=</span> <span class="n">ww</span> <span class="o">/</span> <span class="n">area4</span><span class="p">;</span>
+   
+     <span class="n">myStiffness</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">myStiffness</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+     <span class="n">myStiffness</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="o">=</span> <span class="n">myStiffness</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+     <span class="n">myStiffness</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="n">myStiffness</span><span class="p">[</span><span class="mi">5</span><span class="p">];</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+     <span class="n">__syncthreads</span><span class="p">();</span>
+   <span class="p">}</span>
+   
+   <span class="n">__syncthreads</span><span class="p">();</span>
+   
+   <span class="kt">int</span> <span class="n">coeffsPerBlock</span> <span class="o">=</span> <span class="mi">9</span> <span class="o">*</span> <span class="n">trianglesPerBlock</span><span class="p">,</span> <span class="n">totalCoeff</span> <span class="o">=</span> <span class="mi">9</span> <span class="o">*</span> <span class="n">nbTriangles</span><span class="p">;</span>
+   
+   <span class="k">for</span> <span class="p">(</span> <span class="kt">int</span> <span class="n">myStiffnessId</span> <span class="o">=</span> <span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">coeffsPerBlock</span> <span class="o">+</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">,</span> <span class="n">localStiffnessId</span> <span class="o">=</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
+         <span class="n">localStiffnessId</span> <span class="o">&lt;</span> <span class="n">coeffsPerBlock</span>  <span class="o">&amp;&amp;</span> <span class="n">myStiffnessId</span> <span class="o">&lt;</span> <span class="n">totalCoeff</span><span class="p">;</span>
+         <span class="n">myStiffnessId</span> <span class="o">+=</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="p">,</span> <span class="n">localStiffnessId</span> <span class="o">+=</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="p">)</span> <span class="p">{</span>
+         <span class="n">stiffnessOnGpu</span><span class="p">[</span><span class="n">myStiffnessId</span><span class="p">]</span> <span class="o">=</span> <span class="n">sstiffness</span><span class="p">[</span><span class="n">localStiffnessId</span><span class="p">];</span>
+   <span class="p">}</span>
+  <span class="p">}</span>
+ <span class="p">}</span>
+
+ <span class="n">id</span> <span class="n">ComputeAreasAndStiffnessOnGpu</span><span class="p">(</span><span class="k">const</span> <span class="n">Triangle</span> <span class="o">*</span><span class="n">triangles</span><span class="p">,</span>
+                                  <span class="kt">size_t</span> <span class="n">nbTriangles</span><span class="p">,</span>
+                                  <span class="k">const</span> <span class="n">Vertex</span> <span class="o">*</span><span class="n">vertices</span><span class="p">,</span>
+                                  <span class="kt">size_t</span> <span class="n">nbVertices</span><span class="p">,</span>
+                                  <span class="kt">float</span> <span class="o">*</span><span class="n">areas</span><span class="p">,</span>
+                                  <span class="kt">float</span> <span class="o">*</span><span class="n">stiffness</span><span class="p">)</span> <span class="p">{</span> 
+
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">vertexCoords</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">nbVertices</span><span class="p">);</span>
+  <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">vi</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">vi</span> <span class="o">&lt;</span> <span class="n">nbVertices</span><span class="p">;</span> <span class="o">++</span><span class="n">vi</span><span class="p">)</span> <span class="p">{</span>
+   <span class="n">vertexCoords</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">vi</span><span class="p">]</span> <span class="o">=</span> <span class="n">vertices</span><span class="p">[</span><span class="n">vi</span><span class="p">].</span><span class="n">x</span><span class="p">;</span>
+   <span class="n">vertexCoords</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">vi</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">vertices</span><span class="p">[</span><span class="n">vi</span><span class="p">].</span><span class="n">y</span><span class="p">;</span>
+  <span class="p">}</span>
+  
+  <span class="n">thrust</span><span class="o">::</span><span class="n">device_vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">vertexCoordsOnGpu</span><span class="p">(</span><span class="n">vertexCoords</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">vertexCoords</span><span class="p">.</span><span class="n">end</span><span class="p">());</span>
+  <span class="n">thrust</span><span class="o">::</span><span class="n">device_vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">triangleVidsOnGpu</span><span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">nbTriangles</span><span class="p">);</span>
+  
+  <span class="n">cudaMemcpy2D</span><span class="p">(</span> <span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">triangleVidsOnGpu</span><span class="p">),</span>
+            <span class="mi">3</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">),</span>
+            <span class="n">triangles</span> <span class="o">+</span> <span class="n">offsetof</span><span class="p">(</span><span class="n">Triangle</span><span class="p">,</span> <span class="n">v</span><span class="p">),</span>
+            <span class="k">sizeof</span><span class="p">(</span><span class="n">Triangle</span><span class="p">),</span>
+            <span class="mi">3</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">),</span>
+            <span class="n">nbTriangles</span><span class="p">,</span>
+            <span class="n">cudaMemcpyHostToDevice</span><span class="p">);</span>
+  
+  <span class="kt">int</span> <span class="n">trianglesPerBlock</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span>
+      <span class="n">coordinatesPerBlock</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">trianglesPerBlock</span><span class="p">,</span>
+      <span class="n">nbBlock</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">nbTriangles</span> <span class="o">/</span> <span class="n">trianglesPerBlock</span><span class="p">;</span>
+  
+  <span class="c1">// Gather coordinates of first, second and third vertices in separate device vectors</span>
+  <span class="n">thrust</span><span class="o">::</span><span class="n">device_vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">q1</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">nbTriangles</span><span class="p">),</span>
+                               <span class="n">q2</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">nbTriangles</span><span class="p">),</span>
+                               <span class="n">q3</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">nbTriangles</span><span class="p">);</span>
+  
+  <span class="n">GatherVertexCoordinates</span><span class="o">&lt;&lt;&lt;</span><span class="n">nbBlock</span><span class="p">,</span> <span class="n">coordinatesPerBlock</span><span class="o">&gt;&gt;&gt;</span>
+     <span class="p">(</span><span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">triangleVidsOnGpu</span><span class="p">),</span>
+      <span class="n">nbTriangles</span><span class="p">,</span>
+      <span class="mi">0</span><span class="p">,</span> 
+      <span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">vertexCoordsOnGpu</span><span class="p">),</span>
+      <span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">q1</span><span class="p">));</span>
+      <span class="n">cudaDeviceSynchronize</span><span class="p">();</span>
+  
+  <span class="n">GatherVertexCoordinates</span><span class="o">&lt;&lt;&lt;</span><span class="n">nbBlock</span><span class="p">,</span> <span class="n">coordinatesPerBlock</span><span class="o">&gt;&gt;&gt;</span>
+      <span class="p">(</span><span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">triangleVidsOnGpu</span><span class="p">),</span>
+       <span class="n">nbTriangles</span><span class="p">,</span>
+       <span class="mi">1</span><span class="p">,</span> 
+       <span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">vertexCoordsOnGpu</span><span class="p">),</span>
+       <span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">q2</span><span class="p">));</span>
+       <span class="n">cudaDeviceSynchronize</span><span class="p">();</span>
+  
+  <span class="n">GatherVertexCoordinates</span><span class="o">&lt;&lt;&lt;</span><span class="n">nbBlock</span><span class="p">,</span> <span class="n">coordinatesPerBlock</span><span class="o">&gt;&gt;&gt;</span>
+      <span class="p">(</span><span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">triangleVidsOnGpu</span><span class="p">),</span>
+       <span class="n">nbTriangles</span><span class="p">,</span>
+       <span class="mi">2</span><span class="p">,</span> 
+       <span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">vertexCoordsOnGpu</span><span class="p">),</span>
+       <span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">q3</span><span class="p">));</span>
+       <span class="n">cudaDeviceSynchronize</span><span class="p">();</span>
+  
+
+  <span class="c1">// Then we substract these coordinates to get the edge vectors u, v and w</span>
+  <span class="n">thrust</span><span class="o">::</span><span class="n">device_vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">u</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">nbTriangles</span><span class="p">),</span>
+    <span class="n">v</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">nbTriangles</span><span class="p">),</span>
+    <span class="n">w</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">nbTriangles</span><span class="p">);</span>
+  
+  <span class="n">Substract</span><span class="o">&lt;&lt;&lt;</span><span class="n">nbBlock</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">trianglesPerBlock</span><span class="o">&gt;&gt;&gt;</span>
+      <span class="p">(</span><span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">q2</span><span class="p">),</span>
+       <span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">q3</span><span class="p">),</span>
+       <span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">u</span><span class="p">),</span>
+       <span class="n">u</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+       <span class="n">cudaDeviceSynchronize</span><span class="p">();</span>
+  
+  <span class="n">Substract</span><span class="o">&lt;&lt;&lt;</span><span class="n">nbBlock</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">trianglesPerBlock</span><span class="o">&gt;&gt;&gt;</span>
+    <span class="p">(</span><span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">q3</span><span class="p">),</span>
+    <span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">q1</span><span class="p">),</span>
+    <span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">v</span><span class="p">),</span>
+    <span class="n">v</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+  <span class="n">cudaDeviceSynchronize</span><span class="p">();</span>
+  
+  <span class="n">Substract</span><span class="o">&lt;&lt;&lt;</span><span class="n">nbBlock</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">trianglesPerBlock</span><span class="o">&gt;&gt;&gt;</span>
+    <span class="p">(</span><span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">q1</span><span class="p">),</span>
+    <span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">q2</span><span class="p">),</span>
+    <span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">w</span><span class="p">),</span>
+    <span class="n">w</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+  <span class="n">cudaDeviceSynchronize</span><span class="p">();</span>
+  
+  <span class="c1">// Given the edges, compute the triangle areas</span>
+  <span class="n">thrust</span><span class="o">::</span><span class="n">device_vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">areasOnGpu</span><span class="p">(</span><span class="n">nbTriangles</span><span class="p">);</span>
+  <span class="n">ComputeAreas</span><span class="o">&lt;&lt;&lt;</span><span class="n">nbBlock</span><span class="p">,</span>
+                 <span class="n">coordinatesPerBlock</span><span class="p">,</span>
+                 <span class="p">(</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">trianglesPerBlock</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="o">&gt;&gt;&gt;</span>
+     <span class="p">(</span><span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">u</span><span class="p">),</span>
+      <span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">v</span><span class="p">),</span>
+      <span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">areasOnGpu</span><span class="p">),</span>
+      <span class="n">nbTriangles</span><span class="p">);</span>
+      <span class="n">cudaDeviceSynchronize</span><span class="p">();</span>
+  
+  <span class="n">thrust</span><span class="o">::</span><span class="n">copy</span><span class="p">(</span><span class="n">areasOnGpu</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">areasOnGpu</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="n">areas</span><span class="p">);</span>
+  
+  <span class="c1">// Finaly compute the stiffness</span>
+  <span class="n">thrust</span><span class="o">::</span><span class="n">device_vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">stiffnessOnGpu</span><span class="p">(</span><span class="mi">9</span> <span class="o">*</span> <span class="n">nbTriangles</span><span class="p">);</span>
+  <span class="n">ComputeStiffness</span><span class="o">&lt;&lt;&lt;</span><span class="n">nbBlock</span><span class="p">,</span>
+                     <span class="n">coordinatesPerBlock</span><span class="p">,</span>
+                     <span class="p">(</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="mi">9</span><span class="p">)</span> <span class="o">*</span> <span class="n">trianglesPerBlock</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="o">&gt;&gt;&gt;</span>
+     <span class="p">(</span><span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">u</span><span class="p">),</span>
+      <span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">v</span><span class="p">),</span>
+      <span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">w</span><span class="p">),</span>
+      <span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">areasOnGpu</span><span class="p">),</span>
+      <span class="n">CudaRawPtr</span><span class="p">(</span><span class="n">stiffnessOnGpu</span><span class="p">),</span>
+      <span class="n">nbTriangles</span><span class="p">);</span>
+      <span class="n">cudaDeviceSynchronize</span><span class="p">();</span>
+  
+    <span class="n">thrust</span><span class="o">::</span><span class="n">copy</span><span class="p">(</span><span class="n">stiffnessOnGpu</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">stiffnessOnGpu</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="n">stiffness</span><span class="p">);</span>
+ <span class="p">}</span>
+<span class="p">}</span></code></pre></div>
+
+<h3 id="intel-mkl--pardiso">Intel MKL &amp; Pardiso</h3>
+
+<p>I’m using the <a href="http://www.pardiso-project.org">Pardiso</a> parallel <a href="http://en.wikipedia.org/wiki/Frontal_solver">sparse direct solver</a> in order to factorize the “interior-interior” matrix.
+Pardiso is shiped with the <a href="http://software.intel.com/en-us/intel-mkl">Intel MKL</a>.
+I wrapped the Pardiso calls I needed into a class found <a href="https://github.com/ssrb/ssrb.github.com/blob/master/assets/lyttelton/BabyHares/LU.cpp">here</a>.
+Like in the prototype, the factorization is done once and for all. By the way, when using the MKL, don’t forget to setup your runtime environment:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nb">source</span> /opt/intel/bin/compilervars.sh intel64</code></pre></div>
+
+<p>Intel also provides <a href="http://software.intel.com/en-us/articles/intel-mkl-link-line-advisor">an online tool</a> to help you link against the correct MKL libraries depending on your environment.</p>
+
+<h3 id="cublascusparserdma">cuBlas/cuSparse/RDMA</h3>
+
+<p>The “interface-interface” and “interior-interface” matrices are pushed once and for all on the GPU and most of
+the sparse linear algebra operations are performed on the GPU using <a href="http://docs.nvidia.com/cuda/cusparse/index.html">cuSparse</a>.
+Sadly, I couldn’t find a way to retrieve the Pardiso “LU” factorization of the “interior-interior” matrix, push it on the GPU 
+and take advantage of the <code>cusparse&lt;t&gt;csrsv_analysis</code> and <code>cusparse&lt;t&gt;csrsv_solve</code> functions. I will try to do that using different solvers such as <a href="http://pastix.gforge.inria.fr/files/README-txt.html">PaStiX</a> or
+<a href="http://mumps.enseeiht.fr">MUMPS</a>, but it will be later. What it means, is that every conjugate gradient iteration, I have to copy from/to the GPU memory when computing <code>\(A_{II}^{-1}A_{IG}u\)</code>. Note that if you’re using an <a href="http://en.wikipedia.org/wiki/Remote_direct_memory_access">RDMA</a> capable MPI implementation such as mvapich2, you can consolidate results of the distributed gradient descent iteration in-place on the GPU by passing a GPU memory pointer to <code>MPI_Allreduce</code>. MPI RDMA is discussed in <a href="http://mvapich.cse.ohio-state.edu/publications/ofa_mar12-accelerator.pdf">these slides</a>. I tested RDMA over Infiniband on the cluster and it just works. If you’re not using an RDMA capable MPI, like the version of Open MPI I’m using at home, your program will of course crash.</p>
+
+<p>Here is the heart of the solver:</p>
+
+<div class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="c1">// BabyHares</span>
+<span class="cp">#include &quot;Solver.h&quot;</span>
+<span class="cp">#include &quot;LinearSystem.h&quot;</span>
+<span class="cp">#include &quot;Mesh.h&quot;</span>
+<span class="cp">#include &quot;LU.h&quot;</span>
+<span class="cp">#include &quot;CudaSparseMatrix.h&quot;</span>
+<span class="cp">#include &quot;CudaSparseMatrixPtr.h&quot;</span>
+
+<span class="c1">// MPI</span>
+<span class="cp">#include &lt;mpi.h&gt;</span>
+
+<span class="c1">// Pardiso + vectorized math</span>
+<span class="cp">#include &quot;mkl.h&quot;</span>
+
+<span class="c1">// cuSPARSE</span>
+<span class="cp">#include &lt;cuda_runtime.h&gt;</span>
+<span class="cp">#include &lt;thrust/host_vector.h&gt;</span>
+
+<span class="c1">// STL -libstdc++</span>
+<span class="cp">#include &lt;numeric&gt;</span>
+<span class="cp">#include &lt;tr1/functional&gt;</span>
+
+<span class="k">namespace</span> <span class="n">BabyHares</span> <span class="p">{</span>
+
+<span class="k">struct</span> <span class="n">SolverContext</span> <span class="p">{</span>
+
+  <span class="n">SolverContext</span><span class="p">(</span><span class="kt">int</span> <span class="n">workBuffSize</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">cusparseCreate</span><span class="p">(</span><span class="o">&amp;</span><span class="n">cusparseHandle</span><span class="p">);</span>
+    <span class="kt">double</span> <span class="o">*</span><span class="n">tmp</span><span class="p">;</span>
+    <span class="n">cudaMalloc</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tmp</span><span class="p">,</span> <span class="n">workBuffSize</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">double</span><span class="p">));</span>
+    <span class="n">workGpuBuff1</span> <span class="o">=</span> <span class="n">thrust</span><span class="o">::</span><span class="n">device_ptr</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span><span class="n">tmp</span><span class="p">);</span>
+    <span class="n">cudaMalloc</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tmp</span><span class="p">,</span> <span class="n">workBuffSize</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">double</span><span class="p">));</span>
+    <span class="n">workGpuBuff2</span> <span class="o">=</span> <span class="n">thrust</span><span class="o">::</span><span class="n">device_ptr</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span><span class="n">tmp</span><span class="p">);</span>
+    <span class="n">cudaMalloc</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tmp</span><span class="p">,</span> <span class="n">workBuffSize</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">double</span><span class="p">));</span>
+    <span class="n">workGpuBuff3</span> <span class="o">=</span> <span class="n">thrust</span><span class="o">::</span><span class="n">device_ptr</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span><span class="n">tmp</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="k">virtual</span> <span class="o">~</span><span class="n">SolverContext</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">cusparseDestroy</span><span class="p">(</span><span class="n">cusparseHandle</span><span class="p">);</span>
+    <span class="n">cudaFree</span><span class="p">(</span><span class="n">workGpuBuff1</span><span class="p">.</span><span class="n">get</span><span class="p">());</span>
+    <span class="n">cudaFree</span><span class="p">(</span><span class="n">workGpuBuff2</span><span class="p">.</span><span class="n">get</span><span class="p">());</span>
+    <span class="n">cudaFree</span><span class="p">(</span><span class="n">workGpuBuff3</span><span class="p">.</span><span class="n">get</span><span class="p">());</span>
+  <span class="p">}</span>
+
+  <span class="n">LinearSystemConstPtr</span> <span class="n">ls</span><span class="p">;</span>
+  <span class="n">LUConstPtr</span> <span class="n">factorizedIStiffness</span><span class="p">;</span>
+  <span class="n">CudaSparseMatrixConstPtr</span> <span class="n">AIGDevice</span><span class="p">;</span>
+  <span class="n">CudaSparseMatrixConstPtr</span> <span class="n">AGGDevice</span><span class="p">;</span>
+  <span class="n">cusparseHandle_t</span> <span class="n">cusparseHandle</span><span class="p">;</span>
+
+  <span class="n">thrust</span><span class="o">::</span><span class="n">device_ptr</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">workGpuBuff1</span><span class="p">,</span> <span class="n">workGpuBuff2</span><span class="p">,</span> <span class="n">workGpuBuff3</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="kt">void</span> <span class="n">Solver</span><span class="o">::</span><span class="n">solve</span><span class="p">(</span><span class="k">const</span> <span class="n">LinearSystemConstPtr</span> <span class="o">&amp;</span><span class="n">ls</span><span class="p">,</span>
+                   <span class="k">const</span> <span class="n">MeshConstPtr</span> <span class="o">&amp;</span><span class="n">mesh</span><span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
+  
+  <span class="n">SolverContext</span> <span class="n">ctx</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">max</span><span class="p">(</span><span class="n">ls</span><span class="o">-&gt;</span><span class="n">AIG</span><span class="p">.</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ls</span><span class="o">-&gt;</span><span class="n">AIG</span><span class="p">.</span><span class="n">ncol</span><span class="p">));</span>
+  <span class="n">ctx</span><span class="p">.</span><span class="n">ls</span> <span class="o">=</span> <span class="n">ls</span><span class="p">;</span>
+
+  <span class="c1">// LU-factorize the interior-interior block of the stiffness matrix</span>
+  <span class="n">ctx</span><span class="p">.</span><span class="n">factorizedIStiffness</span> <span class="o">=</span> <span class="n">LU</span><span class="o">::</span><span class="n">Factorize</span><span class="p">(</span><span class="n">ls</span><span class="o">-&gt;</span><span class="n">AII</span><span class="p">);</span>
+  <span class="c1">// Push the other blocks of the stiffness matrix on the GPU</span>
+  <span class="n">ctx</span><span class="p">.</span><span class="n">AIGDevice</span><span class="p">.</span><span class="n">reset</span><span class="p">(</span><span class="k">new</span> <span class="n">CudaSparseMatrix</span><span class="p">(</span><span class="n">ls</span><span class="o">-&gt;</span><span class="n">AIG</span><span class="p">));</span>
+  <span class="n">ctx</span><span class="p">.</span><span class="n">AGGDevice</span><span class="p">.</span><span class="n">reset</span><span class="p">(</span><span class="k">new</span> <span class="n">CudaSparseMatrix</span><span class="p">(</span><span class="n">ls</span><span class="o">-&gt;</span><span class="n">AGG</span><span class="p">));</span>
+
+  <span class="c1">// Compute the right hand side of the Schur complement system in parallel</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">bt</span><span class="p">;</span>
+  <span class="n">computeBTilde</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">bt</span><span class="p">);</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">traceSol</span><span class="p">;</span>
+
+  <span class="k">using</span> <span class="n">std</span><span class="o">::</span><span class="n">tr1</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">;</span>
+  <span class="k">using</span> <span class="n">std</span><span class="o">::</span><span class="n">tr1</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">;</span>
+  <span class="k">using</span> <span class="n">std</span><span class="o">::</span><span class="n">tr1</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">;</span>
+  <span class="n">MatrixProductFunctor_t</span> <span class="nf">schurComplement</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">tr1</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">Solver</span><span class="o">::</span><span class="n">multiplyBySchurComplement</span><span class="p">,</span> <span class="k">this</span><span class="p">,</span> <span class="n">_1</span><span class="p">,</span> <span class="n">_2</span><span class="p">,</span> <span class="n">_3</span><span class="p">));</span>
+
+  <span class="n">conjugateGradient</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">schurComplement</span><span class="p">,</span> <span class="n">bt</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">traceSol</span><span class="p">,</span> <span class="mf">1e-30</span><span class="p">,</span> <span class="mi">600</span><span class="p">);</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">interiorSol</span><span class="p">;</span>
+  <span class="n">solveLocalInterior</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">traceSol</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">interiorSol</span><span class="p">);</span>
+
+  <span class="n">consolidateLocalSolutions</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="n">traceSol</span><span class="p">,</span> <span class="n">interiorSol</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// bti = bG - AGI * AII^{-1} * bI</span>
+<span class="kt">void</span> <span class="n">Solver</span><span class="o">::</span><span class="n">computeBTilde</span><span class="p">(</span><span class="k">const</span> <span class="n">SolverContext</span> <span class="o">&amp;</span><span class="n">ctx</span><span class="p">,</span>
+                           <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="o">*</span><span class="n">bt</span><span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
+
+  <span class="c1">// xi = AII^{-1} * bI</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">x</span><span class="p">;</span>
+  <span class="n">ctx</span><span class="p">.</span><span class="n">factorizedIStiffness</span><span class="o">-&gt;</span><span class="n">solve</span><span class="p">(</span><span class="n">ctx</span><span class="p">.</span><span class="n">ls</span><span class="o">-&gt;</span><span class="n">loadVector</span><span class="p">,</span> <span class="n">x</span><span class="p">);</span>
+
+  <span class="c1">// bti = bG - AGI * xi</span>
+  <span class="n">thrust</span><span class="o">::</span><span class="n">device_ptr</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">dx</span> <span class="o">=</span> <span class="n">ctx</span><span class="p">.</span><span class="n">workGpuBuff1</span><span class="p">;</span>
+  <span class="n">thrust</span><span class="o">::</span><span class="n">device_ptr</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">db</span> <span class="o">=</span> <span class="n">ctx</span><span class="p">.</span><span class="n">workGpuBuff2</span><span class="p">;</span>
+  <span class="n">thrust</span><span class="o">::</span><span class="n">copy</span><span class="p">(</span><span class="n">x</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">x</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="n">dx</span><span class="p">);</span>
+  <span class="n">thrust</span><span class="o">::</span><span class="n">copy</span><span class="p">(</span><span class="n">ctx</span><span class="p">.</span><span class="n">ls</span><span class="o">-&gt;</span><span class="n">loadVector</span><span class="p">.</span><span class="n">begin</span><span class="p">()</span> <span class="o">+</span> <span class="n">ctx</span><span class="p">.</span><span class="n">AIGDevice</span><span class="o">-&gt;</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ctx</span><span class="p">.</span><span class="n">ls</span><span class="o">-&gt;</span><span class="n">loadVector</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="n">db</span><span class="p">);</span>
+
+  <span class="n">ctx</span><span class="p">.</span><span class="n">AIGDevice</span><span class="o">-&gt;</span><span class="n">mv</span><span class="p">(</span><span class="n">ctx</span><span class="p">.</span><span class="n">cusparseHandle</span><span class="p">,</span> <span class="n">CUSPARSE_OPERATION_TRANSPOSE</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">dx</span><span class="p">.</span><span class="n">get</span><span class="p">(),</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">db</span><span class="p">.</span><span class="n">get</span><span class="p">());</span>
+
+  <span class="n">bt</span><span class="o">-&gt;</span><span class="n">resize</span><span class="p">(</span><span class="n">ctx</span><span class="p">.</span><span class="n">AIGDevice</span><span class="o">-&gt;</span><span class="n">ncol</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">);</span>
+  <span class="n">thrust</span><span class="o">::</span><span class="n">copy_n</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">bt</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">(),</span> <span class="n">bt</span><span class="o">-&gt;</span><span class="n">begin</span><span class="p">());</span>
+
+  <span class="c1">// bt = Sum bti</span>
+  <span class="n">MPI_Allreduce</span><span class="p">(</span><span class="n">MPI_IN_PLACE</span><span class="p">,</span> <span class="o">&amp;</span><span class="p">(</span><span class="o">*</span><span class="n">bt</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">bt</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">(),</span> <span class="n">MPI_DOUBLE</span><span class="p">,</span> <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// Ap = AGG * p - AGI * AII^{-1} *(AIG * p)</span>
+<span class="kt">void</span> <span class="n">Solver</span><span class="o">::</span><span class="n">multiplyBySchurComplement</span><span class="p">(</span><span class="k">const</span> <span class="n">SolverContext</span> <span class="o">&amp;</span><span class="n">ctx</span><span class="p">,</span>
+                                       <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="o">&amp;</span><span class="n">p</span><span class="p">,</span>
+                                       <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="o">*</span><span class="n">Ap</span><span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
+
+  <span class="n">thrust</span><span class="o">::</span><span class="n">device_ptr</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">dp</span> <span class="o">=</span>  <span class="n">ctx</span><span class="p">.</span><span class="n">workGpuBuff1</span><span class="p">;</span>  
+  <span class="n">thrust</span><span class="o">::</span><span class="n">device_ptr</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">dx</span> <span class="o">=</span> <span class="n">ctx</span><span class="p">.</span><span class="n">workGpuBuff2</span><span class="p">;</span>
+  <span class="n">thrust</span><span class="o">::</span><span class="n">device_ptr</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">dAp</span> <span class="o">=</span> <span class="n">ctx</span><span class="p">.</span><span class="n">workGpuBuff3</span><span class="p">;</span>
+
+  <span class="c1">// x = AIG * p</span>
+  <span class="n">thrust</span><span class="o">::</span><span class="n">copy</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">p</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="n">dp</span><span class="p">);</span>
+  <span class="n">ctx</span><span class="p">.</span><span class="n">AIGDevice</span><span class="o">-&gt;</span><span class="n">mv</span><span class="p">(</span><span class="n">ctx</span><span class="p">.</span><span class="n">cusparseHandle</span><span class="p">,</span> <span class="n">CUSPARSE_OPERATION_NON_TRANSPOSE</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">dp</span><span class="p">.</span><span class="n">get</span><span class="p">(),</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">dx</span><span class="p">.</span><span class="n">get</span><span class="p">());</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">x</span><span class="p">(</span><span class="n">ctx</span><span class="p">.</span><span class="n">AIGDevice</span><span class="o">-&gt;</span><span class="n">nrow</span><span class="p">);</span>
+
+  <span class="c1">// x = AII^{-1} * x</span>
+  <span class="n">thrust</span><span class="o">::</span><span class="n">copy_n</span><span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="n">x</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="n">x</span><span class="p">.</span><span class="n">begin</span><span class="p">());</span>
+  <span class="n">ctx</span><span class="p">.</span><span class="n">factorizedIStiffness</span><span class="o">-&gt;</span><span class="n">solve</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">Ap</span><span class="p">);</span>
+
+  <span class="n">thrust</span><span class="o">::</span><span class="n">copy_n</span><span class="p">(</span><span class="n">Ap</span><span class="o">-&gt;</span><span class="n">begin</span><span class="p">(),</span> <span class="n">Ap</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">(),</span> <span class="n">dx</span><span class="p">);</span>
+
+  <span class="c1">// Api =  AGI * x</span>
+  <span class="n">ctx</span><span class="p">.</span><span class="n">AIGDevice</span><span class="o">-&gt;</span><span class="n">mv</span><span class="p">(</span><span class="n">ctx</span><span class="p">.</span><span class="n">cusparseHandle</span><span class="p">,</span> <span class="n">CUSPARSE_OPERATION_TRANSPOSE</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">dx</span><span class="p">.</span><span class="n">get</span><span class="p">(),</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">dAp</span><span class="p">.</span><span class="n">get</span><span class="p">());</span>
+
+    <span class="c1">// Api = AGG * p - Api</span>
+  <span class="n">ctx</span><span class="p">.</span><span class="n">AGGDevice</span><span class="o">-&gt;</span><span class="n">mv</span><span class="p">(</span><span class="n">ctx</span><span class="p">.</span><span class="n">cusparseHandle</span><span class="p">,</span> <span class="n">CUSPARSE_OPERATION_NON_TRANSPOSE</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">dp</span><span class="p">.</span><span class="n">get</span><span class="p">(),</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">dAp</span><span class="p">.</span><span class="n">get</span><span class="p">());</span>
+
+  <span class="n">thrust</span><span class="o">::</span><span class="n">copy_n</span><span class="p">(</span><span class="n">dAp</span><span class="p">,</span> <span class="n">ctx</span><span class="p">.</span><span class="n">ls</span><span class="o">-&gt;</span><span class="n">AGG</span><span class="p">.</span><span class="n">nrow</span><span class="p">,</span> <span class="n">Ap</span><span class="o">-&gt;</span><span class="n">begin</span><span class="p">());</span>
+
+  <span class="c1">// Ap = Sum Api</span>
+  <span class="n">MPI_Allreduce</span><span class="p">(</span><span class="n">MPI_IN_PLACE</span><span class="p">,</span> <span class="o">&amp;</span><span class="p">(</span><span class="o">*</span><span class="n">Ap</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ctx</span><span class="p">.</span><span class="n">ls</span><span class="o">-&gt;</span><span class="n">AGG</span><span class="p">.</span><span class="n">nrow</span><span class="p">,</span> <span class="n">MPI_DOUBLE</span><span class="p">,</span> <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="n">Solver</span><span class="o">::</span><span class="n">conjugateGradient</span><span class="p">(</span><span class="k">const</span> <span class="n">SolverContext</span> <span class="o">&amp;</span><span class="n">ctx</span><span class="p">,</span>
+                               <span class="k">const</span> <span class="n">MatrixProductFunctor_t</span> <span class="o">&amp;</span><span class="n">A</span><span class="p">,</span>
+                               <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="o">&amp;</span><span class="n">b</span><span class="p">,</span>
+                               <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="o">*</span><span class="n">x</span><span class="p">,</span>
+                               <span class="kt">double</span> <span class="n">tol</span><span class="p">,</span>
+                               <span class="kt">int</span> <span class="n">maxIter</span><span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
+  <span class="n">x</span><span class="o">-&gt;</span><span class="n">resize</span><span class="p">(</span><span class="n">b</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mf">0.0</span><span class="p">);</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">r</span><span class="p">(</span><span class="n">b</span><span class="p">);</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">p</span><span class="p">(</span><span class="n">r</span><span class="p">);</span>
+  <span class="kt">double</span> <span class="n">rsold</span> <span class="o">=</span> <span class="n">cblas_ddot</span><span class="p">(</span><span class="n">r</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="o">&amp;</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">);</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">Ap</span><span class="p">(</span><span class="n">b</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mf">0.0</span><span class="p">);</span>
+  <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">iter</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">iter</span> <span class="o">&lt;</span> <span class="n">maxIter</span><span class="p">;</span> <span class="o">++</span><span class="n">iter</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">A</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">Ap</span><span class="p">);</span>
+    <span class="kt">double</span> <span class="n">alpha</span> <span class="o">=</span> <span class="n">rsold</span> <span class="o">/</span> <span class="n">cblas_ddot</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="o">&amp;</span><span class="n">Ap</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">);</span>
+    <span class="n">cblas_daxpy</span><span class="p">(</span><span class="n">x</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">(),</span> <span class="n">alpha</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="o">&amp;</span><span class="p">(</span><span class="o">*</span><span class="n">x</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">);</span>
+    <span class="n">cblas_daxpy</span><span class="p">(</span><span class="n">r</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="o">-</span><span class="n">alpha</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">Ap</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">);</span>
+    <span class="kt">double</span> <span class="n">rsnew</span> <span class="o">=</span> <span class="n">cblas_ddot</span><span class="p">(</span><span class="n">r</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="o">&amp;</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">sqrt</span><span class="p">(</span><span class="n">rsnew</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">tol</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">break</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">cblas_dscal</span> <span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="n">rsnew</span> <span class="o">/</span> <span class="n">rsold</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">);</span>
+    <span class="n">cblas_daxpy</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mf">1.0</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">);</span>
+    <span class="n">rsold</span> <span class="o">=</span> <span class="n">rsnew</span><span class="p">;</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// sol = AII^{-1} (b - AIG * trace)</span>
+<span class="kt">void</span> <span class="n">Solver</span><span class="o">::</span><span class="n">solveLocalInterior</span><span class="p">(</span><span class="k">const</span> <span class="n">SolverContext</span> <span class="o">&amp;</span><span class="n">ctx</span><span class="p">,</span>
+                                <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="o">&amp;</span><span class="n">traceSol</span><span class="p">,</span>
+                                <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="o">*</span><span class="n">interiorSol</span><span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
+
+  <span class="c1">// b = b - AIG * trace</span>
+  <span class="n">thrust</span><span class="o">::</span><span class="n">device_ptr</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">db</span> <span class="o">=</span> <span class="n">ctx</span><span class="p">.</span><span class="n">workGpuBuff1</span><span class="p">;</span>
+  <span class="n">thrust</span><span class="o">::</span><span class="n">device_ptr</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">dtrc</span> <span class="o">=</span> <span class="n">ctx</span><span class="p">.</span><span class="n">workGpuBuff2</span><span class="p">;</span>
+
+  <span class="n">thrust</span><span class="o">::</span><span class="n">copy_n</span><span class="p">(</span><span class="n">ctx</span><span class="p">.</span><span class="n">ls</span><span class="o">-&gt;</span><span class="n">loadVector</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">ctx</span><span class="p">.</span><span class="n">AIGDevice</span><span class="o">-&gt;</span><span class="n">nrow</span><span class="p">,</span> <span class="n">db</span><span class="p">);</span>
+  <span class="n">thrust</span><span class="o">::</span><span class="n">copy</span><span class="p">(</span><span class="n">traceSol</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">traceSol</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="n">dtrc</span><span class="p">);</span>
+
+  <span class="n">ctx</span><span class="p">.</span><span class="n">AIGDevice</span><span class="o">-&gt;</span><span class="n">mv</span><span class="p">(</span><span class="n">ctx</span><span class="p">.</span><span class="n">cusparseHandle</span><span class="p">,</span> <span class="n">CUSPARSE_OPERATION_NON_TRANSPOSE</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">dtrc</span><span class="p">.</span><span class="n">get</span><span class="p">(),</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">db</span><span class="p">.</span><span class="n">get</span><span class="p">());</span>
+
+  <span class="c1">// sol = AII^{-1} * b</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">b</span><span class="p">(</span><span class="n">ctx</span><span class="p">.</span><span class="n">AIGDevice</span><span class="o">-&gt;</span><span class="n">nrow</span><span class="p">);</span>
+  <span class="n">thrust</span><span class="o">::</span><span class="n">copy_n</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">b</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="n">b</span><span class="p">.</span><span class="n">begin</span><span class="p">());</span>
+  
+  <span class="n">ctx</span><span class="p">.</span><span class="n">factorizedIStiffness</span><span class="o">-&gt;</span><span class="n">solve</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="o">*</span><span class="n">interiorSol</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="n">Solver</span><span class="o">::</span><span class="n">consolidateLocalSolutions</span><span class="p">(</span><span class="k">const</span> <span class="n">MeshConstPtr</span> <span class="o">&amp;</span><span class="n">mesh</span><span class="p">,</span>
+                                       <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="o">&amp;</span><span class="n">traceSol</span><span class="p">,</span>
+                                       <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="o">&amp;</span><span class="n">interiorSol</span><span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">mpiRank</span><span class="p">,</span> <span class="n">mpiSize</span><span class="p">;</span>
+  <span class="n">MPI_Comm_rank</span><span class="p">(</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">mpiRank</span><span class="p">);</span>
+  <span class="n">MPI_Comm_size</span><span class="p">(</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">mpiSize</span><span class="p">);</span>
+
+  <span class="c1">// Prepare an offset array used to concatenate the solution vectors</span>
+  <span class="kt">int</span> <span class="n">nbInteriorVertices</span> <span class="o">=</span> <span class="n">interiorSol</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">allNbInterior</span><span class="p">(</span><span class="n">mpiRank</span> <span class="o">?</span> <span class="mi">0</span> <span class="o">:</span> <span class="n">mpiSize</span><span class="p">);</span>
+  <span class="n">MPI_Gather</span><span class="p">(</span><span class="o">&amp;</span><span class="n">nbInteriorVertices</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INT</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">allNbInterior</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INT</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">);</span>
+
+  <span class="kt">int</span> <span class="n">totalNbInterior</span> <span class="o">=</span> <span class="n">mesh</span><span class="o">-&gt;</span><span class="n">_nbTotaleVertices</span> <span class="o">-</span> <span class="n">traceSol</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">allOffsets</span><span class="p">(</span><span class="n">mpiSize</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
+  <span class="n">allOffsets</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">partial_sum</span><span class="p">(</span><span class="n">allNbInterior</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">allNbInterior</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="o">&amp;</span><span class="n">allOffsets</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+  
+  <span class="c1">// Gather all interior vertex global indices</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">globalISol</span><span class="p">(</span><span class="n">mpiRank</span> <span class="o">?</span> <span class="mi">0</span> <span class="o">:</span> <span class="n">totalNbInterior</span><span class="p">);</span>
+  <span class="n">MPI_Gatherv</span><span class="p">(</span><span class="k">const_cast</span><span class="o">&lt;</span><span class="kt">double</span> <span class="o">*&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">interiorSol</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">nbInteriorVertices</span><span class="p">,</span> <span class="n">MPI_DOUBLE</span><span class="p">,</span> 
+              <span class="o">&amp;</span><span class="n">globalISol</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">allNbInterior</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">allOffsets</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">MPI_DOUBLE</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">);</span>
+
+  <span class="c1">// Gather all interior vertex solutions</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">allVids</span><span class="p">(</span><span class="n">mpiRank</span> <span class="o">?</span> <span class="mi">0</span> <span class="o">:</span>  <span class="n">totalNbInterior</span><span class="p">);</span>
+  <span class="n">MPI_Gatherv</span><span class="p">(</span><span class="k">const_cast</span><span class="o">&lt;</span><span class="kt">int</span> <span class="o">*&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">mesh</span><span class="o">-&gt;</span><span class="n">_localToGlobal</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">nbInteriorVertices</span><span class="p">,</span> <span class="n">MPI_INT</span><span class="p">,</span>
+              <span class="o">&amp;</span><span class="n">allVids</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">allNbInterior</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">allOffsets</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">MPI_INT</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">);</span>
+
+  <span class="c1">// Write the global solution</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">mpiRank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">solution</span><span class="p">(</span><span class="n">mesh</span><span class="o">-&gt;</span><span class="n">_nbTotaleVertices</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span>  <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">allVids</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">solution</span><span class="p">[</span><span class="n">allVids</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="n">globalISol</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+    <span class="p">}</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span>  <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">traceSol</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">solution</span><span class="p">[</span><span class="n">mesh</span><span class="o">-&gt;</span><span class="n">_localToGlobal</span><span class="p">[</span><span class="n">nbInteriorVertices</span> <span class="o">+</span> <span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="n">traceSol</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+    <span class="p">}</span>
+
+    <span class="kt">FILE</span> <span class="o">*</span><span class="n">fd</span> <span class="o">=</span> <span class="n">fopen</span><span class="p">(</span><span class="s">&quot;lyttelton.sol&quot;</span><span class="p">,</span> <span class="s">&quot;w&quot;</span><span class="p">);</span>
+    <span class="n">fprintf</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="s">&quot;MeshVersionFormatted 1</span><span class="se">\n\n</span><span class="s">Dimension 2</span><span class="se">\n\n</span><span class="s">SolAtVertices</span><span class="se">\n</span><span class="s">%d</span><span class="se">\n</span><span class="s">1 1</span><span class="se">\n\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">solution</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">solution</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">fprintf</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="s">&quot;%0.12f</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">solution</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+    <span class="p">}</span>
+    <span class="n">fclose</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+<span class="p">}</span></code></pre></div>
+
+<h3 id="performance-visualization">Performance visualization</h3>
+<p>I spent some time playing with <a href="http://kcachegrind.sourceforge.net/html/Home.html">kcachegrind</a> (general perf), <a href="http://docs.nvidia.com/cuda/profiler-users-guide">nvvp</a> (GPU perf) and <a href="http://www.mcs.anl.gov/research/projects/perfvis">jumpshot</a> (MPI perf).</p>
+
+<!--
+http://cs.calvin.edu/curriculum/cs/374/MPI/MPE/
+gcc -Wl,--whole-archive  -shared -o libmpe_null.so libmpe_null.a -Wl,--no-whole-archive
+-fPIC
+-->
+
+<h4 id="kcachegrind">kcachegrind</h4>
+<div class="galleria">
+   <a href="/assets/lyttelton/kcachegrind_main.png">
+      <img src="/assets/lyttelton/kcachegrind_main.png" data-title="" data-description="Assembly is 0.44% of the main running time, solving is 86.79%" data-big="/assets/lyttelton/kcachegrind_main.png" />
+   </a>
+   <a href="/assets/lyttelton/kcachegrind_gpu.png">
+      <img src="/assets/lyttelton/kcachegrind_gpu.png" data-title="" data-description="Computing coefficients on the GPU is 0.04% of the overall running time" data-big="/assets/lyttelton/kcachegrind_gpu.png" />
+   </a>
+   <a href="/assets/lyttelton/kcachegrind_pardiso.png">
+      <img src="/assets/lyttelton/kcachegrind_pardiso.png" data-title="" data-description="Almost 100% of the solver time is spent in PARDISO" data-big="/assets/lyttelton/kcachegrind_pardiso.png" />
+   </a>
+</div>
+
+<h4 id="nvvp">nvvp</h4>
+<div class="galleria">
+   <a href="/assets/lyttelton/nvvp1.png">
+      <img src="/assets/lyttelton/nvvp1.png" data-title="" data-description="" data-big="/assets/lyttelton/nvvp1.png" />
+   </a>
+   <a href="/assets/lyttelton/nvvp2.png">
+      <img src="/assets/lyttelton/nvvp2.png" data-title="" data-description="" data-big="/assets/lyttelton/nvvp2.png" />
+   </a>
+   <a href="/assets/lyttelton/nvvp3.png">
+      <img src="/assets/lyttelton/nvvp3.png" data-title="" data-description="" data-big="/assets/lyttelton/nvvp3.png" />
+   </a>
+</div>
+
+<h4 id="mpe">MPE</h4>
+<div class="galleria">
+   <a href="/assets/lyttelton/jumpshot_mpi.png">
+      <img src="/assets/lyttelton/jumpshot_mpi.png" data-title="" data-description="5 processors, each purple box is a call to MPI_Allreduce." data-big="/assets/lyttelton/jumpshot_mpi.png" />
+   </a>
+</div>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>That’s all for this “mini” post. It covered quite a few HPC related technologies. I will discuss performnance and optimization in another post.
+In the next post I will modify the solver to handle the <em>linear</em> mild-slope equation as I promised. It’s going to be quite involved this time.</p>
+
+<script type="text/javascript" src="/rungalleria.js"></script>
+
+
+    <hr>
+    <div class="pagination btn-group">
+      
+        <a class="btn prev" href="/numerical%20methods/2014/03/15/the-lyttelton-port-wave-penetration-project-part-1" title="The Lyttelton port wave penetration project: Part 1">&larr; Previous</a>
+      
+        <a class="btn" href="/archive.html">Archive</a>
+      
+        <a class="btn next" href="/numerical%20methods/2014/04/12/the-lyttelton-port-wave-penetration-project-part-3" title="The Lyttelton port wave penetration project: Part 3">Next &rarr;</a>
+      
+    </div>
+    <hr>
+    
+
+
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_developer = 1;
+    var disqus_shortname = 'ssrb'; // required: replace example with your forum shortname
+    
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+
+
+  </div>
+  
+  <div class="span4">
+    <section>
+      <h4>Published</h4>
+      <div class="date"><span>19 March 2014</span></div>
+    </section>
+    
+      <section>
+        <h4>Category</h4>
+        <span class="category">
+          Numerical methods
+        </span>
+      </section>
+         
+    
+      <section>
+        <h4>Tags</h4>
+        <ul class="tag_box">
+          
+          
+
+
+  
+     
+    	<li><a href="/tags.html#mathematics-ref">mathematics <span>7</span></a></li>
+     
+    	<li><a href="/tags.html#parallel computing-ref">parallel computing <span>7</span></a></li>
+     
+    	<li><a href="/tags.html#numerical hydraulics-ref">numerical hydraulics <span>4</span></a></li>
+    
+  
+
+
+
+        </ul>
+      </section>
+             
+  </div>
+</div>
+
+
+      </div>
+
+      <footer>
+        <p>&copy; 2018 Sébastien Bigot
+          with help from <a href="http://jekyllbootstrap.com" target="_blank" title="The Definitive Jekyll Blogging Framework">Jekyll Bootstrap</a>
+          and <a href="http://github.com/dhulihan/hooligan" target="_blank">The Hooligan Theme</a>
+        </p>
+      </footer>
+    </div> <!-- /container -->
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="/assets/themes/hooligan/js/jquery.min.js"><\/script>')</script>
+    <script src="/assets/themes/hooligan/bootstrap/js/bootstrap.min.js"></script>
+    
+    
+    
+  </body>
+</html>
+

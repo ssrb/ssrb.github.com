@@ -1,0 +1,16 @@
+<babyhares>
+	<harbour>
+		<geometry>lyttelton_osm_small.mesh</geometry>
+		<interface>interface.vids</interface>
+		<!--bathymetry>lyttelton_linz_small.bathy</bathymetry-->
+		<bathymetry>bathy</bathymetry>
+		<reflection>0.9</reflection>
+		<friction>0.0</friction>
+	</harbour>
+	<wave>
+		<direction>-45</direction>
+		<height>0.0013377</height>
+		<!-- 3* 256 / (2 * pi * 6378137 * 0.00955042966330666)-->
+		<length>0.0020066</length>
+	</wave>
+</babyhares>

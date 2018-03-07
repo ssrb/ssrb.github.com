@@ -1,0 +1,878 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>
+      
+        The Schur Complement Method: Part 2 - 
+      
+      Seb's blog
+    </title>
+    <meta name="description" content="">
+    <meta name="author" content="Sébastien Bigot">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+
+    <link href="/assets/themes/hooligan/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/themes/hooligan/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">    
+    <link rel="stylesheet" type="text/css" href="/assets/themes/hooligan/css-social-buttons/css/zocial.stripped.css">
+    <link href="/assets/themes/hooligan/css/pygments.css" rel="stylesheet" type="text/css" media="all">
+    <link href="/assets/themes/hooligan/css/darkstrap.css" rel="stylesheet" type="text/css" media="all">    
+    <link href="/assets/themes/hooligan/css/style.css?body=1" rel="stylesheet" type="text/css" media="all">
+
+    
+    <!-- fav and touch icons -->
+  <!-- Update these with your own images
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
+  -->
+
+    <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      TeX: { equationNumbers: { autoNumber: "AMS" } },
+        tex2jax: {
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      }
+    });
+    MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for(i=0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+    </script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    </script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.js">
+    </script>
+    <script type="text/javascript" src="/galleria/galleria-1.3.3.min.js">
+    </script>
+    <style>
+      .galleria{ width: 700px; height: 400px; background: #000 }
+    </style>
+  </head>
+
+  <body>
+    <div class="navbar">
+      <div class="navbar-inner">
+        <div class="container">
+          <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>      
+
+
+          <a class="brand" href="/">Seb's blog</a>
+
+
+          <div class="nav-collapse">
+            <ul class="nav">
+              
+              
+              
+
+
+  
+    
+      
+      	
+      	<li><a href="/archive.html">Archive</a></li>
+      	
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/categories.html">Categories</a></li>
+      	
+      
+    
+  
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/tags.html">Tags</a></li>
+      	
+      
+    
+  
+
+
+
+            </ul>
+            <ul class="nav pull-right social visible-desktop">
+              <li class="divider-vertical"></li>
+              
+                <li>
+                  <a href="https://github.com/ssrb" class="zocial github icon" target="_blank">
+                    <span class="hidden-desktop">Github</span>
+                  </a>
+                </li>
+              
+                  
+                                        
+                         
+                                  
+              
+              <li>
+                <a class="zocial icon rss" target="_blank" href="/rss.xml">
+                  <span class="hidden-desktop">ATOM Feed</a>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="content">
+        
+<div class="page-header">
+  <h1>
+    The Schur Complement Method: Part 2 
+    
+  </h1>
+</div>
+
+<div class="row">
+  <div class="span8">
+    
+<p>We continue our informal study of domain decomposition methods (DDMs).</p>
+
+<p>We will describe non-overlaping DDMs in terms of differential operators as opposed to basic linear algebra operations.
+This will later allow us to easily describe more sophisticated parallel algorithms such as the Dirichlet-Neuman and Neuman-Neuman algorithms.</p>
+
+<p>In order to go one step further in that study it is necessary to introduce some <a href="http://en.wikipedia.org/wiki/Partial_differential_equation">PDE</a> related theory and lingo.
+However I will try to keep it light and will just introduce what is necessary to build an intuition.</p>
+
+<!-- more -->
+
+<h2 id="d-poisson-approximation-as-the-frankenstein-monster">2D Poisson approximation as the Frankenstein monster</h2>
+
+<p>Last time we crafted an approximation, using the finite element method, of a function <code>\(\varphi\)</code> solution of the boundary problem</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{equation}\begin{cases}\Delta\varphi & = & 1, & \mbox{on } \Omega \\\ \varphi & = & 0, & \mbox{on } \partial\Omega\end{cases}\label{eq:globalPDE}\end{equation} %]]></script>
+
+<p>Refer to the <a href="/numerical%20methods/2013/10/22/the-schur-complement-method">first post</a> regarding the choice of <code>\(\Omega\)</code> and the finite element space.</p>
+
+<p>After delegating the assembly of the stiffness matrix and the load vector to the FreeFem++ software, we implemented
+the Schur complement method as a combination of unknown reordering and block Gaussian elimination applied to a global linear system.</p>
+
+<p>In this part, I will describe how we can take into account the domain decompostion from the very begining, that is, in the formulation of the
+boundary problem itself.</p>
+
+<h3 id="creating-a-monster">Creating a monster</h3>
+
+<p>Let <code>\(\Omega_{1}\)</code> and <code>\(\Omega_{2}\)</code> the two non-overlaping subdomains introduced in the previous post and let <code>\(\Gamma := \partial\Omega_{1} \cap \partial\Omega_{2}\)</code>, the boundary between <code>\(\Omega_{1}\)</code> and <code>\(\Omega_{2}\)</code>.
+Let <code>\(\varphi_{1}\)</code> (respectively <code>\(\varphi_{2}\)</code>) a (local) solution of <code>\(\eqref{eq:globalPDE}\)</code> restricted to  <code>\(\Omega_{1}\)</code> (respectively <code>\(\Omega_{2}\)</code>):</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{equation}\begin{cases}\Delta\varphi_{i} & = & 1, & \mbox{on } \Omega_{i}, & i = 1,2 \\\ \varphi_{i} & = & 0, & \mbox{on } \partial\Omega_{i} \cap \partial\Omega &\end{cases}\label{eq:subdomainsPDE}\end{equation} %]]></script>
+
+<h4 id="question">Question</h4>
+
+<p>Is solving <code>\(\eqref{eq:subdomainsPDE}\)</code> solving <code>\(\eqref{eq:globalPDE}\)</code> ?</p>
+
+<p>The answer is no. Here are a couple of examples to give you an intuition of what could go wrong:</p>
+
+<div class="galleria">
+  <a href="/assets/schur2/badtrace.png">
+   <img src="/assets/schur2/badtrace.png" data-title="Discoutinous solution" data-description="This solution neither is continous nor verifies (1) around gamma" data-big="/assets/schur2/badtrace.png" />
+ </a>
+ <a href="/assets/schur2/badflux.png">
+   <img src="/assets/schur2/badflux.png" data-title="Non differentiable solution" data-description="This solution neither is differentiable nor verifies (1) around gamma" data-big="/assets/schur2/badflux.png" />
+ </a>
+ <a href="/assets/schur2/badflux3D_1.png">
+   <img src="/assets/schur2/badflux3D_1.png" data-title="Non differentiable solution (2)" data-description="" data-big="/assets/schur2/badflux3D_1.png" />
+ </a>
+ <a href="/assets/schur2/badflux3D_2.png">
+   <img src="/assets/schur2/badflux3D_2.png" data-title="Non differentiable solution (3)" data-description="" data-big="/assets/schur2/badflux3D_2.png" />
+ </a>
+</div>
+
+<h4 id="conclusion">Conclusion</h4>
+
+<p>Clearly, we need to pay more attention to what’s going on around <code>\(\Gamma\)</code>.</p>
+
+<h3 id="trace-flux-and-transmission-conditions">Trace, flux and transmission conditions</h3>
+
+<p>So for now, our stuff looks like this</p>
+
+<p><img src="/assets/schur2/Frankenstein.jpg" alt="Frankenstein" /></p>
+
+<p>We need to add extra conditions to <code>\(\eqref{eq:subdomainsPDE}\)</code> in order to make the global solution more regular and eventualy satisfy <code>\(\eqref{eq:globalPDE}\)</code>.</p>
+
+<h4 id="trace">Trace</h4>
+<p>At the very least, the traces of the local solutions <code>\(\varphi_{1}\)</code> and <code>\(\varphi_{2}\)</code> on <code>\(\Gamma\)</code> should be equal in order to make the global solution continous:</p>
+
+<script type="math/tex; mode=display">\begin{equation}\varphi_{1}\restriction_\Gamma = \varphi_{2}\restriction_\Gamma\label{eq:transmissionOfTrace}\end{equation}</script>
+
+<h4 id="flux">Flux</h4>
+
+<p>Then we must ensure that the global solution is regular enough around the interface, that is, differentiable on <code>\(\Gamma\)</code>.
+In order to do so we will consider the <a href="http://en.wikipedia.org/wiki/Directional_derivative">normal derivatives</a> along <code>\(\Gamma\)</code> of the local solutions <code>\(\varphi_{1}\)</code> and <code>\(\varphi_{2}\)</code>, also know as flux, and balance them as illustrated in the following sketch:</p>
+
+<p><img src="/assets/schur2/flux_transmition.jpg" alt="Flux transmission" /></p>
+
+<p>This can be concisely written as:</p>
+
+<script type="math/tex; mode=display">\begin{equation}\frac{\partial\varphi_1}{\partial n_1} = -\frac{\partial\varphi_2}{\partial n_2}, \mbox{on } \Gamma\label{eq:transmissionOfFlux}\end{equation}</script>
+
+<p>Just remember that the directions of <code>\(n_{1}\)</code> and <code>\(n_{2}\)</code> depend on the point of <code>\(\Gamma\)</code> under consideration.</p>
+
+<p><code>\(\eqref{eq:transmissionOfTrace}\)</code> and <code>\(\eqref{eq:transmissionOfFlux}\)</code> are known as <em>the transmission conditions</em>.</p>
+
+<p>Putting everything together we end up with a new boundary problem:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{equation}\begin{cases}\Delta\varphi_{i} & = & 1, & \mbox{on } \Omega_{i}, & i = 1,2 \\\ \varphi_{i} & = & 0, & \mbox{on } \partial\Omega_{i} \cap \partial\Omega &\\\ \varphi_{1}\restriction_\Gamma = \varphi_{2}\restriction_\Gamma \\\ \frac{\partial\varphi_1}{\partial n_1} & = & -\frac{\partial\varphi_2}{\partial n_2}, &\mbox{on } \Gamma\end{cases}\label{eq:subdomainsPDEWithTransmition}\end{equation} %]]></script>
+
+<h4 id="question-1">Question</h4>
+
+<p>Is solving <code>\(\eqref{eq:subdomainsPDEWithTransmition}\)</code> solving <code>\(\eqref{eq:globalPDE}\)</code> ?</p>
+
+<p>This time, under certain assumptions regarding <code>\(\Gamma\)</code>, the answer is yes but we’re not going to talk about that here.</p>
+
+<h3 id="conclusion-1">Conclusion</h3>
+
+<p>We crafted a problem taking into account a 2 domains decomposition by introducing the transmission conditions: one condition related to the trace on <code>\(\Gamma\)</code>,
+another condition related to the flux going through <code>\(\Gamma\)</code>. Now, we’re left with a choice: either solve first for the trace or for the flux. But, before looking into that I would like to take the time to describe the main steps to translate this problem into linear algebra.</p>
+
+<h2 id="fem-for-dummies">FEM for dummies</h2>
+<p>In this part I will try to explain as concisely as possible how to apply the <a href="http://en.wikipedia.org/wiki/Finite_element_method">FEM</a> to <code>\(\eqref{eq:globalPDE}\)</code>. But please keep in mind that it is oversimplified.</p>
+
+<h3 id="weak-formulation-and-discretization">Weak formulation and discretization</h3>
+<p>So far, we never discussed which functional space the solution of <code>\(\eqref{eq:globalPDE}\)</code> should be chosen from.
+So let <code>\(H\)</code> a <em>finite-dimensional</em> <a href="http://en.wikipedia.org/wiki/Vector_space">vector space</a> of functions defined on <code>\(\Omega\)</code> vanishing on <code>\(\partial\Omega\)</code>.
+Let <code>\(N:=dim(H)\)</code> and <code>\((e_{i})_{1 \leq i \leq N}\)</code> a basis of <code>\(H\)</code>.
+I don’t want to discuss the gory functional analysis details here so just consider that I chose <code>\(H\)</code> so that everything I’m about to write works just fine.</p>
+
+<p>We will search <code>\(\varphi\)</code> in <code>\(H\)</code>.
+In order to do so, we are going to design a “test” that <code>\(\varphi\)</code> must pass in order to be a solution of <code>\(\eqref{eq:globalPDE}\)</code>. 
+In order to design that test we choose a function <code>\(\psi\)</code> in <code>\(H\)</code>.
+<code>\(\psi\)</code> is called a test function and we say that <code>\(\varphi\)</code> is tested against <code>\(\psi\)</code>.
+These are the key steps:</p>
+
+<h4 id="weak-formulation">Weak formulation</h4>
+<ol>
+  <li>Start with what must be satisfied: <script type="math/tex">\Delta\varphi = 1, \varphi \in H</script></li>
+  <li>Multiply by a test function <code>\(\psi\)</code>: <script type="math/tex">(\Delta\varphi)\psi = \psi, \varphi \in H, \forall \psi \in H</script></li>
+  <li>
+    <p>Sum over the domain of definition:</p>
+
+    <script type="math/tex; mode=display">\int_\Omega (\Delta\varphi)\psi dxdy = \int_\Omega \psi dxdy, \varphi \in H, \forall \psi \in H</script>
+  </li>
+  <li>
+    <p>Apply the <a href="http://en.wikipedia.org/wiki/Divergence_theorem">Green-Ostrogradsky theorem</a> (which is a generalisation of the integration by parts we were taught back in highschool) to the sinistral side of the equation. Since <code>\(\psi\)</code> vanishes along <code>\(\partial\Omega\)</code>, the line integral over <code>\(\partial\Omega\)</code> vanishes too (we take into account the boundary conditions):</p>
+
+    <script type="math/tex; mode=display">\require{cancel}\begin{equation}\cancelto{0}{\oint_{\partial\Omega} \frac{\partial \varphi}{\partial n}\psi d\sigma} - \int_\Omega \nabla\varphi\nabla\psi dxdy = \int_\Omega \psi dxdy, \varphi \in H, \forall \psi \in H\label{eq:weakFormulation}\end{equation}</script>
+  </li>
+  <li>
+    <p>Let <code>\(a: (\psi,\varphi) \mapsto \int_\Omega \nabla\psi\nabla\varphi dxdy\)</code> and <code>\(b: \psi \mapsto -\int_\Omega \psi dxdy\)</code>. It is important to remark that <code>\(a\)</code> (respectively <code>\(b\)</code>) is a bilinear (respectively linear) form. We can concisely re-write the previous equation:</p>
+
+    <script type="math/tex; mode=display">a(\psi,\varphi) = b(\psi), \varphi \in H, \forall \psi \in H</script>
+  </li>
+</ol>
+
+<h4 id="discretization">Discretization</h4>
+
+<ol>
+  <li>
+    <p>Since we chose <code>\(\psi\)</code> in a finite-dimensional vector space, and since <code>\(a\)</code> and <code>\(b\)</code> are linear with respect to <code>\(\psi\)</code>. Instead of checking that the previous equation holds for any <code>\(\psi\)</code>, we just need to check that it holds for each basis vector <code>\((e_{i})_{1 \leq i \leq N}\)</code>: <script type="math/tex">a(e_{i}, \varphi) = b(e_{i}), \varphi \in H, 1 \leq i \leq N</script></p>
+  </li>
+  <li>
+    <p>Again, since we chose <code>\(\varphi\)</code> in a finite-dimensional vector space, we can uniquely decompose <code>\(\varphi\)</code> as a linear combination with respect to the basis <code>\((e_{i})_{1 \leq i \leq N}\)</code>: <code>\(\varphi\ = \sum\limits_{i=1}^{N} \varphi_{i} e_{i}\)</code>. Since <code>\(a\)</code> is linear with respect to <code>\(\varphi\)</code>, it comes:</p>
+
+    <script type="math/tex; mode=display">\sum\limits_{i=1}^{N} \varphi_{i} a(e_{i},e_{j}) = b(e_{j}), \varphi_{i} \in \mathbf{R}, 1 \leq j \leq N</script>
+  </li>
+  <li>
+    <p>Let <code>\(A = (a(e_{i}, e_{j}))_{1 \leq i,j \leq N}\)</code>, <code>\(x = (\varphi_{i})_{1 \leq i \leq N}\)</code> and <code>\(b = (b(e_{j}))_{1 \leq j \leq N}\)</code>. We can rewrite the previous equation as a product between a matrix and a vector :</p>
+
+    <script type="math/tex; mode=display">Ax = b, x \in \mathbf{R}^{N}</script>
+  </li>
+</ol>
+
+<p>So here we are, we started looking for <code>\(\varphi \in H\)</code> and we end up looking for <code>\(x \in \mathbf{R}^{N}\)</code>. All we have to do now is to compute <code>\(A\)</code> and <code>\(b\)</code>, and then solve for <code>\(x\)</code> (note that we could just compute the effect of multiplying a vector by <code>\(A\)</code> if we were to use an iterative solver as explained in the previous post).</p>
+
+<h3 id="computation-of-the-discrete-operators">Computation of the discrete operators</h3>
+
+<p>The next step is to compute</p>
+
+<p><script type="math/tex">% <![CDATA[
+\begin{aligned}A_{i,j} & = & a(e_{i}, e_{j}), 1 \leq i,j \leq N\\\ & = & \int_\Omega \nabla e_{i}\nabla e_{j} dxdy\end{aligned} %]]></script>
+and
+<script type="math/tex">% <![CDATA[
+\begin{aligned}b_{i} & = & b(e_{i}), 1 \leq i \leq N\\\ & = & -\int_\Omega e_{i} dxdy\end{aligned} %]]></script>
+but in order to do so, we must describe what are <code>\(H\)</code> and <code>\((e_{i})_{1 \leq i \leq N}\)</code>.</p>
+
+<p>So let <code>\(H\)</code> be the space of continuous piecewise linear functions over the triangulation of <code>\(\Omega\)</code> (introduced in the previous post) and vanishing on <code>\(\partial \Omega\)</code>. The dimension of <code>\(H\)</code>, <code>\(N\)</code>, is equal to the number of vertices in the interior of <code>\(\Omega\)</code>.</p>
+
+<h4 id="introducing-the-tent-functions">Introducing the tent functions</h4>
+<p>So what is a basis of <code>\(H\)</code> ?
+Let <code>\((q_{i})_{1 \leq i \leq N}\)</code> the vertices of the triangulation.
+Then, let’s choose <code>\((e_{i})_{1 \leq i \leq N}\)</code> to be the <a href="http://en.wikipedia.org/wiki/Tent_function">tent functions</a> defined as follow:</p>
+
+<script type="math/tex; mode=display">\begin{cases}e_{i} \in H\\\
+e_{i}(q_{j}) = \delta_{i j}, 1\leq j \leq N
+\end{cases}</script>
+
+<p>and here is what a tent function looks like:</p>
+
+<div class="galleria">
+   <a href="/assets/schur2/tent_function1.png">
+      <img src="/assets/schur2/tent_function1.png" data-title="A basis (tent) function" data-description="" data-big="/assets/schur2/tent_function1.png" />
+   </a>
+   <a href="/assets/schur2/tent_function2.png">
+      <img src="/assets/schur2/tent_function2.png" data-title="The same tent function, elevated" data-description="" data-big="/assets/schur2/tent_function2.png" />
+   </a>
+</div>
+
+<p>Any function in <code>\(H\)</code> can be uniquely decompossed as a linear combination of tent functions.</p>
+
+<p>We got everything we need to compute <code>\(A_{i,j}\)</code> and <code>\(b_{i}\)</code>. 
+We just need to walk the triangles.</p>
+
+<h4 id="computing-b">Computing <code>\(b\)</code></h4>
+
+<p>Let’s start with the easy one. Given a triangle <code>\(T_{i} = (q_{i_{1}},q_{i_{2}},q_{i_{3}})\)</code> what are the contributions to <code>\(b\)</code> ?
+We got 3 contributions: one to <code>\(b_{i_{1}}\)</code> from <code>\(e_{i_{1}}\)</code>, one to <code>\(b_{i_{2}}\)</code> from <code>\(e_{i_{2}}\)</code> and one to <code>\(b_{i_{3}}\)</code> from <code>\(e_{i_{3}}\)</code>.
+And the contributions are equal to:</p>
+
+<script type="math/tex; mode=display">-\int_{T_{i}} e_{j} dxdy, j=i_{1},i_{2},i_{3}</script>
+
+<p>Now using this handy <a href="http://en.wikipedia.org/wiki/Numerical_integration">quadrature formula</a> which is exact for affine function:</p>
+
+<p><script type="math/tex">\int_{T_{i}} f dxdy = |T_{i}|\frac{f(q_{i_{1}}) + f(q_{i_{2}}) + f(q_{i_{3}})}{3}</script>
+where <code>\(|T_{i}|\)</code> is the area of <code>\(T_{i}\)</code>,</p>
+
+<p>If <code>\(k^- = 1 + ((k -2) \mod 3)\)</code> and <code>\(k^+ = 1 + (k \mod 3)\)</code>, we end up with:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned}-\int_{T_{i}} e_{i_{j}} dxdy & = & -|T_{i}|\frac{e_{i_{j}}(q_{i_{j^-}}) + e_{i_{j}}(q_{i_{j}}) + e_{i_{j}}(q_{i_{j^+}})}{3},& j=1,2,3\\\
+& = & -|T_{i}|\frac{0 + 1 + 0}{3}\\\
+& = & -\frac{|T_{i}|}{3}
+\end{aligned} %]]></script>
+
+<p>Done ! Next !</p>
+
+<h4 id="computing-a">Computing <code>\(A\)</code></h4>
+
+<p>First of all, let’s remark that when <code>\(q_{i}\)</code> and <code>\(q_{j}\)</code> never belong to a same triangle then the supports of <code>\(e_{i}\)</code> and <code>\(e_{j}\)</code> are disjoint and therefore <code>\(A_{i,j}\)</code> is zero.
+Otherwise, given a triangle <code>\(T_{i} = (q_{i_{1}},q_{i_{2}},q_{i_{3}})\)</code>, <code>\(e_{i_{1}}\restriction_{T_{i}}\)</code>, <code>\(e_{i_{2}}\restriction_{T_{i}}\)</code> and <code>\(e_{i_{3}}\restriction_{T_{i}}\)</code> being affine, their gradiants, <code>\(\nabla e_{i_{1}}\restriction_{T_{i}}\)</code>, <code>\(\nabla e_{i_{2}}\restriction_{T_{i}}\)</code> and <code>\(\nabla e_{i_{3}}\restriction_{T_{i}}\)</code> are constants. Therefore:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned}A_{i_j,i_k} & = & \int_{T_{i}} \nabla e_{i_j}\nabla e_{i_k} dxdy , & 1 \leq j,k \leq 3\\\
+& = &  \nabla e_{i_j}\restriction_{T_{i}} \nabla e_{i_k}\restriction_{T_{i}} \int_{T_{i}} dxdy\\\
+& = &  \nabla e_{i_j}\restriction_{T_{i}} \nabla e_{i_k}\restriction_{T_{i}} |T_{i}|\end{aligned} %]]></script>
+
+<p>So we’re left with computing <code>\(\nabla e_{i_{j}}\restriction_{T_{i}},  1 \leq j \leq 3\)</code>.
+We will do that geometricaly on a sketch:
+<img src="/assets/schur2/gradiant_explanation.jpg" alt="Gradiant explanation" /></p>
+
+<p>We end up with:</p>
+
+<p><script type="math/tex">% <![CDATA[
+\begin{aligned}A_{i_j,i_k} & = & \nabla e_{i_j}\restriction_{T_{i}} \nabla e_{i_k}\restriction_{T_{i}} |T_{i}|, & 1 \leq j,k \leq 3\\\
+& = &  \frac{(q_{j^-} q_{j^+})^{\perp} }{2 |T_{i}|} \frac{(q_{k^-} q_{k^+})^{\perp} }{2 |T_{i}|} |T_{i}|\\\
+& = &  \frac{(q_{j^-} q_{j^+}) (q_{k^-} q_{k^+})}{4 |T_{i}|}\end{aligned} %]]></script>
+which is easy to compute.</p>
+
+<h3 id="implementation">Implementation</h3>
+
+<p>We got everything now. Here is a baby implementation of the method in Javascript/WebGL.</p>
+
+<iframe width="100%" height="300" src="http://jsfiddle.net/ssrb/pcRPC/8/embedded/" allowfullscreen="allowfullscreen" frameborder="0">unwantedtext</iframe>
+
+<h3 id="sub-assembling">Sub-assembling</h3>
+
+<p>If we apply the same procedure, restricted to each subdomain and if we use the same unknown reordering techniques introduced in the previous post,
+we can assemble two linear (sub-)systems:</p>
+
+<p><script type="math/tex">% <![CDATA[
+\left[\begin{matrix} A^{(i)}_{II} & A^{(i)}_{I\Gamma} \\\ A^{(i)}_{\Gamma I} & A^{(i)}_{\Gamma\Gamma} \end{matrix}\right]\left[\begin{matrix} x^{(i)}_{I} \\\ x^{(i)}_{\Gamma} \end{matrix}\right] = \left[\begin{matrix} b^{(i)}_{I} \\\ b^{(i)}_{\Gamma} \end{matrix}\right], i=1,2 %]]></script>
+where</p>
+
+<ul>
+  <li><code>\(A^{(i)}_{II}\)</code> is the block coupling the interior of domain <code>\(i\)</code> to itself;</li>
+  <li><code>\(A^{(i)}_{\Gamma\Gamma}\)</code> is the block coupling the interface to itself <em>BUT only considering the triangles of domain <code>\(i\)</code></em>;</li>
+  <li><code>\(A^{(i)}_{\Gamma I}\)</code> is the block coupling the interface to the interior of domain <code>\(i\)</code>;</li>
+  <li><code>\(A^{(i)}_{I\Gamma}\)</code> is the block coupling the interior of domain <code>\(i\)</code> to the interface</li>
+</ul>
+
+<p>Now, given these two linear systems, we can try to write a discrete analog of <code>\(\eqref{eq:subdomainsPDEWithTransmition}\)</code>.</p>
+
+<p>A discrete analog of <code>\(\eqref{eq:subdomainsPDE}\)</code> is:</p>
+
+<script type="math/tex; mode=display">A^{(i)}_{II} x^{(i)}_{I} + A^{(i)}_{I\Gamma} x^{(i)}_{\Gamma} = b^{(i)}_{I}, i=1,2</script>
+
+<p>But we know that is not enough, we need to take care of the transmission conditions as well.</p>
+
+<h3 id="discrete-transmition-conditions">Discrete transmition conditions</h3>
+
+<h4 id="trace-1">Trace</h4>
+
+<p>Transmission of the trace, <code>\(\eqref{eq:transmissionOfTrace}\)</code>, is simply written as:</p>
+
+<script type="math/tex; mode=display">x^{(1)}_{\Gamma} = x^{(2)}_{\Gamma}</script>
+
+<h4 id="flux-1">Flux</h4>
+
+<p>Transmission of the flux, <code>\(\eqref{eq:transmissionOfFlux}\)</code>, is trickier.</p>
+
+<p>How do we evaluate <code>\(\frac{\partial\varphi_i}{\partial n_i}, i=1,2\)</code> ?</p>
+
+<p>In order to do so we have to step back a little bit and re-write <code>\(\eqref{eq:weakFormulation}\)</code> for a subdomain:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\require{cancel}\begin{equation}\begin{aligned} & & \oint_{\partial\Omega_i} \frac{\partial \varphi_i}{\partial n}\psi d\sigma - \int_{\Omega_i} \nabla\varphi_i\nabla\psi dxdy = \int_{\Omega_i} \psi dxdy, \varphi_i \in H_i, \forall \psi \in H_i, & i=1,2\\\
+& \Leftrightarrow & \cancelto{0}{\oint_{\partial\Omega_i  \setminus \Gamma } \frac{\partial \varphi_i}{\partial n}\psi d\sigma} + \oint_{\Gamma } \frac{\partial \varphi_i}{\partial n_i}\psi d\sigma - \int_{\Omega_i} \nabla\varphi_i\nabla\psi dxdy = \int_{\Omega_i} \psi dxdy&\\\
+& \Leftrightarrow & \oint_{\Gamma } \frac{\partial \varphi_i}{\partial n_i}\psi d\sigma = \int_{\Omega_i} \nabla\varphi_i\nabla\psi dxdy + \int_{\Omega_i} \psi dxdy&
+\end{aligned}\label{eq:weakNeuman}\end{equation} %]]></script>
+
+<p>So what we have is an expression of <code>\( \psi \mapsto \oint_{\Gamma } \frac{\partial \varphi_i}{\partial n_i}\psi d\sigma \)</code> the dual of <code>\(\frac{\partial\varphi_i}{\partial n_i}\)</code> in the weak topology of <code>\(H_i\)</code>. Since I said we will skip all the functional analysis details,
+just consider that “the flux transmission condition works the same in the weak topology”.</p>
+
+<p>Particularizing <code>\(\eqref{eq:weakNeuman}\)</code> only for <code>\( \psi = e_{j}\)</code> with <code>\(q_{j}\)</code> along <code>\(\Gamma\)</code> (otherwise the line integral is zero), a discrete analog of the “weak” flux is:</p>
+
+<script type="math/tex; mode=display">\lambda^{(i)} :=  A^{(i)}_{\Gamma I} x^{(i)}_{I} + A^{(i)}_{\Gamma\Gamma} x^{(i)}_{\Gamma} - b^{(i)}_{\Gamma}</script>
+
+<p>and then the discrete analog of the “weak” flux trasmition condition is:</p>
+
+<script type="math/tex; mode=display">\lambda^{(1)} = -\lambda^{(2)}</script>
+
+<p>Putting everything together we end up with the discrete analog of <code>\(\eqref{eq:subdomainsPDEWithTransmition}\)</code>:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{equation}\begin{cases}A^{(i)}_{II} x^{(i)}_{I} + A^{(i)}_{I\Gamma} x^{(i)}_{\Gamma} = b^{(i)}_{I}, & i=1,2\\\
+ x^{(1)}_{\Gamma} = x^{(2)}_{\Gamma} = x_{\Gamma}&\\\
+ \lambda^{(1)} = -\lambda^{(2)} = \lambda &\end{cases}\label{eq:discreteSubdomainsPDEWithTransmition}\end{equation} %]]></script>
+
+<h3 id="conclusion-2">Conclusion</h3>
+<p>In that part I briefly described how to apply the FEM and to express discrete analog of the transmission conditions.
+In the next one, we will show how solving <code>\(\eqref{eq:discreteSubdomainsPDEWithTransmition}\)</code> for the trace first is equivalent to what
+was done in the previous post.</p>
+
+<h2 id="trace-first">Trace first</h2>
+
+<p>Remember what we did last time after massaging the global linear system ?</p>
+
+<p>We first solved</p>
+
+<script type="math/tex; mode=display">\Sigma x_{\Gamma} = \tilde{b}</script>
+
+<p>where <code>\(\Sigma = A_{\Gamma\Gamma} - A^{(1)}_{\Gamma I}(A^{(1)}_{II})^{-1}A^{(1)}_{I\Gamma} - A^{(2)}_{\Gamma I}(A^{(2)}_{II})^{-1}A^{(2)}_{I\Gamma}\)</code>
+and <code>\(\tilde{b} = b_{\Gamma} - A^{(1)}_{\Gamma I}(A^{(1)}_{II})^{-1}b^{(1)}_{I} - A^{(2)}_{\Gamma I}(A^{(2)}_{II})^{-1}b^{(2)}_{I}\)</code></p>
+
+<p>and then solved</p>
+
+<script type="math/tex; mode=display">A^{(i)}_{II}x^{(i)}_{I}= b^{(i)}_{I} − A^{(i)}_{I\Gamma}x_{\Gamma} , i=1,2</script>
+
+<p>Let’s see why it’s equivalent to solve <code>\(\eqref{eq:discreteSubdomainsPDEWithTransmition}\)</code> for the trace first.</p>
+
+<h3 id="previous-post-revisited">Previous post revisited</h3>
+
+<p>The idea is to craft a “trace only” equation.</p>
+
+<ol>
+  <li>
+    <p>From the first equation in <code>\(\eqref{eq:discreteSubdomainsPDEWithTransmition}\)</code> comes</p>
+
+    <script type="math/tex; mode=display">x^{(i)}_{I} = (A^{(i)}_{II})^{-1}(b^{(i)}_{I} − A^{(i)}_{I\Gamma}x^{(i)}_{\Gamma}) , i=1,2</script>
+  </li>
+  <li>
+    <p>Injecting that expression of <code>\(x^{(i)}_{I}\)</code> in the flux transmission equation (the third equation in <code>\(\eqref{eq:discreteSubdomainsPDEWithTransmition}\)</code>) leads to</p>
+
+    <script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned} & & \lambda^{(1)} & = -\lambda^{(2)}\\\
+ & \Leftrightarrow & A^{(1)}_{\Gamma I} x^{(1)}_{I} + A^{(1)}_{\Gamma\Gamma} x^{(1)}_{\Gamma} - b^{(1)}_{\Gamma} & = -(A^{(2)}_{\Gamma I} x^{(2)}_{I} + A^{(2)}_{\Gamma\Gamma} x^{(2)}_{\Gamma} - b^{(2)}_{\Gamma})\\\
+ & \Leftrightarrow & A^{(1)}_{\Gamma I} (A^{(1)}_{II})^{-1}(b^{(1)}_{I} − A^{(1)}_{I\Gamma}x^{(1)}_{\Gamma}) + A^{(1)}_{\Gamma\Gamma} x^{(1)}_{\Gamma} - b^{(1)}_{\Gamma} & = -(A^{(2)}_{\Gamma I} (A^{(2)}_{II})^{-1}(b^{(2)}_{I} − A^{(2)}_{I\Gamma}x^{(2)}_{\Gamma}) + A^{(2)}_{\Gamma\Gamma} x^{(2)}_{\Gamma} - b^{(2)}_{\Gamma})\end{aligned} %]]></script>
+  </li>
+  <li>
+    <p>Because of the trace transmission equation (the second equation in <code>\(\eqref{eq:discreteSubdomainsPDEWithTransmition}\)</code>) this is equivalent to</p>
+
+    <script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned} & & A^{(1)}_{\Gamma I} (A^{(1)}_{II})^{-1}(b^{(1)}_{I} − A^{(1)}_{I\Gamma}x_{\Gamma}) + A^{(1)}_{\Gamma\Gamma} x_{\Gamma} - b^{(1)}_{\Gamma} & = -(A^{(2)}_{\Gamma I} (A^{(2)}_{II})^{-1}(b^{(2)}_{I} − A^{(2)}_{I\Gamma}x_{\Gamma}) + A^{(2)}_{\Gamma\Gamma} x_{\Gamma} - b^{(2)}_{\Gamma})\\\
+ & \Leftrightarrow & (A^{(1)}_{\Gamma\Gamma} + A^{(2)}_{\Gamma\Gamma} - A^{(1)}_{\Gamma I}(A^{(1)}_{II})^{-1}A^{(1)}_{I\Gamma} - A^{(2)}_{\Gamma I}(A^{(2)}_{II})^{-1}A^{(2)}_{I\Gamma}) x_{\Gamma} & = b^{(1)}_{\Gamma} + b^{(2)}_{\Gamma} - A^{(1)}_{\Gamma I}(A^{(1)}_{II})^{-1}b^{(1)}_{I} - A^{(2)}_{\Gamma I}(A^{(2)}_{II})^{-1}b^{(2)}_{I}\\\
+ & \Leftrightarrow & (A_{\Gamma\Gamma} - A^{(1)}_{\Gamma I}(A^{(1)}_{II})^{-1}A^{(1)}_{I\Gamma} - A^{(2)}_{\Gamma I}(A^{(2)}_{II})^{-1}A^{(2)}_{I\Gamma}) x_{\Gamma} & = b_{\Gamma} - A^{(1)}_{\Gamma I}(A^{(1)}_{II})^{-1}b^{(1)}_{I} - A^{(2)}_{\Gamma I}(A^{(2)}_{II})^{-1}b^{(2)}_{I}\\\
+ & \Leftrightarrow & \Sigma x_{\Gamma} & = \tilde{b}
+ \end{aligned} %]]></script>
+  </li>
+</ol>
+
+<p>That’s it ! Same !</p>
+
+<h3 id="implementation--conclusion">Implementation &amp; Conclusion</h3>
+
+<p>See the previous post for the details :-)</p>
+
+<h2 id="flux-first">Flux first</h2>
+
+<h3 id="neumann-problem">Neumann problem</h3>
+
+<p>This time we need to craft a “flux only” equation.</p>
+
+<ol>
+  <li>
+    <p>Assemble two linear systems from <code>\(\eqref{eq:weakNeuman}\)</code>, that is, taking into account the flux, as a <a href="http://en.wikipedia.org/wiki/Neumann_boundary_condition">Neumann boundary condition</a>:</p>
+
+    <script type="math/tex; mode=display">% <![CDATA[
+\begin{equation}\left[\begin{matrix} A^{(i)}_{II} & A^{(i)}_{I\Gamma} \\\ A^{(i)}_{\Gamma I} & A^{(i)}_{\Gamma\Gamma} \end{matrix}\right]\left[\begin{matrix} x^{(i)}_{I} \\\ x^{(i)}_{\Gamma} \end{matrix}\right] = \left[\begin{matrix} b^{(i)}_{I} \\\ b^{(i)}_{\Gamma} + \lambda^{(i)}\end{matrix}\right], i=1,2\label{eq:discreteNeumann}\end{equation} %]]></script>
+  </li>
+  <li>
+    <p>Perform the same block Gaussian elimination we did in the previous post, in order to find an expression of <code>\(x^{(i)}_{\Gamma}\)</code>:</p>
+
+    <script type="math/tex; mode=display">(A^{(i)}_{\Gamma\Gamma} - A^{(i)}_{\Gamma I}(A^{(i)}_{II})^{-1}A^{(i)}_{I\Gamma}) x^{(i)}_{\Gamma} = b^{(i)}_{\Gamma} - A^{(i)}_{\Gamma I}(A^{(i)}_{II})^{-1}b^{(i)}_{I} + \lambda^{(i)}</script>
+
+    <p>concisely written as</p>
+
+    <script type="math/tex; mode=display">x^{(i)}_{\Gamma} = (\Sigma^{(i)})^{-1}(\tilde{b}^{(i)} + \lambda^{(i)})</script>
+
+    <p>where <code>\(\Sigma^{(i)} := A^{(i)}_{\Gamma\Gamma} - A^{(i)}_{\Gamma I}(A^{(i)}_{II})^{-1}A^{(i)}_{I\Gamma}\)</code> and <code>\(\tilde{b}^{(i)} := b^{(i)}_{\Gamma} - A^{(i)}_{\Gamma I}(A^{(i)}_{II})^{-1}b^{(i)}_{I}\)</code></p>
+  </li>
+  <li>
+    <p>Inject into the trace transmission condition equation:</p>
+
+    <script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned} & & x^{(1)}_{\Gamma} & = x^{(2)}_{\Gamma}\\\
+ & \Leftrightarrow & (\Sigma^{(1)})^{-1}(\tilde{b}^{(1)} + \lambda^{(1)}) & = (\Sigma^{(2)})^{-1}(\tilde{b}^{(2)} + \lambda^{(2)})\end{aligned} %]]></script>
+  </li>
+  <li>
+    <p>Apply the flux transmission condition:</p>
+
+    <script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned} & & (\Sigma^{(1)})^{-1}(\tilde{b}^{(1)} + \lambda) & = (\Sigma^{(2)})^{-1}(\tilde{b}^{(2)} - \lambda)\\\
+ & \Leftrightarrow & ((\Sigma^{(1)})^{-1} + (\Sigma^{(2)})^{-1}) \lambda & = ((\Sigma^{(2)})^{-1} \tilde{b}^{(2)} - (\Sigma^{(1)})^{-1}\tilde{b}^{(1)})\end{aligned} %]]></script>
+
+    <p>concisely written as</p>
+
+    <script type="math/tex; mode=display">\tilde{\Sigma} \lambda = \tilde{\tilde{b}}</script>
+
+    <p>where <code>\(\tilde{\Sigma} := (\Sigma^{(1)})^{-1} + (\Sigma^{(2)})^{-1}\)</code> and <code>\(\tilde{\tilde{b}} := (\Sigma^{(2)})^{-1} \tilde{b}^{(2)} - (\Sigma^{(1)})^{-1}\tilde{b}^{(1)}\)</code></p>
+  </li>
+</ol>
+
+<p>That’s it ! Here is the “flux only” equation. All we have to do now is solve for <code>\(\lambda\)</code>, inject in <code>\(\eqref{eq:discreteNeumann}\)</code> and solve for each subdomain.</p>
+
+<h3 id="implementation-1">Implementation</h3>
+
+<p>Here is my implementation of the “flux first” method with sub-assembling:</p>
+
+<div class="highlight"><pre><code class="language-octave" data-lang="octave"><span class="lineno">  1</span> <span class="k">function</span><span class="w"> </span><span class="nf">schurComplementMethod2</span><span class="p">()</span><span class="w"></span>
+<span class="lineno">  2</span> 
+<span class="lineno">  3</span> <span class="w">   </span><span class="p">[</span><span class="n">vertices</span><span class="p">,</span> <span class="n">triangles</span><span class="p">,</span> <span class="n">border</span><span class="p">,</span> <span class="n">domains</span><span class="p">]</span> <span class="p">=</span> <span class="n">readMesh</span><span class="p">(</span><span class="s">&quot;poisson2D.mesh&quot;</span><span class="p">);</span>
+<span class="lineno">  4</span>    <span class="n">interface</span> <span class="p">=</span> <span class="n">readInterface</span><span class="p">(</span><span class="s">&quot;interface2.vids&quot;</span><span class="p">);</span>
+<span class="lineno">  5</span> 
+<span class="lineno">  6</span>    <span class="c">% Assemble local Dirichlet problems </span>
+<span class="lineno">  7</span>    <span class="c">% =&gt; could be done in parallel</span>
+<span class="lineno">  8</span>    <span class="p">[</span><span class="n">A1</span><span class="p">,</span> <span class="n">b1</span><span class="p">,</span> <span class="n">vids1</span><span class="p">]</span> <span class="p">=</span> <span class="n">subAssemble</span><span class="p">(</span><span class="n">vertices</span><span class="p">,</span> <span class="n">triangles</span><span class="p">,</span> <span class="n">border</span><span class="p">,</span> <span class="n">domains</span><span class="p">,</span> <span class="n">interface</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+<span class="lineno">  9</span>    <span class="p">[</span><span class="n">A2</span><span class="p">,</span> <span class="n">b2</span><span class="p">,</span> <span class="n">vids2</span><span class="p">]</span> <span class="p">=</span> <span class="n">subAssemble</span><span class="p">(</span><span class="n">vertices</span><span class="p">,</span> <span class="n">triangles</span><span class="p">,</span> <span class="n">border</span><span class="p">,</span> <span class="n">domains</span><span class="p">,</span> <span class="n">interface</span><span class="p">,</span> <span class="mi">2</span><span class="p">);</span>
+<span class="lineno"> 10</span> 
+<span class="lineno"> 11</span>    <span class="n">nbInterior1</span> <span class="p">=</span> <span class="nb">length</span><span class="p">(</span><span class="n">b1</span><span class="p">)</span> <span class="o">-</span> <span class="nb">length</span><span class="p">(</span><span class="n">interface</span><span class="p">);</span>
+<span class="lineno"> 12</span>    <span class="n">nbInterior2</span> <span class="p">=</span> <span class="nb">length</span><span class="p">(</span><span class="n">b2</span><span class="p">)</span> <span class="o">-</span> <span class="nb">length</span><span class="p">(</span><span class="n">interface</span><span class="p">);</span>
+<span class="lineno"> 13</span> 
+<span class="lineno"> 14</span>    <span class="c">% LU-factorize the interior of the subdomains, we&#39;re going to reuse this everywhere </span>
+<span class="lineno"> 15</span>    <span class="c">% =&gt; could be done in parallel</span>
+<span class="lineno"> 16</span>    <span class="p">[</span><span class="n">L1</span><span class="p">,</span> <span class="n">U1</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">tmp</span><span class="p">]</span> <span class="p">=</span> <span class="nb">lu</span><span class="p">(</span><span class="n">A1</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">nbInterior1</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="n">nbInterior1</span><span class="p">),</span> <span class="s">&#39;vector&#39;</span><span class="p">);</span>
+<span class="lineno"> 17</span>    <span class="n">q1</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span> <span class="p">=</span> <span class="mi">1</span><span class="p">:</span><span class="nb">length</span><span class="p">(</span><span class="n">tmp</span><span class="p">);</span>
+<span class="lineno"> 18</span>    <span class="p">[</span><span class="n">L2</span><span class="p">,</span> <span class="n">U2</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">tmp</span><span class="p">]</span> <span class="p">=</span> <span class="nb">lu</span><span class="p">(</span><span class="n">A2</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">nbInterior2</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="n">nbInterior2</span><span class="p">),</span> <span class="s">&#39;vector&#39;</span><span class="p">);</span>
+<span class="lineno"> 19</span>    <span class="n">q2</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span> <span class="p">=</span> <span class="mi">1</span><span class="p">:</span><span class="nb">length</span><span class="p">(</span><span class="n">tmp</span><span class="p">);</span>
+<span class="lineno"> 20</span> 
+<span class="lineno"> 21</span>    <span class="c">% In order to solve for the flux first, we need to compute the corresponding second member</span>
+<span class="lineno"> 22</span>    <span class="c">% =&gt; could be done in parallel</span>
+<span class="lineno"> 23</span>    <span class="n">bt1</span> <span class="p">=</span> <span class="n">computeBTildI</span><span class="p">(</span><span class="n">A1</span><span class="p">,</span> <span class="n">b1</span><span class="p">,</span> <span class="n">nbInterior1</span><span class="p">,</span> <span class="n">L1</span><span class="p">,</span> <span class="n">U1</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">q1</span><span class="p">);</span>
+<span class="lineno"> 24</span>    <span class="n">bt2</span> <span class="p">=</span> <span class="n">computeBTildI</span><span class="p">(</span><span class="n">A2</span><span class="p">,</span> <span class="n">b2</span><span class="p">,</span> <span class="n">nbInterior2</span><span class="p">,</span> <span class="n">L2</span><span class="p">,</span> <span class="n">U2</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">q2</span><span class="p">);</span>
+<span class="lineno"> 25</span> 
+<span class="lineno"> 26</span>    <span class="n">epsilon</span> <span class="p">=</span> <span class="mf">1.e-30</span><span class="p">;</span>
+<span class="lineno"> 27</span>    <span class="n">maxIter</span> <span class="p">=</span> <span class="mi">600</span>
+<span class="lineno"> 28</span> 
+<span class="lineno"> 29</span>    <span class="c">% Each pcg contributing to the second member could be done in parallel</span>
+<span class="lineno"> 30</span>    <span class="n">btt</span> <span class="p">=</span> <span class="nb">pcg</span><span class="p">(@(</span><span class="n">x</span><span class="p">)</span> <span class="n">multiplyByLocalSchurComplement</span><span class="p">(</span><span class="n">A2</span><span class="p">,</span> <span class="n">nbInterior2</span><span class="p">,</span> <span class="n">L2</span><span class="p">,</span> <span class="n">U2</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">q2</span><span class="p">,</span> <span class="n">x</span><span class="p">),</span> <span class="p">...</span>
+<span class="lineno"> 31</span>             <span class="n">bt2</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">,</span> <span class="n">maxIter</span><span class="p">)</span> <span class="p">...</span>
+<span class="lineno"> 32</span>          <span class="o">-</span> <span class="nb">pcg</span><span class="p">(@(</span><span class="n">x</span><span class="p">)</span> <span class="n">multiplyByLocalSchurComplement</span><span class="p">(</span><span class="n">A1</span><span class="p">,</span> <span class="n">nbInterior1</span><span class="p">,</span> <span class="n">L1</span><span class="p">,</span> <span class="n">U1</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">q1</span><span class="p">,</span> <span class="n">x</span><span class="p">),</span> <span class="p">...</span>
+<span class="lineno"> 33</span>             <span class="n">bt1</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">,</span> <span class="n">maxIter</span><span class="p">);</span>
+<span class="lineno"> 34</span> 
+<span class="lineno"> 35</span>    <span class="c">% Solve for the flux =&gt; each nested pcg contribution could be done in parallel</span>
+<span class="lineno"> 36</span>    <span class="n">flux</span> <span class="p">=</span> <span class="nb">pcg</span><span class="p">(@(</span><span class="n">x</span><span class="p">)</span> <span class="nb">pcg</span><span class="p">(@(</span><span class="n">y</span><span class="p">)</span> <span class="n">multiplyByLocalSchurComplement</span><span class="p">(</span><span class="n">A1</span><span class="p">,</span> <span class="n">nbInterior1</span><span class="p">,</span> <span class="n">L1</span><span class="p">,</span> <span class="n">U1</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">q1</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="p">...</span>
+<span class="lineno"> 37</span>             <span class="n">x</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">,</span> <span class="n">maxIter</span><span class="p">)</span> <span class="p">...</span>
+<span class="lineno"> 38</span>          <span class="o">+</span> <span class="nb">pcg</span><span class="p">(@(</span><span class="n">y</span><span class="p">)</span> <span class="n">multiplyByLocalSchurComplement</span><span class="p">(</span><span class="n">A2</span><span class="p">,</span> <span class="n">nbInterior2</span><span class="p">,</span> <span class="n">L2</span><span class="p">,</span> <span class="n">U2</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">q2</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="p">...</span>
+<span class="lineno"> 39</span>             <span class="n">x</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">,</span> <span class="n">maxIter</span><span class="p">),</span> <span class="n">btt</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">,</span> <span class="n">maxIter</span><span class="p">);</span>
+<span class="lineno"> 40</span> 
+<span class="lineno"> 41</span>    <span class="c">% Add the computed Neumann data to the load vectors</span>
+<span class="lineno"> 42</span>    <span class="n">b1</span><span class="p">(</span><span class="n">nbInterior1</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:</span> <span class="k">end</span><span class="p">)</span> <span class="o">+=</span> <span class="n">flux</span><span class="p">;</span>
+<span class="lineno"> 43</span>    <span class="n">b2</span><span class="p">(</span><span class="n">nbInterior2</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:</span> <span class="k">end</span><span class="p">)</span> <span class="o">-=</span> <span class="n">flux</span><span class="p">;</span>
+<span class="lineno"> 44</span>    <span class="c">% and solve the corresponding problems using a direct method</span>
+<span class="lineno"> 45</span>    <span class="c">% =&gt; could be done in parallel</span>
+<span class="lineno"> 46</span>    <span class="n">solution</span> <span class="p">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="nb">length</span><span class="p">(</span><span class="n">vertices</span><span class="p">),</span> <span class="mi">1</span><span class="p">);</span>
+<span class="lineno"> 47</span>    <span class="n">solution</span><span class="p">(</span><span class="n">vids1</span><span class="p">)</span> <span class="p">=</span> <span class="n">A1</span> <span class="o">\</span> <span class="n">b1</span><span class="p">;</span>
+<span class="lineno"> 48</span>    <span class="n">solution</span><span class="p">(</span><span class="n">vids2</span><span class="p">)</span> <span class="p">=</span> <span class="n">A2</span> <span class="o">\</span> <span class="n">b2</span><span class="p">;</span>
+<span class="lineno"> 49</span> 
+<span class="lineno"> 50</span>    <span class="n">writeSolution</span><span class="p">(</span><span class="s">&quot;poisson2D.sol&quot;</span><span class="p">,</span> <span class="n">solution</span><span class="p">);</span>
+<span class="lineno"> 51</span> 
+<span class="lineno"> 52</span> <span class="k">endfunction</span>
+<span class="lineno"> 53</span> 
+<span class="lineno"> 54</span> <span class="k">function</span><span class="w"> </span>[A, b, dVertexIds] <span class="p">=</span><span class="w"> </span><span class="nf">subAssemble</span><span class="p">(</span>vertices, triangles, border, domains, interface, domainIdx<span class="p">)</span><span class="w"></span>
+<span class="lineno"> 55</span> <span class="w">   </span><span class="c">% Keep the triangles belonging to the subdomain</span>
+<span class="lineno"> 56</span>    <span class="n">dTriangles</span> <span class="p">=</span> <span class="n">triangles</span><span class="p">(</span><span class="nb">find</span><span class="p">(</span><span class="n">domains</span> <span class="o">==</span> <span class="n">domainIdx</span><span class="p">),:);</span>
+<span class="lineno"> 57</span>    <span class="n">dVertexIds</span> <span class="p">=</span> <span class="nb">unique</span><span class="p">(</span><span class="n">dTriangles</span><span class="p">(:));</span>
+<span class="lineno"> 58</span> 
+<span class="lineno"> 59</span>    <span class="c">% Put the interface unknowns at the end, using the numbering we computed in the last post</span>
+<span class="lineno"> 60</span>    <span class="n">dVertexIds</span> <span class="p">=</span> <span class="p">[</span><span class="nb">setdiff</span><span class="p">(</span><span class="n">dVertexIds</span><span class="p">,</span> <span class="n">interface</span><span class="p">);</span> <span class="n">interface</span><span class="p">];</span>
+<span class="lineno"> 61</span> 
+<span class="lineno"> 62</span>    <span class="c">% Switch domain triangles to local vertices numbering</span>
+<span class="lineno"> 63</span>    <span class="c">% Should use a hashtable here but their is none in octave ...</span>
+<span class="lineno"> 64</span>    <span class="n">globalToLocal</span> <span class="p">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="nb">length</span><span class="p">(</span><span class="n">vertices</span><span class="p">),</span> <span class="mi">1</span><span class="p">);</span>
+<span class="lineno"> 65</span>    <span class="n">globalToLocal</span><span class="p">(</span><span class="n">dVertexIds</span><span class="p">)</span> <span class="p">=</span> <span class="mi">1</span><span class="p">:</span><span class="nb">length</span><span class="p">(</span><span class="n">dVertexIds</span><span class="p">);</span>
+<span class="lineno"> 66</span>    <span class="n">dTriangles</span><span class="p">(:)</span> <span class="p">=</span> <span class="n">globalToLocal</span><span class="p">(</span><span class="n">dTriangles</span><span class="p">(:));</span>
+<span class="lineno"> 67</span> 
+<span class="lineno"> 68</span>    <span class="c">% Assemble the Dirichlet problem</span>
+<span class="lineno"> 69</span>    <span class="p">[</span><span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">]</span> <span class="p">=</span> <span class="n">assemble</span><span class="p">(</span><span class="n">vertices</span><span class="p">(</span><span class="n">dVertexIds</span><span class="p">,</span> <span class="p">:),</span> <span class="n">dTriangles</span><span class="p">,</span> <span class="n">border</span><span class="p">(</span><span class="n">dVertexIds</span><span class="p">));</span>
+<span class="lineno"> 70</span> <span class="k">endfunction</span>
+<span class="lineno"> 71</span> 
+<span class="lineno"> 72</span> <span class="k">function</span><span class="w"> </span>[A, b] <span class="p">=</span><span class="w"> </span><span class="nf">assemble</span><span class="p">(</span>vertices, triangles, border<span class="p">)</span><span class="w"></span>
+<span class="lineno"> 73</span> <span class="w">   </span><span class="n">nvertices</span> <span class="p">=</span> <span class="nb">length</span><span class="p">(</span><span class="n">vertices</span><span class="p">);</span>
+<span class="lineno"> 74</span>    <span class="n">ntriangles</span> <span class="p">=</span> <span class="nb">length</span><span class="p">(</span><span class="n">triangles</span><span class="p">);</span>
+<span class="lineno"> 75</span> 
+<span class="lineno"> 76</span>    <span class="n">iis</span> <span class="p">=</span> <span class="p">[];</span>
+<span class="lineno"> 77</span>    <span class="n">jjs</span> <span class="p">=</span> <span class="p">[];</span>
+<span class="lineno"> 78</span>    <span class="n">vs</span> <span class="p">=</span> <span class="p">[];</span>
+<span class="lineno"> 79</span> 
+<span class="lineno"> 80</span>    <span class="n">b</span> <span class="p">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="n">nvertices</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+<span class="lineno"> 81</span>    <span class="k">for</span> <span class="n">tid</span><span class="p">=</span><span class="mi">1</span><span class="p">:</span><span class="n">ntriangles</span>
+<span class="lineno"> 82</span>       <span class="n">q</span> <span class="p">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">);</span>
+<span class="lineno"> 83</span>       <span class="n">q</span><span class="p">(</span><span class="mi">1</span><span class="p">,:)</span> <span class="p">=</span> <span class="n">vertices</span><span class="p">(</span><span class="n">triangles</span><span class="p">(</span><span class="n">tid</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">:)</span> <span class="o">-</span> <span class="n">vertices</span><span class="p">(</span><span class="n">triangles</span><span class="p">(</span><span class="n">tid</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">:);</span>
+<span class="lineno"> 84</span>       <span class="n">q</span><span class="p">(</span><span class="mi">2</span><span class="p">,:)</span> <span class="p">=</span> <span class="n">vertices</span><span class="p">(</span><span class="n">triangles</span><span class="p">(</span><span class="n">tid</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">:)</span> <span class="o">-</span> <span class="n">vertices</span><span class="p">(</span><span class="n">triangles</span><span class="p">(</span><span class="n">tid</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="p">:);</span>
+<span class="lineno"> 85</span>       <span class="n">q</span><span class="p">(</span><span class="mi">3</span><span class="p">,:)</span> <span class="p">=</span> <span class="n">vertices</span><span class="p">(</span><span class="n">triangles</span><span class="p">(</span><span class="n">tid</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="p">:)</span> <span class="o">-</span> <span class="n">vertices</span><span class="p">(</span><span class="n">triangles</span><span class="p">(</span><span class="n">tid</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">:);</span>
+<span class="lineno"> 86</span>       <span class="nb">area</span> <span class="p">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="nb">det</span><span class="p">(</span><span class="n">q</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span> <span class="p">:));</span>
+<span class="lineno"> 87</span>       <span class="k">for</span> <span class="n">i</span><span class="p">=</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span>
+<span class="lineno"> 88</span>          <span class="n">ii</span> <span class="p">=</span> <span class="n">triangles</span><span class="p">(</span><span class="n">tid</span><span class="p">,</span><span class="n">i</span><span class="p">);</span>
+<span class="lineno"> 89</span>          <span class="k">if</span> <span class="o">!</span><span class="n">border</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span>
+<span class="lineno"> 90</span>             <span class="k">for</span> <span class="n">j</span><span class="p">=</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span>
+<span class="lineno"> 91</span>                <span class="n">jj</span> <span class="p">=</span> <span class="n">triangles</span><span class="p">(</span><span class="n">tid</span><span class="p">,</span><span class="n">j</span><span class="p">);</span>
+<span class="lineno"> 92</span>                <span class="k">if</span> <span class="o">!</span><span class="n">border</span><span class="p">(</span><span class="n">jj</span><span class="p">)</span>
+<span class="lineno"> 93</span>                   <span class="n">hi</span> <span class="p">=</span> <span class="n">q</span><span class="p">(</span><span class="nb">mod</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:);</span>
+<span class="lineno"> 94</span>                   <span class="n">hj</span> <span class="p">=</span> <span class="n">q</span><span class="p">(</span><span class="nb">mod</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:);</span>
+<span class="lineno"> 95</span>                   
+<span class="lineno"> 96</span>                   <span class="n">v</span> <span class="p">=</span> <span class="p">(</span><span class="n">hi</span> <span class="o">*</span> <span class="n">hj</span><span class="o">&#39;</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="nb">area</span><span class="p">);</span>
+<span class="lineno"> 97</span> 
+<span class="lineno"> 98</span>                   <span class="n">iis</span> <span class="p">=</span> <span class="p">[</span><span class="n">iis</span> <span class="n">ii</span><span class="p">];</span>
+<span class="lineno"> 99</span>                   <span class="n">jjs</span> <span class="p">=</span> <span class="p">[</span><span class="n">jjs</span> <span class="n">jj</span><span class="p">];</span>
+<span class="lineno">100</span>                   <span class="n">vs</span> <span class="p">=</span> <span class="p">[</span><span class="n">vs</span> <span class="n">v</span><span class="p">];</span>
+<span class="lineno">101</span>                <span class="k">end</span>
+<span class="lineno">102</span>             <span class="k">end</span>
+<span class="lineno">103</span>             <span class="n">b</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span> <span class="o">+=</span> <span class="o">-</span><span class="nb">area</span> <span class="o">/</span> <span class="mi">3</span><span class="p">;</span>
+<span class="lineno">104</span>          <span class="k">end</span>
+<span class="lineno">105</span>       <span class="k">end</span>
+<span class="lineno">106</span>    <span class="k">end</span>
+<span class="lineno">107</span>    <span class="n">A</span> <span class="p">=</span> <span class="nb">sparse</span><span class="p">(</span><span class="n">iis</span><span class="p">,</span> <span class="n">jjs</span><span class="p">,</span> <span class="n">vs</span><span class="p">,</span> <span class="n">nvertices</span><span class="p">,</span> <span class="n">nvertices</span><span class="p">,</span> <span class="s">&quot;sum&quot;</span><span class="p">);</span>
+<span class="lineno">108</span> <span class="k">endfunction</span>
+<span class="lineno">109</span> 
+<span class="lineno">110</span> <span class="k">function</span><span class="w"> </span>[bti] <span class="p">=</span><span class="w"> </span><span class="nf">computeBTildI</span><span class="p">(</span>A, b, nbInterior, L, U, p, q<span class="p">)</span><span class="w"></span>
+<span class="lineno">111</span> <span class="w">   </span><span class="n">bti</span> <span class="p">=</span> <span class="n">b</span><span class="p">(</span><span class="n">nbInterior</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:</span> <span class="k">end</span><span class="p">)</span> <span class="p">...</span>
+<span class="lineno">112</span>       <span class="o">-</span> <span class="n">A</span><span class="p">(</span><span class="n">nbInterior</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:</span> <span class="k">end</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="n">nbInterior</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">U</span> <span class="o">\</span> <span class="p">(</span><span class="n">L</span> <span class="o">\</span> <span class="n">b</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">nbInterior</span><span class="p">)(</span><span class="n">p</span><span class="p">)))(</span><span class="n">q</span><span class="p">);</span>
+<span class="lineno">113</span> <span class="k">endfunction</span>
+<span class="lineno">114</span> 
+<span class="lineno">115</span> <span class="k">function</span><span class="w"> </span>[res] <span class="p">=</span><span class="w"> </span><span class="nf">multiplyByLocalSchurComplement</span><span class="p">(</span>A, nbInterior, L, U, p, q, x<span class="p">)</span><span class="w"></span>
+<span class="lineno">116</span> <span class="w">   </span><span class="n">res</span> <span class="p">=</span> <span class="n">A</span><span class="p">(</span><span class="n">nbInterior</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:</span> <span class="k">end</span><span class="p">,</span> <span class="n">nbInterior</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:</span> <span class="k">end</span><span class="p">)</span> <span class="o">*</span> <span class="n">x</span> <span class="p">...</span>
+<span class="lineno">117</span>       <span class="o">-</span> <span class="n">A</span><span class="p">(</span><span class="n">nbInterior</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:</span> <span class="k">end</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="n">nbInterior</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">U</span> <span class="o">\</span> <span class="p">(</span><span class="n">L</span> <span class="o">\</span> <span class="p">(</span><span class="n">A</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">nbInterior</span><span class="p">,</span> <span class="n">nbInterior</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:</span> <span class="k">end</span><span class="p">)</span> <span class="o">*</span> <span class="n">x</span><span class="p">)(</span><span class="n">p</span><span class="p">)))(</span><span class="n">q</span><span class="p">);</span>
+<span class="lineno">118</span> <span class="k">endfunction</span>
+<span class="lineno">119</span> 
+<span class="lineno">120</span> <span class="k">function</span><span class="w"> </span>[vertices, triangles, border, domains] <span class="p">=</span><span class="w"> </span><span class="nf">readMesh</span><span class="p">(</span>fileName<span class="p">)</span><span class="w"></span>
+<span class="lineno">121</span> 
+<span class="lineno">122</span> <span class="w">   </span><span class="n">fid</span> <span class="p">=</span> <span class="nb">fopen</span> <span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="s">&quot;r&quot;</span><span class="p">);</span>
+<span class="lineno">123</span> 
+<span class="lineno">124</span>    <span class="c">% Vertices</span>
+<span class="lineno">125</span>    <span class="n">fgoto</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="s">&quot;Vertices&quot;</span><span class="p">);</span>
+<span class="lineno">126</span>    
+<span class="lineno">127</span>    <span class="p">[</span><span class="n">nvertices</span><span class="p">]</span> <span class="p">=</span> <span class="nb">fscanf</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="s">&quot;%d&quot;</span><span class="p">,</span> <span class="s">&quot;C&quot;</span><span class="p">);</span>
+<span class="lineno">128</span>    <span class="n">vertices</span> <span class="p">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="n">nvertices</span><span class="p">,</span> <span class="mi">2</span><span class="p">);</span>
+<span class="lineno">129</span>    <span class="k">for</span> <span class="n">vid</span><span class="p">=</span><span class="mi">1</span><span class="p">:</span><span class="n">nvertices</span>
+<span class="lineno">130</span>       <span class="p">[</span><span class="n">vertices</span><span class="p">(</span><span class="n">vid</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">vertices</span><span class="p">(</span><span class="n">vid</span><span class="p">,</span> <span class="mi">2</span><span class="p">)]</span> <span class="p">=</span> <span class="nb">fscanf</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="s">&quot;%f %f %d\n&quot;</span><span class="p">,</span> <span class="s">&quot;C&quot;</span><span class="p">);</span>
+<span class="lineno">131</span>    <span class="k">end</span>
+<span class="lineno">132</span> 
+<span class="lineno">133</span>    <span class="c">% Edges</span>
+<span class="lineno">134</span>    <span class="n">border</span> <span class="p">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="n">nvertices</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+<span class="lineno">135</span>    <span class="n">fgoto</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="s">&quot;Edges&quot;</span><span class="p">);</span>
+<span class="lineno">136</span>    <span class="p">[</span><span class="n">nedges</span><span class="p">]</span> <span class="p">=</span> <span class="nb">fscanf</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="s">&quot;%d&quot;</span><span class="p">,</span> <span class="s">&quot;C&quot;</span><span class="p">);</span>
+<span class="lineno">137</span>    <span class="k">for</span> <span class="n">eid</span><span class="p">=</span><span class="mi">1</span><span class="p">:</span><span class="n">nedges</span>
+<span class="lineno">138</span>       <span class="p">[</span><span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">]</span> <span class="p">=</span> <span class="nb">fscanf</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="s">&quot;%d %d %d\n&quot;</span><span class="p">,</span> <span class="s">&quot;C&quot;</span><span class="p">);</span>
+<span class="lineno">139</span>       <span class="n">border</span><span class="p">(</span><span class="n">v1</span><span class="p">)</span> <span class="p">=</span> <span class="mi">1</span><span class="p">;</span>
+<span class="lineno">140</span>       <span class="n">border</span><span class="p">(</span><span class="n">v2</span><span class="p">)</span> <span class="p">=</span> <span class="mi">1</span><span class="p">;</span>
+<span class="lineno">141</span>    <span class="k">end</span>
+<span class="lineno">142</span> 
+<span class="lineno">143</span>    <span class="c">% Elements</span>
+<span class="lineno">144</span>    <span class="n">fgoto</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="s">&quot;Triangles&quot;</span><span class="p">);</span>
+<span class="lineno">145</span>    <span class="p">[</span><span class="n">ntriangles</span><span class="p">]</span> <span class="p">=</span> <span class="nb">fscanf</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="s">&quot;%d&quot;</span><span class="p">,</span> <span class="s">&quot;C&quot;</span><span class="p">);</span>
+<span class="lineno">146</span>    <span class="n">triangles</span> <span class="p">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="n">ntriangles</span><span class="p">,</span> <span class="mi">3</span><span class="p">);</span>
+<span class="lineno">147</span>    <span class="n">domains</span> <span class="p">=</span> <span class="nb">zeros</span><span class="p">(</span><span class="n">ntriangles</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+<span class="lineno">148</span>    <span class="k">for</span> <span class="n">tid</span><span class="p">=</span><span class="mi">1</span><span class="p">:</span><span class="n">ntriangles</span>
+<span class="lineno">149</span>       <span class="p">[</span><span class="n">triangles</span><span class="p">(</span><span class="n">tid</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">triangles</span><span class="p">(</span><span class="n">tid</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">triangles</span><span class="p">(</span><span class="n">tid</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">domains</span><span class="p">(</span><span class="n">tid</span><span class="p">)]</span> <span class="p">=</span> <span class="nb">fscanf</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="s">&quot;%d %d %d %d\n&quot;</span><span class="p">,</span> <span class="s">&quot;C&quot;</span><span class="p">);</span>
+<span class="lineno">150</span>    <span class="k">end</span>
+<span class="lineno">151</span> 
+<span class="lineno">152</span>    <span class="nb">fclose</span><span class="p">(</span><span class="n">fid</span><span class="p">);</span>
+<span class="lineno">153</span> <span class="k">endfunction</span>
+<span class="lineno">154</span> 
+<span class="lineno">155</span> <span class="k">function</span><span class="w"> </span>[interface] <span class="p">=</span><span class="w"> </span><span class="nf">readInterface</span><span class="p">(</span>fileName<span class="p">)</span><span class="w"></span>
+<span class="lineno">156</span> <span class="w">   </span><span class="n">fid</span> <span class="p">=</span> <span class="nb">fopen</span> <span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="s">&quot;r&quot;</span><span class="p">);</span>
+<span class="lineno">157</span>    <span class="n">interface</span> <span class="p">=</span> <span class="p">[];</span>
+<span class="lineno">158</span>    <span class="k">while</span> <span class="p">(</span><span class="n">l</span> <span class="p">=</span> <span class="nb">fgetl</span><span class="p">(</span><span class="n">fid</span><span class="p">))</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+<span class="lineno">159</span>       <span class="p">[</span><span class="n">vid</span><span class="p">]</span> <span class="p">=</span> <span class="nb">sscanf</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="s">&quot;%d\n&quot;</span><span class="p">,</span> <span class="s">&quot;C&quot;</span><span class="p">);</span>
+<span class="lineno">160</span>       <span class="n">interface</span> <span class="p">=</span> <span class="p">[</span><span class="n">interface</span><span class="p">;</span> <span class="n">vid</span><span class="p">];</span>
+<span class="lineno">161</span>    <span class="k">end</span>
+<span class="lineno">162</span>    <span class="nb">fclose</span><span class="p">(</span><span class="n">fid</span><span class="p">);</span>
+<span class="lineno">163</span> <span class="k">end</span>
+<span class="lineno">164</span> 
+<span class="lineno">165</span> <span class="k">function</span><span class="w"> </span>[] <span class="p">=</span><span class="w"> </span><span class="nf">fgoto</span><span class="p">(</span>fid, tag<span class="p">)</span><span class="w"></span>
+<span class="lineno">166</span> <span class="w">   </span><span class="k">while</span> <span class="o">!</span><span class="nb">strcmp</span><span class="p">(</span><span class="nb">fgetl</span><span class="p">(</span><span class="n">fid</span><span class="p">),</span><span class="n">tag</span><span class="p">)</span>
+<span class="lineno">167</span>    <span class="k">end</span>
+<span class="lineno">168</span> <span class="k">endfunction</span>
+<span class="lineno">169</span> 
+<span class="lineno">170</span> <span class="k">function</span><span class="w"> </span>[] <span class="p">=</span><span class="w"> </span><span class="nf">writeSolution</span><span class="p">(</span>fileName, solution<span class="p">)</span><span class="w"></span>
+<span class="lineno">171</span> <span class="w">   </span><span class="n">fid</span> <span class="p">=</span> <span class="nb">fopen</span> <span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="s">&quot;w&quot;</span><span class="p">);</span>
+<span class="lineno">172</span>       <span class="nb">fprintf</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="s">&quot;MeshVersionFormatted 1\n\nDimension 2\n\nSolAtVertices\n%d\n1 1\n\n&quot;</span><span class="p">,</span> <span class="nb">length</span><span class="p">(</span><span class="n">solution</span><span class="p">));</span>
+<span class="lineno">173</span>       <span class="k">for</span> <span class="n">i</span><span class="p">=</span><span class="mi">1</span><span class="p">:</span><span class="nb">length</span><span class="p">(</span><span class="n">solution</span><span class="p">)</span>
+<span class="lineno">174</span>          <span class="nb">fprintf</span><span class="p">(</span><span class="n">fid</span><span class="p">,</span> <span class="s">&quot;%e\n&quot;</span><span class="p">,</span> <span class="n">solution</span><span class="p">(</span><span class="n">i</span><span class="p">));</span>
+<span class="lineno">175</span>       <span class="k">end</span>
+<span class="lineno">176</span>       <span class="nb">fclose</span><span class="p">(</span><span class="n">fid</span><span class="p">);</span>
+<span class="lineno">177</span> <span class="k">endfunction</span></code></pre></div>
+
+<h3 id="conclusion-3">Conclusion</h3>
+
+<p>Solving for the flux first is a bit more involved and less efficient since we have to deal with the inverse of the local Schur complement.
+I believe that in practice this method is never used. Nevertheless introducing the flux and the Neumann problems is a necessary step to 
+understand the Dirichlet-Neuman and Neuman-Neuman algorithms. Someday I will try to post about that, but it will be later.</p>
+
+<h2 id="conclusion-4">Conclusion</h2>
+
+<p>The next time, I would like to experiment with something more ambitious:
+I will try to solve the <a href="http://en.wikipedia.org/wiki/Mild-slope_equation">mild-slope equation</a>
+in the Lyttelton port using more than two domains decompostion (trace first).
+I will try to use fancy stuff like <a href="http://en.wikipedia.org/wiki/Message_Passing_Interface">MPI</a> and GPU linear algebra libraries.
+Stay tuned !</p>
+
+<iframe width="425" height="350" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="http://www.openstreetmap.org/export/embed.html?bbox=172.7073848247528%2C-43.61001840001371%2C172.7253019809723%2C-43.603143125897454&amp;layer=mapnik" style="border: 1px solid black">unwantedtext</iframe>
+<p><br /><small><a href="http://www.openstreetmap.org/#map=17/-43.60658/172.71634">View Larger Map</a></small></p>
+
+<script type="text/javascript" src="/rungalleria.js"></script>
+
+
+    <hr>
+    <div class="pagination btn-group">
+      
+        <a class="btn prev" href="/home%20automation/2013/12/05/the-chilli-power-board" title="The Chilli Power Board">&larr; Previous</a>
+      
+        <a class="btn" href="/archive.html">Archive</a>
+      
+        <a class="btn next" href="/numerical%20methods/2014/03/15/the-lyttelton-port-wave-penetration-project-part-1" title="The Lyttelton port wave penetration project: Part 1">Next &rarr;</a>
+      
+    </div>
+    <hr>
+    
+
+
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_developer = 1;
+    var disqus_shortname = 'ssrb'; // required: replace example with your forum shortname
+    
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+
+
+  </div>
+  
+  <div class="span4">
+    <section>
+      <h4>Published</h4>
+      <div class="date"><span>18 December 2013</span></div>
+    </section>
+    
+      <section>
+        <h4>Category</h4>
+        <span class="category">
+          Numerical methods
+        </span>
+      </section>
+         
+    
+      <section>
+        <h4>Tags</h4>
+        <ul class="tag_box">
+          
+          
+
+
+  
+     
+    	<li><a href="/tags.html#mathematics-ref">mathematics <span>7</span></a></li>
+     
+    	<li><a href="/tags.html#parallel computing-ref">parallel computing <span>7</span></a></li>
+    
+  
+
+
+
+        </ul>
+      </section>
+             
+  </div>
+</div>
+
+
+      </div>
+
+      <footer>
+        <p>&copy; 2018 Sébastien Bigot
+          with help from <a href="http://jekyllbootstrap.com" target="_blank" title="The Definitive Jekyll Blogging Framework">Jekyll Bootstrap</a>
+          and <a href="http://github.com/dhulihan/hooligan" target="_blank">The Hooligan Theme</a>
+        </p>
+      </footer>
+    </div> <!-- /container -->
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="/assets/themes/hooligan/js/jquery.min.js"><\/script>')</script>
+    <script src="/assets/themes/hooligan/bootstrap/js/bootstrap.min.js"></script>
+    
+    
+    
+  </body>
+</html>
+

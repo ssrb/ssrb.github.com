@@ -1,0 +1,580 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>
+      
+        FreeFem++ Source Code Review - 
+      
+      Seb's blog
+    </title>
+    <meta name="description" content="">
+    <meta name="author" content="Sébastien Bigot">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+
+    <link href="/assets/themes/hooligan/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/themes/hooligan/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">    
+    <link rel="stylesheet" type="text/css" href="/assets/themes/hooligan/css-social-buttons/css/zocial.stripped.css">
+    <link href="/assets/themes/hooligan/css/pygments.css" rel="stylesheet" type="text/css" media="all">
+    <link href="/assets/themes/hooligan/css/darkstrap.css" rel="stylesheet" type="text/css" media="all">    
+    <link href="/assets/themes/hooligan/css/style.css?body=1" rel="stylesheet" type="text/css" media="all">
+
+    
+    <!-- fav and touch icons -->
+  <!-- Update these with your own images
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
+  -->
+
+    <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      TeX: { equationNumbers: { autoNumber: "AMS" } },
+        tex2jax: {
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      }
+    });
+    MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for(i=0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+    </script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    </script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.js">
+    </script>
+    <script type="text/javascript" src="/galleria/galleria-1.3.3.min.js">
+    </script>
+    <style>
+      .galleria{ width: 700px; height: 400px; background: #000 }
+    </style>
+  </head>
+
+  <body>
+    <div class="navbar">
+      <div class="navbar-inner">
+        <div class="container">
+          <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>      
+
+
+          <a class="brand" href="/">Seb's blog</a>
+
+
+          <div class="nav-collapse">
+            <ul class="nav">
+              
+              
+              
+
+
+  
+    
+      
+      	
+      	<li><a href="/archive.html">Archive</a></li>
+      	
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/categories.html">Categories</a></li>
+      	
+      
+    
+  
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/tags.html">Tags</a></li>
+      	
+      
+    
+  
+
+
+
+            </ul>
+            <ul class="nav pull-right social visible-desktop">
+              <li class="divider-vertical"></li>
+              
+                <li>
+                  <a href="https://github.com/ssrb" class="zocial github icon" target="_blank">
+                    <span class="hidden-desktop">Github</span>
+                  </a>
+                </li>
+              
+                  
+                                        
+                         
+                                  
+              
+              <li>
+                <a class="zocial icon rss" target="_blank" href="/rss.xml">
+                  <span class="hidden-desktop">ATOM Feed</a>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="content">
+        
+<div class="page-header">
+  <h1>
+    FreeFem++ Source Code Review 
+    
+  </h1>
+</div>
+
+<div class="row">
+  <div class="span8">
+    
+<p>This post is an ongoing effort to document my findings as I walk through the source code of a tool I really like, <a href="http://www.freefem.org/ff++/">FreeFem++</a>.</p>
+
+<!-- more -->
+
+<p>Given a concise description of a PDE weak formulation / variational form as well as a set of boudary conditions, <code>ff++</code> will automagically discretize and solve the PDE.
+Thanks to its domain specific language it’s also possible to build more advance numerical methods on top of the FE solver itself (domain decomposition, multi-physics, …).</p>
+
+<p>This is a good tool if you’re tired of writting ad-hoc solvers from scratch each time you need to perform a FE analysis.
+Of course before using such a tool it’s nice to clearly understand what’s going on under the hood.</p>
+
+<p>Similar tools are</p>
+
+<ul>
+  <li><a href="http://fenicsproject.org">FEnics</a>;</li>
+  <li><a href="http://au.mathworks.com/products/pde/?requestedDomain=www.mathworks.com">the MATLAB PDE toolbox</a></li>
+</ul>
+
+<h2 id="codebase-srtucture">Codebase srtucture</h2>
+
+<p>Here is the structure of the <code>src</code> directory containing most of <code>ff++</code> source code (excluding dependencies):</p>
+
+<pre><code>ff++$ tree -d src
+src
+├── agl
+├── Algo
+├── bamg
+├── bamglib
+├── bin-win32
+├── Eigen
+├── femlib
+├── fflib
+├── glx
+├── Graphics
+├── iml
+├── lglib
+├── libMesh
+├── medit
+├── mpi
+├── nw
+├── solver
+├── std
+└── x11
+</code></pre>
+
+<p>The directories I’m particularly interested in are:</p>
+
+<ul>
+  <li><code>fflib</code>: lexer, abstract syntax tree data structures &amp; interpreter, high level assembly and resolution of discretized PDE;</li>
+  <li><code>lglib</code>: the grammar definition for the <code>ff++</code> language;</li>
+  <li><code>femlib</code>: low level assembly of discretized PDE, various FE families implementation (P1, P2, <a href="https://en.wikipedia.org/wiki/Raviart%E2%80%93Thomas_basis_functions">Raviart-Thomas</a> …) as well as matrix and vector definitions;</li>
+  <li><code>solver</code>: mainly wrappers to sparse direct solvers such as <a href="http://faculty.cse.tamu.edu/davis/suitesparse.html">UMFPACK</a>, <a href="http://mumps.enseeiht.fr">MUMPS</a>, <a href="http://www.pardiso-project.org/">pardiso</a> as well as sparse iterative solvers such as <a href="https://computation.llnl.gov/project/linear_solvers/index.php">HYPRE</a>, <a href="http://hips.gforge.inria.fr/">HYPS</a>, <a href="http://www-users.cs.umn.edu/~saad/software/pARMS">pARM</a> etc.</li>
+</ul>
+
+<p>Stuff I’m not too intersted in:</p>
+
+<ul>
+  <li>The <code>bamg</code> and <code>bamglib</code> directories contain all the 2D mesh generation code: bamg stands for Bidimensional Anisotropic Mesh Generator and is the name of a stand alone 2D mesh generation tool written by <a href="http://www.ann.jussieu.fr/hecht/">Frédéric Hecht</a>, the main author of <code>ff++</code>. It comes with a library you can re-use in your own project.
+The 3D mesh generation relies on <a href="http://wias-berlin.de/software/tetgen">Tetgen</a>;</li>
+  <li>The <code>Algo</code>, <code>Eigen</code> and <code>iml</code> directories contain implementation of iterative methods for solving linear systems (CG, GMRES, …) and find eigen values/vectors;</li>
+  <li>The <code>libMesh</code> directory contains the code of the <a href="https://www.rocq.inria.fr/gamma/gamma/Membres/CIPD/Loic.Marechal/Research/LM6.html">libMesh library</a> defining mesh datastructures and the corresponding read/write functions.</li>
+</ul>
+
+<h2 id="language">Language</h2>
+
+<p><code>ff++</code> language is imperative. It borrows some syntax from C++. For example the stream operators (<code>&lt;&lt;</code> and <code>&gt;&gt;</code>) to perform formated I/Os which is not really the best part of C++ …</p>
+
+<h3 id="lexer">Lexer</h3>
+
+<p>The hand written lexer (<code>class mylex</code>) lives in <code>fflib/lex.hpp</code>.</p>
+
+<h3 id="parser">Parser</h3>
+
+<p>The parser is using <a href="https://www.gnu.org/software/bison">GNU Bison</a>. Its grammar is described in the <a href="https://github.com/ssrb/freefempp/tree/master/src/lglib/lg.ypp">lglib/lg.ypp</a> file. I guess the <code>lg</code> prefix stands for “language”. That prefix is used in other places in the code base. For example: <a href="https://github.com/ssrb/freefempp/tree/master/src/fflib/lgfem.hpp">fflib/lgfem.hpp</a>, <a href="https://github.com/ssrb/freefempp/tree/master/src/fflib/lgmesh.hpp">fflib/lgmesh.hpp</a>, <a href="https://github.com/ssrb/freefempp/tree/master/src/fflib/lgmat.cpp">fflib/lgmat.cpp</a>, etc where the language builtin types and functions are defined. This convention doesn’t seem to be enforced though.</p>
+
+<p>The generated parser entry point is called <code>yyparse()</code> (it’s <em>#defined</em> to <code>lgparse</code>)</p>
+
+<p>The first frames of a typical call stack look like this:</p>
+
+<pre><code>#0  yyparse () at lg.tab.cpp:1851
+#1  Compile () at lg.ypp:777
+#2  mainff (argc=2, argv=0x7fffffffddf8) at lg.ypp:947
+#3  main (argc=2, argv=0x7fffffffddf8) at ../Graphics/sansrgraph.cpp:199
+</code></pre>
+
+<p>Now, even though <code>yyparse()</code> is called by a function called <code>Compile()</code> and <code>ff++</code> outputs messages such as</p>
+
+<pre><code>times: compile 0.100339s, execution 89.3461s
+</code></pre>
+
+<p>the language is <strong>not</strong> compiled: no machine or byte code is generated whatsoever. It’s more of an interpreter.</p>
+
+<h3 id="interpreter">Interpreter</h3>
+
+<p>In <code>ff++</code>, the <a href="https://www.gnu.org/software/bison/manual/bison.html#Semantic-Actions">Bison semantic actions</a> do not usually interprete statements on the fly. 
+Instead an abstract syntax / expression tree is built using types defined in <a href="https://github.com/ssrb/freefempp/tree/master/src/fflib/AFunction.hpp">fflib/AFunction.hpp</a>, <a href="https://github.com/ssrb/freefempp/tree/master/src/fflib/AFunction2.hpp">fflib/AFunction2.hpp</a>, <a href="https://github.com/ssrb/freefempp/tree/master/src/fflib/Operator.hpp">fflib/Operator.hpp</a>, etc.</p>
+
+<p>An exception would be the <code>load</code> statement which will trigger a call to <code>bool load(string ss)</code> defined in <a href="https://github.com/ssrb/freefempp/tree/master/src/fflib/load.cpp">fflib/load.cpp</a>, loading shared objects (aka “plugins”) on the fly.</p>
+
+<p>In the top level semantic action, executed once the end of file is reached, the tree is walked and statements are interpreted:</p>
+
+<div class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="nl">start</span><span class="p">:</span>   <span class="n">input</span> <span class="n">ENDOFFILE</span> <span class="p">{</span>
+	<span class="p">[...]</span>
+	<span class="kt">size_t</span> <span class="n">sizestack</span> <span class="o">=</span> <span class="n">currentblock</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">()</span><span class="o">+</span><span class="mi">1024</span><span class="p">;</span>
+	<span class="p">[...]</span>
+	<span class="n">Stack</span> <span class="n">stack</span> <span class="o">=</span> <span class="n">newStack</span><span class="p">(</span><span class="n">sizestack</span><span class="p">);</span>
+	<span class="p">[...]</span>
+	<span class="err">$</span><span class="mf">1.</span><span class="n">eval</span><span class="p">(</span><span class="n">stack</span><span class="p">);</span>
+	<span class="p">[...]</span>
+<span class="p">}</span></code></pre></div>
+
+<p>In this Bison/C++ code snipet <code>S1</code> is the result of the <code>input</code> semantic action and is of type <code>class CListOfInst</code> defined in <a href="https://github.com/ssrb/freefempp/tree/master/src/fflib/AFunction.hpp">fflib/AFunction.hpp</a>.</p>
+
+<p>Ultimately the call to <code>CListOfInst::eval</code> will execute this method which can be seen as the interpreter’s main loop:
+:</p>
+
+<div class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="n">AnyType</span> <span class="n">ListOfInst</span><span class="o">::</span><span class="k">operator</span><span class="p">()(</span><span class="n">Stack</span> <span class="n">s</span><span class="p">)</span> <span class="k">const</span> <span class="p">{</span>     
+    <span class="n">AnyType</span> <span class="n">r</span><span class="p">;</span> 
+    <span class="kt">double</span> <span class="n">s0</span><span class="o">=</span><span class="n">CPUtime</span><span class="p">(),</span><span class="n">s1</span><span class="o">=</span><span class="n">s0</span><span class="p">,</span><span class="n">ss0</span><span class="o">=</span><span class="n">s0</span><span class="p">;</span>
+    <span class="n">StackOfPtr2Free</span> <span class="o">*</span> <span class="n">sptr</span> <span class="o">=</span> <span class="n">WhereStackOfPtr2Free</span><span class="p">(</span><span class="n">s</span><span class="p">);</span>
+    <span class="n">try</span> <span class="p">{</span> <span class="c1">// modif FH oct 2006 </span>
+	<span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span><span class="n">i</span><span class="o">&lt;</span><span class="n">n</span><span class="p">;</span><span class="n">i</span><span class="o">++</span><span class="p">)</span> 
+	<span class="p">{</span>
+	    <span class="n">TheCurrentLine</span><span class="o">=</span><span class="n">linenumber</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+	    <span class="n">r</span><span class="o">=</span><span class="p">(</span><span class="o">*</span><span class="n">list</span><span class="p">[</span><span class="n">i</span><span class="p">])(</span><span class="n">s</span><span class="p">);</span>
+	    <span class="n">sptr</span><span class="o">-&gt;</span><span class="n">clean</span><span class="p">();</span> <span class="c1">// modif FH mars 2006  clean Ptr</span>
+	    <span class="n">s1</span><span class="o">=</span><span class="n">CPUtime</span><span class="p">();</span>
+	    <span class="k">if</span> <span class="p">(</span><span class="n">showCPU</span><span class="p">)</span>  
+		<span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; CPU: &quot;</span><span class="o">&lt;&lt;</span> <span class="n">i</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">s1</span><span class="o">-</span><span class="n">s0</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;s&quot;</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">s1</span><span class="o">-</span><span class="n">ss0</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;s&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>
+	    <span class="n">s0</span><span class="o">=</span><span class="n">CPUtime</span><span class="p">();</span>
+	<span class="p">}</span>
+    <span class="p">}</span>
+    <span class="k">catch</span><span class="p">(</span> <span class="n">E_exception</span> <span class="o">&amp;</span> <span class="n">e</span><span class="p">)</span> 	
+    <span class="p">{</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">e</span><span class="p">.</span><span class="n">type</span><span class="p">()</span> <span class="o">!=</span> <span class="n">E_exception</span><span class="o">::</span><span class="n">e_return</span><span class="p">)</span>  
+	    <span class="n">sptr</span><span class="o">-&gt;</span><span class="n">clean</span><span class="p">();</span> <span class="c1">// pour ne pas detruire la valeur retourne  ...  FH  jan 2007</span>
+	<span class="k">throw</span><span class="p">;</span> <span class="c1">// rethow  </span>
+    <span class="p">}</span>
+    <span class="k">catch</span><span class="p">(...)</span>
+    <span class="p">{</span>
+	<span class="n">sptr</span><span class="o">-&gt;</span><span class="n">clean</span><span class="p">();</span>
+	<span class="k">throw</span><span class="p">;</span> 
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">r</span><span class="p">;</span>
+<span class="p">}</span></code></pre></div>
+
+<p>By the way, often the code is mixing (broken) English and French which is not making it easier to dive into the codebase.</p>
+
+<p>Once parsing is complete and the interpreter starts doing its job, the call stack should look like this:</p>
+
+<pre><code>#0  ListOfInst::operator() at AFunction2.cpp:793
+#1  eval at ./../fflib/AFunction.hpp:1459
+#2  yyparse () at lg.tab.cpp:1851
+#3  Compile () at lg.ypp:777
+#4  mainff (argc=2, argv=0x7fffffffddf8) at lg.ypp:947
+#5  main (argc=2, argv=0x7fffffffddf8) at ../Graphics/sansrgraph.cpp:199
+</code></pre>
+
+<h3 id="activation-record">Activation record</h3>
+
+<p>Storage for variables within the current lexical scope is allocated on a stack of type <code>struct StackType</code> defined in <a href="https://github.com/ssrb/freefempp/tree/master/src/fflib/ffstack.hpp">fflib/ffstack.hpp</a> (<em>typedef-ed</em> to <code>StackType &amp; Stack;</code>).
+The stack is allocated just before walking the expression tree (see the <code>ENDOFFILE</code> semantic action).</p>
+
+<p>Offsets of local variables within the stack and the stack size itself (“currentblock-&gt;size()”) are computed in the semantic actions.
+Every time a new variable declaration is encountered, an object of <code>class LocalVariable</code> is created to keep track of its type and offset. 
+The <code>Block</code> and <code>TableOfIdentifier</code> classes defined in <a href="https://github.com/ssrb/freefempp/tree/master/src/fflib/AFunction.hpp">fflib/AFunction.hpp</a> handle the traditional symbol table as well as the top of the stack offsets/pointers. Here is roughly the executuin flow:</p>
+
+<ul>
+  <li>Semantic action for a simple declaration asking the current block to allocate a new local variable:</li>
+</ul>
+
+<div class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="nl">declaration</span><span class="p">:</span> <span class="n">type_of_dcl</span> <span class="p">{</span><span class="n">dcltype</span><span class="o">=</span><span class="err">$</span><span class="mi">1</span><span class="p">}</span> <span class="n">list_of_dcls</span> <span class="sc">&#39;;&#39;</span> <span class="p">{</span><span class="err">$$</span><span class="o">=</span><span class="err">$</span><span class="mi">3</span><span class="p">}</span>
+<span class="p">[...]</span>
+<span class="nl">type_of_dcl</span><span class="p">:</span> <span class="n">TYPE</span> 
+<span class="p">[...]</span>
+<span class="nl">list_of_dcls</span><span class="p">:</span> <span class="n">ID</span> <span class="p">{</span><span class="err">$$</span><span class="o">=</span><span class="n">currentblock</span><span class="o">-&gt;</span><span class="n">NewVar</span><span class="o">&lt;</span><span class="n">LocalVariable</span><span class="o">&gt;</span><span class="p">(</span><span class="err">$</span><span class="mi">1</span><span class="p">,</span><span class="n">dcltype</span><span class="p">)}</span>  
+<span class="p">[...]</span></code></pre></div>
+
+<ul>
+  <li>The <code>Block</code> class delegates allocation to a <code>TableOfIdentifier</code></li>
+</ul>
+
+<div class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="k">class</span> <span class="nc">Block</span> <span class="p">{</span>
+
+   <span class="kt">size_t</span>  <span class="n">top</span><span class="p">,</span><span class="n">topmax</span><span class="p">;</span>
+   <span class="n">TableOfIdentifier</span> <span class="n">table</span><span class="p">;</span>
+   <span class="n">ListOfTOfId</span><span class="o">::</span><span class="n">iterator</span> <span class="n">itabl</span><span class="p">;</span> 
+
+   <span class="p">[...]</span>
+
+   	<span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>   
+   	<span class="n">C_F0</span> <span class="n">NewVar</span><span class="p">(</span><span class="n">Key</span> <span class="n">k</span><span class="p">,</span><span class="n">aType</span> <span class="n">t</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">C_F0</span> <span class="n">r</span> <span class="o">=</span> <span class="n">table</span><span class="p">.</span><span class="n">NewVar</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span><span class="n">top</span><span class="p">);</span>
+		<span class="n">topmax</span> <span class="o">=</span> <span class="n">Max</span><span class="p">(</span><span class="n">topmax</span><span class="p">,</span><span class="n">top</span><span class="p">);</span>
+		<span class="k">return</span> <span class="n">r</span><span class="p">;</span>
+   	<span class="p">}</span>
+
+   <span class="p">[...]</span>
+<span class="p">}</span></code></pre></div>
+
+<ul>
+  <li>The <code>TableOfIdentifier</code> lookup/insert a new <code>LocalVariable</code> and wraps it with an expression tree node of type <code>class C_F0</code>:</li>
+</ul>
+
+<div class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>   
+<span class="kr">inline</span>  <span class="n">C_F0</span> <span class="n">TableOfIdentifier</span><span class="o">::</span><span class="n">NewVar</span><span class="p">(</span><span class="n">Key</span> <span class="n">k</span><span class="p">,</span><span class="n">aType</span> <span class="n">t</span><span class="p">,</span><span class="kt">size_t</span> <span class="o">&amp;</span> <span class="n">top</span><span class="p">)</span> 
+<span class="p">{</span>  
+	<span class="k">return</span> <span class="n">t</span><span class="o">-&gt;</span><span class="n">Initialization</span><span class="p">(</span><span class="n">New</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">NewVariable</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">top</span><span class="p">)));</span> 
+<span class="p">}</span>
+
+<span class="k">const</span>  <span class="n">Type_Expr</span> <span class="o">&amp;</span>   <span class="n">TableOfIdentifier</span><span class="o">::</span><span class="n">New</span><span class="p">(</span><span class="n">Key</span> <span class="n">k</span><span class="p">,</span><span class="k">const</span> <span class="n">Type_Expr</span> <span class="o">&amp;</span> <span class="n">v</span><span class="p">,</span><span class="kt">bool</span> <span class="n">del</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="k">if</span><span class="p">(</span> <span class="k">this</span> <span class="o">!=</span> <span class="o">&amp;</span><span class="n">Global</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">if</span> <span class="p">(</span> <span class="n">Global</span><span class="p">.</span><span class="n">m</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">!=</span> <span class="n">Global</span><span class="p">.</span><span class="n">m</span><span class="p">.</span><span class="n">end</span><span class="p">()</span> <span class="p">)</span>
+		<span class="p">{</span>
+			<span class="k">if</span><span class="p">(</span><span class="n">mpirank</span><span class="o">==</span><span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">verbosity</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">))</span>
+			  <span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s"> *** Warning  The identifier &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">k</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; hide a Global identifier  </span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+
+	<span class="n">pair</span><span class="o">&lt;</span><span class="n">iterator</span><span class="p">,</span><span class="kt">bool</span><span class="o">&gt;</span>  <span class="n">p</span><span class="o">=</span><span class="n">m</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="n">pKV</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">Value</span><span class="p">(</span><span class="n">v</span><span class="p">,</span><span class="n">listofvar</span><span class="p">,</span><span class="n">del</span><span class="p">)));</span>
+	<span class="n">listofvar</span> <span class="o">=</span> <span class="o">&amp;*</span><span class="n">m</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="n">k</span><span class="p">);</span>
+	<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">p</span><span class="p">.</span><span class="n">second</span><span class="p">)</span> 
+	<span class="p">{</span>
+	    <span class="k">if</span><span class="p">(</span><span class="n">mpirank</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; The identifier &quot;</span> <span class="o">&lt;&lt;</span> <span class="n">k</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; exists </span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
+		<span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; </span><span class="se">\t</span><span class="s">  the existing type is &quot;</span> <span class="o">&lt;&lt;</span> <span class="o">*</span><span class="n">p</span><span class="p">.</span><span class="n">first</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">.</span><span class="n">first</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>
+		<span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; </span><span class="se">\t</span><span class="s">  the new  type is &quot;</span> <span class="o">&lt;&lt;</span> <span class="o">*</span><span class="n">v</span><span class="p">.</span><span class="n">first</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>
+	    <span class="p">}</span>
+	    <span class="n">CompileError</span><span class="p">();</span>
+	<span class="p">}</span>
+
+	<span class="k">return</span> <span class="n">v</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span>
+<span class="kr">inline</span> <span class="n">Type_Expr</span>  <span class="n">NewVariable</span><span class="p">(</span><span class="n">aType</span> <span class="n">t</span><span class="p">,</span><span class="kt">size_t</span> <span class="o">&amp;</span><span class="n">off</span><span class="p">)</span> 
+<span class="p">{</span> 
+	<span class="kt">size_t</span> <span class="n">o</span><span class="o">=</span> <span class="n">align8</span><span class="p">(</span><span class="n">off</span><span class="p">);</span><span class="c1">//  align    </span>
+	<span class="c1">//  off += t-&gt;un_ptr_type-&gt;size;</span>
+	<span class="c1">// bug    off += t-&gt;size;</span>
+	<span class="n">off</span> <span class="o">+=</span> <span class="n">t</span><span class="o">-&gt;</span><span class="n">un_ptr_type</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">;</span> <span class="c1">// correction 16/09/2003 merci à Richard MICHEL</span>
+	<span class="k">return</span>  <span class="nf">Type_Expr</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="k">new</span> <span class="n">T</span><span class="p">(</span><span class="n">o</span><span class="p">,</span><span class="n">t</span><span class="p">));</span>
+<span class="p">}</span></code></pre></div>
+
+<p>A simple “int a;” statement call stack looks like this:</p>
+
+<pre><code>#0  NewVariable&lt;LocalVariable&gt; (off=@0x1063218: 48, t=0xfe5ad0) at ./../fflib/AFunction.hpp:1839
+#1  TableOfIdentifier::NewVar&lt;LocalVariable&gt; (this=this@entry=0x1063228, k=0x1058ba0 "a", t=0xfe5ad0, top=@0x1063218: 48) at ./../fflib/AFunction.hpp:1890
+#2  NewVar&lt;LocalVariable&gt; (t=&lt;optimized out&gt;, k=&lt;optimized out&gt;, this=0x1063210) at ./../fflib/AFunction.hpp:2096
+#3  lgparse () at lg.ypp:386
+#4  Compile () at lg.ypp:777
+#5  mainff (argc=2, argv=0x7fffffffde08) at lg.ypp:947
+#6  main (argc=2, argv=0x7fffffffde08) at ../Graphics/sansrgraph.cpp:199
+</code></pre>
+
+<h3 id="builtins">Builtins</h3>
+
+<p>Work in progress !</p>
+
+<p>Matrices, FESpace, Varform, Problem …</p>
+
+<h2 id="pde-discretization">PDE discretization</h2>
+
+<p>The best way to figure out how PDE discretization is achieved is to run the script hereunder and step through with the debugger:</p>
+
+<div class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="n">mesh</span> <span class="n">Th</span> <span class="o">=</span> <span class="n">square</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span><span class="mi">5</span><span class="p">);</span>
+<span class="n">fespace</span> <span class="nf">Vh</span><span class="p">(</span><span class="n">Th</span><span class="p">,</span><span class="n">P1</span><span class="p">);</span>
+<span class="n">varf</span> <span class="nf">a</span><span class="p">(</span><span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="p">)</span> <span class="o">=</span> <span class="n">int2d</span><span class="p">(</span><span class="n">Th</span><span class="p">)(</span><span class="n">dx</span><span class="p">(</span><span class="n">u</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">+</span> <span class="n">dy</span><span class="p">(</span><span class="n">u</span><span class="p">)</span><span class="o">*</span><span class="n">dy</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+<span class="o">+</span> <span class="n">on</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="n">u</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="p">;</span>
+<span class="n">matrix</span> <span class="n">A</span><span class="o">=</span><span class="n">a</span><span class="p">(</span><span class="n">Vh</span><span class="p">,</span><span class="n">Vh</span><span class="p">);</span></code></pre></div>
+
+<p>The interesting statement is “matrix A=a(Vh,Vh);”. 
+It triggers:</p>
+
+<ul>
+  <li>allocation of a CSR encoded sparse matrix;</li>
+  <li>numerical integration and assembly of the elementary matrices</li>
+</ul>
+
+<h3 id="assembly">Assembly</h3>
+
+<p>The expression tree node corresponding to that statement is of type <code>class OpMatrixtoBilinearForm&lt;R,v_fes&gt;::Op</code>.
+It is defined in <a href="https://github.com/ssrb/freefempp/tree/master/src/fflib/problem.hpp">fflib/problem.hpp</a>.
+The interpreter will call the <code>AnyType OpMatrixtoBilinearForm&lt;R,v_fes&gt;::Op::operator()(Stack stack)  const</code> method defined in the same file.
+We can summarize that method like so:</p>
+
+<div class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="n">AnyType</span> <span class="n">OpMatrixtoBilinearForm</span><span class="o">&lt;</span><span class="n">R</span><span class="p">,</span><span class="n">v_fes</span><span class="o">&gt;::</span><span class="n">Op</span><span class="o">::</span><span class="k">operator</span><span class="p">()(</span><span class="n">Stack</span> <span class="n">stack</span><span class="p">)</span> 
+<span class="p">{</span>
+	<span class="p">[...]</span>
+	<span class="n">A</span><span class="p">.</span><span class="n">A</span><span class="p">.</span><span class="n">master</span><span class="p">(</span> <span class="k">new</span>  <span class="n">MatriceMorse</span><span class="o">&lt;</span><span class="n">R</span><span class="o">&gt;</span><span class="p">(</span><span class="n">Vh</span><span class="p">,</span><span class="n">Uh</span><span class="p">,</span><span class="n">VF</span><span class="p">)</span> <span class="p">);</span>
+	<span class="o">*</span><span class="n">A</span><span class="p">.</span><span class="n">A</span><span class="o">=</span><span class="n">R</span><span class="p">();</span> <span class="c1">// reset value of the matrix</span>
+	<span class="k">if</span> <span class="p">(</span> <span class="n">AssembleVarForm</span><span class="o">&lt;</span><span class="n">R</span><span class="p">,</span><span class="n">MatriceCreuse</span><span class="o">&lt;</span><span class="n">R</span><span class="o">&gt;</span><span class="p">,</span><span class="n">FESpace</span> <span class="o">&gt;</span><span class="p">(</span> <span class="n">stack</span><span class="p">,</span><span class="n">Th</span><span class="p">,</span><span class="n">Uh</span><span class="p">,</span><span class="n">Vh</span><span class="p">,</span><span class="n">ds</span><span class="p">.</span><span class="n">typemat</span><span class="o">-&gt;</span><span class="n">sym</span><span class="p">,</span><span class="n">A</span><span class="p">.</span><span class="n">A</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">b</span><span class="o">-&gt;</span><span class="n">largs</span><span class="p">)</span> <span class="p">)</span>
+		<span class="n">AssembleBC</span><span class="o">&lt;</span><span class="n">R</span><span class="p">,</span><span class="n">FESpace</span><span class="o">&gt;</span><span class="p">(</span> <span class="n">stack</span><span class="p">,</span><span class="n">Th</span><span class="p">,</span><span class="n">Uh</span><span class="p">,</span><span class="n">Vh</span><span class="p">,</span><span class="n">ds</span><span class="p">.</span><span class="n">typemat</span><span class="o">-&gt;</span><span class="n">sym</span><span class="p">,</span><span class="n">A</span><span class="p">.</span><span class="n">A</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">b</span><span class="o">-&gt;</span><span class="n">largs</span><span class="p">,</span><span class="n">ds</span><span class="p">.</span><span class="n">tgv</span><span class="p">);</span>
+	<span class="p">[...]</span>
+<span class="p">}</span></code></pre></div>
+
+<ul>
+  <li>First the call to the <code>MatriceMorse</code> constructor will in turn call <code>void MatriceMorse&lt;R&gt;::Build(const FESpace &amp; Uh, const FESpace &amp; Vh, bool sym, bool VF)</code> defined in 
+<a href="https://github.com/ssrb/freefempp/tree/master/src/femlib/MatriceCreuse_tpl.hpp">femlib/MatriceCreuse_tpl.hpp</a>.
+This is responsible for computing the profile of the CSR encoded sparse matrix (French people say “Morse” encoding).</li>
+</ul>
+
+<p><a href="https://gist.github.com/ssrb/0a0ff5812d2ce6e5ec6332dba31ef386">Here is a version of that method I commented</a></p>
+
+<ul>
+  <li>Then the calls to <code>AssembleVarForm</code> will compute the elementary matrices and assemble them into the stiffness matrix.
+<code>AssembleVarForm</code> will walk all the elementary integrals of the variational form and delegate the computation to a more specialized method.
+For example if an elementary integral defines a bilinear form, <code>void AssembleBilinearForm(Stack stack,const Mesh &amp; Th,const FESpace &amp; Uh,const FESpace &amp; Vh,bool sym, MatriceCreuse&lt;R&gt;  &amp; A, const  FormBilinear * b)</code> will be called.</li>
+</ul>
+
+<p>Work in progress !</p>
+
+<h3 id="dof-numbering">DoF numbering</h3>
+
+<p>Numbering is a 3 stages process:</p>
+
+<ul>
+  <li>dummy numbering of the vertices, edges, faces, volumes, in <code>ff++</code> these are called “nodes”;</li>
+  <li>reduce the skyline profile of that initial node numbering using the Gibbs-Poole-Stockmeyer algorithm;</li>
+  <li>build a DoF numbering from the improved node numbering: this is simply done by running a prefix sum of the number of DoF per node following the computed node numbering.</li>
+</ul>
+
+<p>Here is a commented simplified (no periodic boundary conditions, no mortar method) version of <a href="https://gist.github.com/ssrb/b31d9bfb28bc41369a4ad13fbae8e5e4">stage 1</a>.
+The original version can be found in <a href="https://github.com/ssrb/freefempp/tree/master/src/femlib//FESpace.cpp">femlib/FESpace.cpp</a>.</p>
+
+<p>The original paper describing the Gibbs-Poole-Stockmeyer used by stage 2 can be found <a href="/assets/ff++/papers/2156090.pdf">here</a>.
+The <code>ff++</code> implementation is found in <a href="https://github.com/ssrb/freefempp/tree/master/src/femlib//gibbs.cpp">femlib/gibbs.cpp</a>.</p>
+
+<p>Spy (2x2 square, 9 vertices, 8 triangles) after stage 1:</p>
+
+<p><img src="/assets/ff++/A_P2.png" alt="stage 1" /></p>
+
+<p>Spy after stage 2 (GPS algorithm)</p>
+
+<p><img src="/assets/ff++/A_P2_gibbs.png" alt="stage 2" /></p>
+
+<h3 id="numerical-integration">Numerical integration</h3>
+
+<p>Work in progress !</p>
+
+
+    <hr>
+    <div class="pagination btn-group">
+      
+        <a class="btn prev" href="/numerical%20methods/2016/01/20/the-alternator-simulation-project" title="The alternator simulation project">&larr; Previous</a>
+      
+        <a class="btn" href="/archive.html">Archive</a>
+      
+        <a class="btn next disabled">Next &rarr;</a>
+      
+    </div>
+    <hr>
+    
+
+
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_developer = 1;
+    var disqus_shortname = 'ssrb'; // required: replace example with your forum shortname
+    
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+
+
+  </div>
+  
+  <div class="span4">
+    <section>
+      <h4>Published</h4>
+      <div class="date"><span>05 February 2016</span></div>
+    </section>
+    
+      <section>
+        <h4>Category</h4>
+        <span class="category">
+          
+        </span>
+      </section>
+         
+             
+  </div>
+</div>
+
+
+      </div>
+
+      <footer>
+        <p>&copy; 2018 Sébastien Bigot
+          with help from <a href="http://jekyllbootstrap.com" target="_blank" title="The Definitive Jekyll Blogging Framework">Jekyll Bootstrap</a>
+          and <a href="http://github.com/dhulihan/hooligan" target="_blank">The Hooligan Theme</a>
+        </p>
+      </footer>
+    </div> <!-- /container -->
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="/assets/themes/hooligan/js/jquery.min.js"><\/script>')</script>
+    <script src="/assets/themes/hooligan/bootstrap/js/bootstrap.min.js"></script>
+    
+    
+    
+  </body>
+</html>
+

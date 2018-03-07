@@ -1,0 +1,659 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>
+      
+        The wave penetration project: energy dissipation by bottom friction - 
+      
+      Seb's blog
+    </title>
+    <meta name="description" content="">
+    <meta name="author" content="Sébastien Bigot">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+
+    <link href="/assets/themes/hooligan/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/themes/hooligan/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">    
+    <link rel="stylesheet" type="text/css" href="/assets/themes/hooligan/css-social-buttons/css/zocial.stripped.css">
+    <link href="/assets/themes/hooligan/css/pygments.css" rel="stylesheet" type="text/css" media="all">
+    <link href="/assets/themes/hooligan/css/darkstrap.css" rel="stylesheet" type="text/css" media="all">    
+    <link href="/assets/themes/hooligan/css/style.css?body=1" rel="stylesheet" type="text/css" media="all">
+
+    
+    <!-- fav and touch icons -->
+  <!-- Update these with your own images
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
+  -->
+
+    <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      TeX: { equationNumbers: { autoNumber: "AMS" } },
+        tex2jax: {
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      }
+    });
+    MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for(i=0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+    </script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    </script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.js">
+    </script>
+    <script type="text/javascript" src="/galleria/galleria-1.3.3.min.js">
+    </script>
+    <style>
+      .galleria{ width: 700px; height: 400px; background: #000 }
+    </style>
+  </head>
+
+  <body>
+    <div class="navbar">
+      <div class="navbar-inner">
+        <div class="container">
+          <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>      
+
+
+          <a class="brand" href="/">Seb's blog</a>
+
+
+          <div class="nav-collapse">
+            <ul class="nav">
+              
+              
+              
+
+
+  
+    
+      
+      	
+      	<li><a href="/archive.html">Archive</a></li>
+      	
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/categories.html">Categories</a></li>
+      	
+      
+    
+  
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/tags.html">Tags</a></li>
+      	
+      
+    
+  
+
+
+
+            </ul>
+            <ul class="nav pull-right social visible-desktop">
+              <li class="divider-vertical"></li>
+              
+                <li>
+                  <a href="https://github.com/ssrb" class="zocial github icon" target="_blank">
+                    <span class="hidden-desktop">Github</span>
+                  </a>
+                </li>
+              
+                  
+                                        
+                         
+                                  
+              
+              <li>
+                <a class="zocial icon rss" target="_blank" href="/rss.xml">
+                  <span class="hidden-desktop">ATOM Feed</a>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="content">
+        
+<div class="page-header">
+  <h1>
+    The wave penetration project: energy dissipation by bottom friction 
+    
+  </h1>
+</div>
+
+<div class="row">
+  <div class="span8">
+    
+<p>In this post we upgrade the mild-slope equation we solved previously with a generic energy dissipation term:</p>
+
+<script type="math/tex; mode=display">\nabla\cdot\left( c_p c_g \nabla \eta \right)\, +\, \left(k^2 c_p c_g +i \omega W( \eta )\right) \eta = 0</script>
+
+<p>where <code>\(W( \eta )\)</code> can account for the energy dissipated by:</p>
+
+<ul>
+  <li>bottom friction</li>
+  <li><a href="http://en.wikipedia.org/wiki/Breaking_wave">wave breaking</a></li>
+  <li>…</li>
+</ul>
+
+<p>We experiment with a non-linear energy dissipation model of bottom friction implemented using simple <a href="http://en.wikipedia.org/wiki/Fixed-point_iteration">Picard iteration</a>. We discuss how to optimize the non-linear loop, in particular the assembly on the GPU by using graph coloring techniques.</p>
+
+<p><img src="/assets/lyttelton/patrick-stewart.jpg" alt="Engage" /></p>
+
+<p>Engage !</p>
+
+<!-- more -->
+
+<h2 id="energy-dissipation--bottom-friction">Energy dissipation &amp; Bottom friction</h2>
+
+<h3 id="energy-dissipation">Energy dissipation</h3>
+
+<p>Firstly, to better understand where this <code>\(i \omega W( \eta )\)</code> coefficient comes from, we need to look back at the <a href="https://en.wikipedia.org/wiki/Mild-slope_equation">wikipedia article</a> and consider the time dependent mild-slope equation:</p>
+
+<script type="math/tex; mode=display">\nabla\cdot\left( c_p c_g \nabla \zeta \right)\, +\, \left(k^2 c_p c_g)\right) \zeta = 0</script>
+
+<p>where <code>\(\zeta: (x,y,t) \in \Omega(\mathbb{R} \times \mathbb{R}) \times \mathbb{R}^{+} \mapsto z \in \mathbb{R}\)</code> is the real valued, time dependent free surface elevation.</p>
+
+<p>This equation express an energy conservation law.</p>
+
+<p>Now, if we decide that some amount of energy is lost over time, we can try to model that adding an <code>\(-W \frac{\partial \zeta}{ \partial t}\)</code> term to the time dependent equation.</p>
+
+<p>If, again, we make the assumption that the wave motion is time harmonic, that is</p>
+
+<script type="math/tex; mode=display">\zeta(x,y,t)=\Re\{\eta(x,y)\, e^{-i \omega t} \}</script>
+
+<p>we got</p>
+
+<script type="math/tex; mode=display">-W\frac{\partial \zeta}{\partial t}(x,y,t)=\Re\{i \omega W\, \eta(x,y)\, e^{-i \omega t} \}</script>
+
+<p>wich leads to the updated time harmonic version of the equation.</p>
+
+<p>Note that adding the extra term to the equation changes the shape of the wave and extra care must be taken when formulating the boundary conditions. I won’t discuss it.</p>
+
+<h3 id="bottom-friction">Bottom friction</h3>
+
+<p>A bottom friction energy dissipation model can be found in this <a href="https://www.dropbox.com/s/nlah6da69t3zcfm/CommHydr8402.pdf?dl=0">old paper</a>.</p>
+
+<p>That’s quite involved and all we need to remember in the end is an expression of <code>\(W_f(\eta)\)</code>, the energie dissipated by bottom friction:</p>
+
+<script type="math/tex; mode=display">W_f(\eta) = \frac{8}{3\pi} c_f \frac{|\eta|}{\sinh^3(kh)}</script>
+
+<p>where</p>
+
+<ul>
+  <li><code>\(c_f\)</code> is a friction coeffictient;</li>
+  <li><code>\(k\)</code> is the <a href="http://en.wikipedia.org/wiki/Wavenumber">wave number</a>;</li>
+  <li><code>\(h\)</code> is the bathymetry</li>
+</ul>
+
+<p>We just remark that <code>\(W_f(\eta)\)</code> isn’t linear with respect to <code>\(\eta\)</code>.</p>
+
+<h2 id="picard-iteration">Picard iteration</h2>
+
+<p>Picard iteration is a fixed point iteration method one can use to solve non-linear ordinary or partial differential equations.</p>
+
+<p>The idea is to craft a sequence of solutions to <em>linear</em> PDEs which, we hope, will converge to a solution of the <em>non-linear</em> PDE.</p>
+
+<p>We craft the linear PDEs by evaluating the non-linear coefficient with a guess which is the previous solution in the sequence.</p>
+
+<p>If at some stage the solution is equal to the guess, we have converged and we know we found a solution to the non-linear PDE.</p>
+
+<p>Applying that scheme to the non-linear mild-slope equation we get:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{cases}\eta_{0} = f & , &  f \mbox{ given} \\\ \nabla\cdot\left( c_p c_g \nabla \eta_{n} \right)\, +\, \left(k^2 c_p c_g +i \omega W( \eta_{n-1} )\right) \eta_{n} = 0 & , & n > 1\end{cases} %]]></script>
+
+<p>If for some <code>\(n\)</code> <code>\(\eta_{n} = \eta_{n-1}\)</code>, then we found a solution to the non-linear mild-slope equation.</p>
+
+<p>Here is how that scheme is implemented in <code>C++</code>:</p>
+
+<div class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="k">const</span> <span class="kt">int</span> <span class="n">maxNonLinearLoopIter</span> <span class="o">=</span> <span class="mi">42</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">eta</span><span class="p">(</span><span class="n">mesh</span><span class="o">-&gt;</span><span class="n">_vertices</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span> <span class="mf">0.0</span><span class="p">);</span>
+<span class="c1">// Picard iteration, non-linear loop</span>
+<span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">iter</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">iter</span> <span class="o">&lt;</span> <span class="n">maxNonLinearLoopIter</span><span class="p">;</span> <span class="o">++</span><span class="n">iter</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="n">MildSlopeEquation</span> <span class="n">equation</span><span class="p">;</span>
+	<span class="n">Solver</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">solver</span><span class="p">;</span>
+	<span class="n">solver</span><span class="p">.</span><span class="n">solve</span><span class="p">(</span><span class="n">equation</span><span class="p">.</span><span class="n">discretize</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="n">wave</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">cf</span><span class="p">,</span> <span class="n">eta</span><span class="p">),</span> <span class="n">mesh</span><span class="p">,</span> <span class="n">eta</span><span class="p">);</span>
+<span class="p">}</span></code></pre></div>
+
+<h3 id="optimizing">Optimizing</h3>
+
+<p>We now have a non-linear loop around the solver: it’s important to optimize what’s inside and pre-compute as much as we can out of the non-linear loop.</p>
+
+<p>Since my solver is using <a href="http://www.pardiso-project.org">Pardiso</a> as a backend, it is required that blocks of the linear system are stored using the <a href="https://en.wikipedia.org/wiki/Sparse_matrix">compressed row storage</a> format (“values”, “row ptr”, “col idx”).</p>
+
+<p>The profile of the CRS representation of a linear system only depends on the mesh.</p>
+
+<p>The geometry and the mesh aren’t modified during Picard iteration so that we can precompute once and for all the CRS profile of the linear system, that is precompute the CRS “row ptr” and “col idx” vectors.</p>
+
+<p>The “values” vector will be recomputed each iteration on the GPU.</p>
+
+<p>In order to do so efficiently we also need to remember for each coefficient of the elemetary matrices its position into the “values” vector.</p>
+
+<p>Here is the <code>ocaml</code> code doing all that:</p>
+
+<div class="highlight"><pre><code class="language-ocaml" data-lang="ocaml"><span class="c">(* </span>
+<span class="c">	Computes the CRS &quot;row ptr&quot;, &quot;col ind&quot; as well as a mapping from elementary matrices coefficient to &quot;values&quot; coefficient </span>
+<span class="c">	ts: triangle (v1,v2,v3) list, nv: number of vertices</span>
+<span class="c">*)</span>
+<span class="k">let</span> <span class="n">build_crs_profile</span> <span class="n">ts</span> <span class="n">nv</span> <span class="o">=</span>
+	
+	<span class="k">let</span> <span class="n">rct</span> <span class="o">=</span> <span class="n">build_reverse_connectivity_table</span> <span class="n">ts</span> <span class="n">nv</span> <span class="k">in</span>
+
+	<span class="c">(* Assembles a single row of the linear system *)</span>
+	<span class="k">let</span> <span class="n">do_row</span> <span class="o">~</span><span class="n">init</span> <span class="o">~</span><span class="n">f</span> <span class="n">row</span> <span class="o">=</span>
+		<span class="n">rct</span><span class="o">.(</span><span class="n">row</span><span class="o">)</span> <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">fold</span> <span class="o">~</span><span class="n">init</span> <span class="o">~</span><span class="n">f</span><span class="o">:(</span><span class="k">fun</span> <span class="n">acc</span> <span class="n">ti</span> <span class="o">-&gt;</span>
+			<span class="k">let</span> <span class="n">col0</span><span class="o">,</span> <span class="n">col1</span><span class="o">,</span> <span class="n">col2</span> <span class="o">=</span> <span class="nn">Int32</span><span class="p">.</span><span class="err">(</span><span class="n">to_int_exn</span> <span class="n">ts</span><span class="o">.{</span><span class="n">ti</span><span class="o">,</span><span class="mi">0</span><span class="o">},</span> <span class="n">to_int_exn</span> <span class="n">ts</span><span class="o">.{</span><span class="n">ti</span><span class="o">,</span><span class="mi">1</span><span class="o">},</span> <span class="n">to_int_exn</span> <span class="n">ts</span><span class="o">.{</span><span class="n">ti</span><span class="o">,</span><span class="mi">2</span><span class="o">})</span> <span class="k">in</span>
+			<span class="k">let</span> <span class="n">trow</span> <span class="o">=</span> <span class="k">if</span> <span class="n">col0</span> <span class="o">=</span> <span class="n">row</span> <span class="k">then</span> <span class="mi">0</span> <span class="k">else</span> <span class="k">if</span> <span class="n">col1</span> <span class="o">=</span> <span class="n">row</span> <span class="k">then</span> <span class="mi">1</span> <span class="k">else</span> <span class="mi">2</span> <span class="k">in</span>
+			<span class="k">let</span> <span class="n">do_col</span> <span class="o">=</span> <span class="n">f</span> <span class="n">ti</span> <span class="n">trow</span> <span class="n">row</span> 
+			<span class="k">in</span> <span class="n">acc</span> <span class="o">|&gt;</span> <span class="n">do_col</span> <span class="mi">0</span> <span class="n">col0</span> <span class="o">|&gt;</span> <span class="n">do_col</span> <span class="mi">1</span> <span class="n">col1</span> <span class="o">|&gt;</span> <span class="n">do_col</span> <span class="mi">2</span> <span class="n">col2</span>
+		<span class="o">)</span>	
+	<span class="k">in</span> 
+
+	<span class="c">(* Simulates the assembly in order to count the number of non zero coefficients *)</span>
+	<span class="k">let</span> <span class="n">nnz</span> <span class="o">=</span> 
+		<span class="c">(* color helps us to track already counted coeffs *)</span>
+		<span class="k">let</span> <span class="n">color</span> <span class="o">=</span> <span class="nn">Array</span><span class="p">.</span><span class="n">create</span> <span class="o">~</span><span class="n">len</span><span class="o">:(</span><span class="nn">Array</span><span class="p">.</span><span class="n">length</span> <span class="n">rct</span><span class="o">)</span> <span class="o">(-</span><span class="mi">1</span><span class="o">)</span> <span class="k">in</span>
+		<span class="c">(* &quot;fold&quot; all the rows *)</span>
+		<span class="n">rct</span> <span class="o">|&gt;</span> <span class="nn">Array</span><span class="p">.</span><span class="n">foldi</span> <span class="o">~</span><span class="n">init</span><span class="o">:</span><span class="mi">0</span> <span class="o">~</span><span class="n">f</span><span class="o">:(</span><span class="k">fun</span> <span class="n">row</span> <span class="n">cnt</span> <span class="o">_</span> <span class="o">-&gt;</span>
+			<span class="n">row</span> <span class="o">|&gt;</span> <span class="n">do_row</span> <span class="o">~</span><span class="n">init</span><span class="o">:</span><span class="n">cnt</span> <span class="o">~</span><span class="n">f</span><span class="o">:(</span><span class="k">fun</span> <span class="n">ti</span> <span class="n">trow</span> <span class="n">row</span> <span class="n">tcol</span> <span class="n">col</span> <span class="n">cnt</span> <span class="o">-&gt;</span>
+				<span class="c">(* Do not count coeffs twice *)</span>
+				<span class="k">if</span> <span class="n">color</span><span class="o">.(</span><span class="n">col</span><span class="o">)</span> <span class="o">&lt;</span> <span class="n">row</span> <span class="k">then</span> <span class="o">(</span>
+					<span class="n">color</span><span class="o">.(</span><span class="n">col</span><span class="o">)</span> <span class="o">&lt;-</span> <span class="n">row</span><span class="o">;</span>
+					<span class="n">succ</span> <span class="n">cnt</span>
+				<span class="o">)</span> <span class="k">else</span>
+					<span class="n">cnt</span>
+			<span class="o">)</span>
+		<span class="o">)</span>
+
+	<span class="c">(* Perform the real assembly this time *)</span>
+	<span class="ow">and</span> <span class="n">nv</span> <span class="o">=</span> <span class="nn">Array</span><span class="p">.</span><span class="n">length</span> <span class="n">rct</span> <span class="k">in</span>		
+
+	<span class="c">(* color helps us to track already counted coeffs *)</span>
+	<span class="k">let</span> <span class="n">color</span> <span class="o">=</span> <span class="nn">Array</span><span class="p">.</span><span class="n">create</span> <span class="o">~</span><span class="n">len</span><span class="o">:</span><span class="n">nv</span> <span class="o">(-</span><span class="mi">1</span><span class="o">)</span>
+
+	<span class="c">(* edges helps us to remember triangles linked to an edge *)</span>
+	<span class="ow">and</span> <span class="n">edges</span> <span class="o">=</span> <span class="nn">Array</span><span class="p">.</span><span class="n">create</span> <span class="o">~</span><span class="n">len</span><span class="o">:</span><span class="n">nnz</span> <span class="o">[|(</span><span class="mi">0</span><span class="o">,</span><span class="mi">0</span><span class="o">);</span> <span class="o">(</span><span class="mi">0</span><span class="o">,</span><span class="mi">0</span><span class="o">)|]</span>
+
+	<span class="c">(* The result arrays, colidx will later be converted to a BigArray as BigArray does not provide an in-place sort function *)</span>
+	<span class="ow">and</span> <span class="n">rowptr</span> <span class="o">=</span> <span class="nn">Array1</span><span class="p">.</span><span class="n">create</span> <span class="n">int32</span> <span class="n">c_layout</span> <span class="o">(</span><span class="n">nv</span> <span class="o">+</span> <span class="mi">1</span><span class="o">)</span>
+	<span class="ow">and</span> <span class="n">colidx</span> <span class="o">=</span> <span class="nn">Array</span><span class="p">.</span><span class="n">create</span> <span class="o">~</span><span class="n">len</span><span class="o">:</span><span class="n">nnz</span> <span class="nn">Int32</span><span class="p">.</span><span class="n">zero</span>
+	<span class="ow">and</span> <span class="n">tt</span> <span class="o">=</span> <span class="nn">Array2</span><span class="p">.</span><span class="n">create</span> <span class="n">int32</span> <span class="n">c_layout</span> <span class="o">(</span><span class="nn">Array2</span><span class="p">.</span><span class="n">dim1</span> <span class="n">ts</span><span class="o">)</span> <span class="mi">9</span> <span class="k">in</span>
+
+	<span class="c">(* This sorts the nz column idx of a row before updating rowptr, colidx and tt *)</span>
+	<span class="k">let</span> <span class="n">commit_row</span> <span class="n">rstart</span> <span class="n">rend</span> <span class="o">=</span> 		
+		<span class="nn">Array</span><span class="p">.</span><span class="n">sort</span> <span class="o">~</span><span class="n">pos</span><span class="o">:</span><span class="n">rstart</span> <span class="o">~</span><span class="n">len</span><span class="o">:(</span><span class="n">rend</span> <span class="o">-</span> <span class="n">rstart</span><span class="o">)</span> <span class="o">~</span><span class="n">cmp</span><span class="o">:</span><span class="n">compare</span> <span class="n">colidx</span><span class="o">;</span>
+		<span class="k">for</span> <span class="n">pos</span> <span class="o">=</span> <span class="n">rstart</span> <span class="k">to</span> <span class="o">(</span><span class="n">rend</span><span class="o">-</span><span class="mi">1</span><span class="o">)</span> <span class="k">do</span>
+			<span class="k">let</span> <span class="n">col</span> <span class="o">=</span> <span class="nn">Int32</span><span class="p">.</span><span class="n">to_int_exn</span> <span class="n">colidx</span><span class="o">.(</span><span class="n">pos</span><span class="o">)</span> 
+			<span class="ow">and</span> <span class="n">pos&#39;</span> <span class="o">=</span> <span class="nn">Int32</span><span class="p">.</span><span class="n">of_int_exn</span> <span class="n">pos</span> <span class="k">in</span>
+			<span class="k">let</span> <span class="n">t0</span><span class="o">,</span> <span class="n">idx0</span> <span class="o">=</span> <span class="n">edges</span><span class="o">.(</span><span class="n">col</span><span class="o">).(</span><span class="mi">0</span><span class="o">)</span>
+			<span class="ow">and</span> <span class="n">t1</span><span class="o">,</span> <span class="n">idx1</span> <span class="o">=</span> <span class="n">edges</span><span class="o">.(</span><span class="n">col</span><span class="o">).(</span><span class="mi">1</span><span class="o">)</span> <span class="k">in</span>
+			<span class="n">tt</span><span class="o">.{</span><span class="n">t0</span><span class="o">,</span> <span class="n">idx0</span><span class="o">}</span> <span class="o">&lt;-</span> <span class="n">pos&#39;</span><span class="o">;</span>
+			<span class="n">tt</span><span class="o">.{</span><span class="n">t1</span><span class="o">,</span> <span class="n">idx1</span><span class="o">}</span> <span class="o">&lt;-</span> <span class="n">pos&#39;</span>
+		<span class="k">done</span>
+	<span class="k">in</span>
+
+	<span class="c">(* &quot;fold&quot; all the rows once again *)</span>
+ 	<span class="k">let</span> <span class="n">last</span> <span class="o">=</span> <span class="n">rct</span> <span class="o">|&gt;</span> <span class="nn">Array</span><span class="p">.</span><span class="n">foldi</span> <span class="o">~</span><span class="n">init</span><span class="o">:</span><span class="mi">0</span> <span class="o">~</span><span class="n">f</span><span class="o">:(</span><span class="k">fun</span> <span class="n">row</span> <span class="n">pos</span> <span class="o">_</span> <span class="o">-&gt;</span>		
+		<span class="k">let</span> <span class="n">pos&#39;</span> <span class="o">=</span> <span class="n">row</span> <span class="o">|&gt;</span> <span class="n">do_row</span> <span class="o">~</span><span class="n">init</span><span class="o">:</span><span class="n">pos</span> <span class="o">~</span><span class="n">f</span><span class="o">:(</span><span class="k">fun</span> <span class="n">ti</span> <span class="n">trow</span> <span class="n">row</span> <span class="n">tcol</span> <span class="n">col</span> <span class="n">pos</span> <span class="o">-&gt;</span>
+			<span class="k">let</span> <span class="n">idx</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">trow</span> <span class="o">+</span> <span class="n">tcol</span> <span class="k">in</span>
+			<span class="k">if</span> <span class="n">color</span><span class="o">.(</span><span class="n">col</span><span class="o">)</span> <span class="o">&lt;</span> <span class="n">row</span> <span class="k">then</span> <span class="o">(</span>
+				<span class="c">(* We found the first edge going from row to col, </span>
+<span class="c">					this could be the only one if it&#39;s a boundary edge *)</span>
+				<span class="n">color</span><span class="o">.(</span><span class="n">col</span><span class="o">)</span> <span class="o">&lt;-</span> <span class="n">row</span><span class="o">;</span>
+				<span class="n">edges</span><span class="o">.(</span><span class="n">col</span><span class="o">).(</span><span class="mi">0</span><span class="o">)</span> <span class="o">&lt;-</span> <span class="o">(</span><span class="n">ti</span><span class="o">,</span> <span class="n">idx</span><span class="o">);</span>
+				<span class="n">edges</span><span class="o">.(</span><span class="n">col</span><span class="o">).(</span><span class="mi">1</span><span class="o">)</span> <span class="o">&lt;-</span> <span class="o">(</span><span class="n">ti</span><span class="o">,</span> <span class="n">idx</span><span class="o">);</span>
+				<span class="n">colidx</span><span class="o">.(</span><span class="n">pos</span><span class="o">)</span> <span class="o">&lt;-</span> <span class="nn">Int32</span><span class="p">.</span><span class="n">of_int_exn</span> <span class="n">col</span><span class="o">;</span>
+				<span class="n">succ</span> <span class="n">pos</span>
+			<span class="o">)</span> <span class="k">else</span> <span class="o">(</span>
+				<span class="c">(* there is a second edge going from row to col *)</span>
+				<span class="n">edges</span><span class="o">.(</span><span class="n">col</span><span class="o">).(</span><span class="mi">1</span><span class="o">)</span> <span class="o">&lt;-</span> <span class="o">(</span><span class="n">ti</span><span class="o">,</span> <span class="n">idx</span><span class="o">);</span>
+				<span class="n">pos</span>
+			<span class="o">)</span>
+		<span class="o">)</span> 
+		<span class="k">in</span>
+
+		<span class="c">(* columns idx of the current row starts at position pos and ends at position pos&#39; - 1 *)</span>
+		<span class="n">rowptr</span><span class="o">.{</span><span class="n">row</span><span class="o">}</span> <span class="o">&lt;-</span> <span class="nn">Int32</span><span class="p">.</span><span class="n">of_int_exn</span> <span class="n">pos</span><span class="o">;</span>
+		<span class="n">commit_row</span> <span class="n">pos</span> <span class="n">pos&#39;</span><span class="o">;</span>
+		<span class="n">pos&#39;</span>
+	<span class="o">)</span>
+	<span class="k">in</span> <span class="n">rowptr</span><span class="o">.{</span><span class="n">nv</span><span class="o">}</span> <span class="o">&lt;-</span> <span class="nn">Int32</span><span class="p">.</span><span class="n">of_int_exn</span> <span class="n">last</span><span class="o">;</span>
+
+	<span class="o">(</span><span class="n">rowptr</span><span class="o">,</span> <span class="o">(</span><span class="nn">Array1</span><span class="p">.</span><span class="n">of_array</span> <span class="n">int32</span> <span class="n">c_layout</span> <span class="n">colidx</span><span class="o">),</span> <span class="n">tt</span><span class="o">)</span>
+<span class="o">;;</span></code></pre></div>
+
+<h2 id="gpu-assembly-revisited">GPU assembly revisited</h2>
+
+<p>The previous version of my assembler was an hybrid GPU+CPU assembler:</p>
+
+<ul>
+  <li>elementary 3x3 matrices were computed on the GPU;</li>
+  <li>assembling elementary matrices into a global linear system was done on the CPU</li>
+</ul>
+
+<p>I will describe a method to perform the global assembly on the GPU too.</p>
+
+<h3 id="data-race">Data race</h3>
+
+<p>Here is an illustration of the data race happening when performing naive global assembly on the GPU:</p>
+
+<p><img src="/assets/lyttelton/datarace.png" alt="Data race" /></p>
+
+<p>We can’t sum contributions without synchronization. On the other hand if we synchronize, we won’t get good performance.</p>
+
+<h3 id="chordal-graph-and-optimal-coloring">Chordal graph and optimal coloring</h3>
+
+<p>In this section I will describe a method to avoid data race on the GPU based on graph coloring.</p>
+
+<h4 id="triangle-graph">Triangle graph</h4>
+
+<p>In order to avoid data race between GPU threads summing contributions to a same coefficient in the global linear system, we need to make sure that not two threads are processing simultanously adjacent triangles.</p>
+
+<p>Two triangles are adjacent when they share either a single vertex or a single edge (two vertices).</p>
+
+<p>It’s the same as saying that not two vertices of the triangle graph (the <a href="http://mathworld.wolfram.com/DualGraph.html">dual graph</a> of the mesh) are adjacent.</p>
+
+<p>To build the dual graph of the mesh, first build a reverse connectivity table (a mapping from vertex to triangles)</p>
+
+<div class="highlight"><pre><code class="language-ocaml" data-lang="ocaml"><span class="c">(* ts: triangle (v1,v2,v3) list, nv: number of vertices *)</span>
+<span class="k">let</span> <span class="n">build_reverse_connectivity_table</span> <span class="n">ts</span> <span class="n">nv</span> <span class="o">=</span> 
+	<span class="k">let</span> <span class="n">rct</span> <span class="o">=</span> <span class="nn">Array</span><span class="p">.</span><span class="n">create</span> <span class="o">~</span><span class="n">len</span><span class="o">:</span><span class="n">nv</span> <span class="bp">[]</span> <span class="k">in</span>
+	<span class="nn">List</span><span class="p">.</span><span class="n">iteri</span> <span class="n">ts</span> <span class="o">~</span><span class="n">f</span><span class="o">:(</span><span class="k">fun</span> <span class="n">t</span> <span class="o">(</span><span class="n">v1</span><span class="o">,</span><span class="n">v2</span><span class="o">,</span><span class="n">v3</span><span class="o">)</span> <span class="o">-&gt;</span>	
+		<span class="n">rct</span><span class="o">.(</span><span class="n">v1</span><span class="o">)</span> <span class="o">&lt;-</span> <span class="n">t</span><span class="o">::</span><span class="n">rct</span><span class="o">.(</span><span class="n">v1</span><span class="o">);</span> 
+		<span class="n">rct</span><span class="o">.(</span><span class="n">v2</span><span class="o">)</span> <span class="o">&lt;-</span> <span class="n">t</span><span class="o">::</span><span class="n">rct</span><span class="o">.(</span><span class="n">v2</span><span class="o">);</span> 
+		<span class="n">rct</span><span class="o">.(</span><span class="n">v3</span><span class="o">)</span> <span class="o">&lt;-</span> <span class="n">t</span><span class="o">::</span><span class="n">rct</span><span class="o">.(</span><span class="n">v3</span><span class="o">));</span>
+	<span class="n">rct</span>
+<span class="o">;;</span></code></pre></div>
+
+<p>and then use it to efficiently connect adjacent triangles in the dual graph:</p>
+
+<div class="highlight"><pre><code class="language-ocaml" data-lang="ocaml"><span class="k">let</span> <span class="n">build_triangulation_dual_graph</span> <span class="n">ts</span> <span class="n">nv</span> <span class="o">=</span> 	
+	<span class="k">let</span> <span class="n">graph</span> <span class="o">=</span> <span class="nn">Array</span><span class="p">.</span><span class="n">create</span> <span class="o">~</span><span class="n">len</span><span class="o">:(</span><span class="nn">List</span><span class="p">.</span><span class="n">length</span> <span class="n">ts</span><span class="o">)</span> <span class="bp">[]</span> <span class="k">in</span>
+	<span class="k">let</span> <span class="n">rct</span> <span class="o">=</span> <span class="n">build_reverse_connectivity_table</span> <span class="n">ts</span> <span class="n">nv</span> <span class="k">in</span>
+	<span class="nn">List</span><span class="p">.</span><span class="n">iteri</span> <span class="n">ts</span> <span class="o">~</span><span class="n">f</span><span class="o">:(</span><span class="k">fun</span> <span class="n">t</span> <span class="o">(</span><span class="n">v1</span><span class="o">,</span><span class="n">v2</span><span class="o">,</span><span class="n">v3</span><span class="o">)</span> <span class="o">-&gt;</span>
+		<span class="n">graph</span><span class="o">.(</span><span class="n">t</span><span class="o">)</span> <span class="o">&lt;-</span> <span class="nn">List</span><span class="p">.</span><span class="n">dedup</span> <span class="o">(</span><span class="n">rct</span><span class="o">.(</span><span class="n">v1</span><span class="o">)</span> <span class="o">@</span> <span class="n">rct</span><span class="o">.(</span><span class="n">v2</span><span class="o">)</span> <span class="o">@</span> <span class="n">rct</span><span class="o">.(</span><span class="n">v3</span><span class="o">)));</span>
+	<span class="n">graph</span>
+<span class="o">;;</span></code></pre></div>
+
+<h4 id="chordal-graph-coloring">Chordal graph coloring</h4>
+
+<p>A <a href="https://en.wikipedia.org/wiki/Chordal_graph">chordal graph</a> is one which every induced cycle should have at most three vertices.</p>
+
+<p>By construction, the <a href="https://en.wikipedia.org/wiki/Delaunay_triangulation">Delaunay triangulation</a> of a <em>convex</em> domain is chordal.</p>
+
+<p>Is the dual graph of a planar chordal graph chordal ?</p>
+
+<p>I think it is (maybe suppose it’s not, and check that it implies that the primal graph wasn’t chordal in a first place ?).</p>
+
+<p>A nice property of chordal graph is that it can be <a href="https://en.wikipedia.org/wiki/Graph_coloring">optimaly colored</a> in linear time by <a href="https://en.wikipedia.org/wiki/Greedy_coloring">greedy coloring</a> vertices following a <a href="https://en.wikipedia.org/wiki/Perfectly_orderable_graph">perfect elimiation order</a>.</p>
+
+<p>The perfect elimination order is computed using a <a href="https://en.wikipedia.org/wiki/Lexicographic_breadth-first_search">lexicographic breadth-first search</a>.</p>
+
+<p>Optimaly colored means that not two adjacent triangles in the mesh will have the same color.
+If the GPU threads process triangles with the same color simultanously, we know that there won’t be any data race as all these triangles do not share vertices.</p>
+
+<p>Here is how you color the graph using a priority queue:</p>
+
+<div class="highlight"><pre><code class="language-ocaml" data-lang="ocaml"><span class="k">let</span> <span class="n">build_perfect_elemination_ordering</span> <span class="n">graph</span> <span class="o">=</span>	
+	<span class="k">let</span> <span class="n">compare</span> <span class="o">(</span><span class="n">p1</span><span class="o">,_)</span> <span class="o">(</span><span class="n">p2</span><span class="o">,_)</span> <span class="o">=</span> <span class="n">compare</span> <span class="n">p2</span> <span class="n">p1</span> <span class="k">in</span>
+	<span class="k">let</span> <span class="n">heap</span> <span class="o">=</span> <span class="nn">Heap</span><span class="p">.</span><span class="nn">Removable</span><span class="p">.</span><span class="n">create</span> <span class="o">~</span><span class="n">min_size</span><span class="o">:(</span><span class="nn">Array</span><span class="p">.</span><span class="n">length</span> <span class="n">graph</span><span class="o">)</span> <span class="o">~</span><span class="n">cmp</span><span class="o">:</span><span class="n">compare</span> <span class="bp">()</span> <span class="k">in</span>
+	<span class="k">let</span> <span class="n">elems</span> <span class="o">=</span> <span class="nn">Array</span><span class="p">.</span><span class="n">mapi</span> <span class="o">(</span><span class="k">fun</span> <span class="n">v</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="nn">Heap</span><span class="p">.</span><span class="nn">Removable</span><span class="p">.</span><span class="n">add_removable</span> <span class="n">heap</span> <span class="o">(</span><span class="mi">0</span><span class="o">,</span><span class="n">v</span><span class="o">))</span> <span class="n">graph</span> <span class="k">in</span>	
+	<span class="k">let</span> <span class="k">rec</span> <span class="n">aux</span> <span class="n">peo</span> <span class="o">=</span> 
+		<span class="k">match</span> <span class="nn">Heap</span><span class="p">.</span><span class="nn">Removable</span><span class="p">.</span><span class="n">pop</span> <span class="n">heap</span> <span class="k">with</span>
+		<span class="o">|</span> <span class="nc">Some</span> <span class="o">(</span><span class="n">p</span><span class="o">,</span><span class="n">v</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">iter</span> <span class="n">graph</span><span class="o">.(</span><span class="n">v</span><span class="o">)</span> <span class="o">~</span><span class="n">f</span><span class="o">:(</span><span class="k">fun</span> <span class="n">v&#39;</span> <span class="o">-&gt;</span> 
+				<span class="k">try</span>					
+					<span class="k">let</span> <span class="o">(</span><span class="n">p&#39;</span><span class="o">,_)</span> <span class="o">=</span> <span class="nn">Heap</span><span class="p">.</span><span class="nn">Removable</span><span class="p">.</span><span class="nn">Elt</span><span class="p">.</span><span class="n">value_exn</span> <span class="n">elems</span><span class="o">.(</span><span class="n">v&#39;</span><span class="o">)</span> <span class="k">in</span>
+					<span class="n">elems</span><span class="o">.(</span><span class="n">v&#39;</span><span class="o">)</span> <span class="o">&lt;-</span> <span class="nn">Heap</span><span class="p">.</span><span class="nn">Removable</span><span class="p">.</span><span class="n">update</span> <span class="n">heap</span> <span class="n">elems</span><span class="o">.(</span><span class="n">v&#39;</span><span class="o">)</span> <span class="o">(</span><span class="n">succ</span> <span class="n">p&#39;</span><span class="o">,</span> <span class="n">v&#39;</span><span class="o">)</span>
+				<span class="k">with</span>
+				<span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">()</span><span class="o">;</span>
+			<span class="o">);</span>
+			<span class="n">aux</span> <span class="o">(</span><span class="n">v</span><span class="o">::</span><span class="n">peo</span><span class="o">)</span>
+		<span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">rev</span> <span class="n">peo</span>
+	<span class="k">in</span> 
+	<span class="n">aux</span> <span class="bp">[]</span>
+<span class="o">;;</span>
+
+<span class="k">let</span> <span class="n">do_greedy_coloring</span> <span class="n">graph</span> <span class="n">ordering</span> <span class="o">=</span>
+	<span class="k">let</span> <span class="n">n</span> <span class="o">=</span> <span class="nn">Array</span><span class="p">.</span><span class="n">length</span> <span class="n">graph</span> <span class="k">in</span> 
+	<span class="k">let</span> <span class="n">colors</span> <span class="o">=</span> <span class="nn">Array</span><span class="p">.</span><span class="n">create</span> <span class="o">~</span><span class="n">len</span><span class="o">:</span><span class="n">n</span> <span class="n">n</span> <span class="k">in</span>
+	<span class="k">let</span> <span class="n">perfect_color</span> <span class="n">v</span> <span class="o">=</span>
+		<span class="k">let</span> <span class="k">rec</span> <span class="n">aux</span> <span class="n">color</span> <span class="o">=</span> <span class="k">function</span>
+			<span class="o">|</span> <span class="n">c</span><span class="o">::</span><span class="n">cs&#39;</span> <span class="o">-&gt;</span> <span class="k">if</span> <span class="n">color</span> <span class="o">&lt;</span> <span class="n">c</span> <span class="k">then</span> <span class="n">color</span> <span class="k">else</span> <span class="n">aux</span> <span class="o">(</span><span class="n">succ</span> <span class="n">color</span><span class="o">)</span> <span class="n">cs&#39;</span>
+			<span class="o">|</span> <span class="bp">[]</span> <span class="o">-&gt;</span> <span class="n">color</span>
+		<span class="k">in</span> <span class="n">graph</span><span class="o">.(</span><span class="n">v</span><span class="o">)</span> <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">~</span><span class="n">f</span><span class="o">:(</span><span class="k">fun</span> <span class="n">v</span> <span class="o">-&gt;</span> <span class="n">colors</span><span class="o">.(</span><span class="n">v</span><span class="o">))</span> <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">sort</span> <span class="o">~</span><span class="n">cmp</span><span class="o">:</span><span class="n">compare</span> <span class="o">|&gt;</span> <span class="n">aux</span> <span class="mi">0</span>
+	<span class="k">in</span>
+	<span class="nn">List</span><span class="p">.</span><span class="n">iter</span> <span class="n">ordering</span> <span class="o">~</span><span class="n">f</span><span class="o">:(</span><span class="k">fun</span> <span class="n">v</span> <span class="o">-&gt;</span> 	
+		<span class="n">colors</span><span class="o">.(</span><span class="n">v</span><span class="o">)</span> <span class="o">&lt;-</span> <span class="n">perfect_color</span> <span class="n">v</span>
+	<span class="o">);</span>
+	<span class="n">colors</span>
+<span class="o">;;</span>
+
+<span class="k">let</span> <span class="n">graph</span> <span class="o">=</span> <span class="n">build_triangulation_dual_graph</span> <span class="n">ts</span> <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">length</span> <span class="n">vs</span><span class="o">)</span>
+<span class="k">let</span> <span class="n">ordering</span> <span class="o">=</span> <span class="n">build_perfect_elemination_ordering</span> <span class="n">graph</span>
+<span class="k">let</span> <span class="n">perfect_coloring</span> <span class="o">=</span> <span class="n">do_greedy_coloring</span> <span class="n">graph</span> <span class="n">ordering</span></code></pre></div>
+
+<p>Here is the Lyttelton test mesh colored using this algorithm. It uses 9 colors.</p>
+
+<iframe width="850" height="700" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="/assets/lyttelton/color.html" style="border: 1px solid black">unwantedtext</iframe>
+<p><br /><small><a href="/assets/lyttelton/color.html">View Larger Map</a></small></p>
+
+<h3 id="improving-the-gpu-assembly">Improving the GPU assembly</h3>
+
+<p>Updating the GPU code to take advantage of the coloring is easy enough. All we need to do now is call the assembly kernel as many times as there are colors.</p>
+
+<p>A GPU thread will only sum contributions of its triangle if it has the requested color:</p>
+
+<p>Host code:</p>
+
+<div class="highlight"><pre><code class="language-cuda" data-lang="cuda"><span class="c1">// Coloring computed by the greedy coloring algorithm</span>
+<span class="n">device_vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">colorsOnGpu</span><span class="p">(</span><span class="n">colors</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">colors</span><span class="p">[</span><span class="n">nt</span><span class="p">]);</span>
+
+<span class="c1">// tt is the mapping from local triangle element coefficient index</span>
+<span class="c1">// to the index in the global linear system compressed row storage values</span>
+<span class="n">device_vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">ttOnGpu</span><span class="p">(</span><span class="n">tt</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">tt</span><span class="p">[</span><span class="mi">9</span> <span class="o">*</span> <span class="n">nt</span><span class="p">]);</span>
+
+<span class="c1">// Compressed row storage values on the GPU, initialized to 0 before summing</span>
+<span class="n">device_vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">result</span><span class="p">(</span><span class="n">rowptr</span><span class="p">[</span><span class="n">nv</span><span class="p">]);</span>
+<span class="n">fill</span><span class="p">(</span><span class="n">result</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">result</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="mf">0.</span><span class="p">);</span>
+
+<span class="c1">// How many colors ?</span>
+<span class="n">device_vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;::</span><span class="n">iterator</span> <span class="n">maxIter</span> <span class="o">=</span> <span class="n">max_element</span><span class="p">(</span><span class="n">colorsOnGpu</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">colorsOnGpu</span><span class="p">.</span><span class="n">end</span><span class="p">());</span>
+<span class="kt">int</span> <span class="n">nbColor</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="o">*</span><span class="n">maxIter</span><span class="p">;</span>
+<span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">color</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">color</span> <span class="o">&lt;</span> <span class="n">nbColor</span><span class="p">;</span> <span class="o">++</span><span class="n">color</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="c1">// Only assemble triangles with that color</span>
+	<span class="n">Assemble</span><span class="o">&lt;&lt;&lt;</span><span class="n">nbBlock</span><span class="p">,</span> <span class="n">trianglesPerBlock</span><span class="o">&gt;&gt;&gt;</span><span class="p">(</span> 
+	  <span class="n">coeffsOnGpu</span><span class="p">,</span>
+	  <span class="n">colorsOnGpu</span><span class="p">,</span>
+	  <span class="n">ttOnGpu</span><span class="p">,</span>
+	  <span class="n">result</span><span class="p">,</span>
+	  <span class="n">color</span>
+	<span class="p">);</span>
+<span class="p">}</span>
+<span class="n">copy</span><span class="p">(</span><span class="n">coeffsOnGpu</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">coeffsOnGpu</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="n">coeffs</span><span class="p">);</span></code></pre></div>
+
+<p>Device code:</p>
+
+<div class="highlight"><pre><code class="language-cuda" data-lang="cuda"><span class="kr">__global__</span>
+  <span class="kt">void</span> <span class="nf">Assemble</span><span class="p">(</span>
+    <span class="k">const</span> <span class="n">KernelArray</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">coeffs</span><span class="p">,</span> 
+    <span class="k">const</span> <span class="n">KernelArray</span><span class="o">&lt;</span><span class="kt">color_t</span><span class="o">&gt;</span> <span class="n">colors</span><span class="p">,</span> 
+    <span class="k">const</span> <span class="n">KernelArray</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">tt</span><span class="p">,</span> 
+    <span class="n">KernelArray</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">result</span><span class="p">,</span>
+    <span class="kt">color_t</span> <span class="n">color</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">const</span> <span class="kt">int</span> <span class="n">myTriangleId</span> <span class="o">=</span> <span class="nb">blockIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="nb">blockDim</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="nb">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">myTriangleId</span> <span class="o">&lt;</span> <span class="n">colors</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="n">colors</span><span class="p">[</span><span class="n">myTriangleId</span><span class="p">]</span> <span class="o">==</span> <span class="n">color</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">const</span> <span class="kt">int</span> <span class="o">*</span><span class="n">mytt</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">tt</span><span class="p">[</span><span class="mi">9</span> <span class="o">*</span> <span class="n">myTriangleId</span><span class="p">];</span>
+      <span class="k">const</span> <span class="kt">float</span> <span class="o">*</span><span class="n">myCoeffs</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">coeffs</span><span class="p">[</span><span class="mi">9</span> <span class="o">*</span> <span class="n">myTriangleId</span><span class="p">];</span>
+      <span class="n">result</span><span class="p">[</span><span class="n">mytt</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">myCoeffs</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+      <span class="n">result</span><span class="p">[</span><span class="n">mytt</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">myCoeffs</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+      <span class="n">result</span><span class="p">[</span><span class="n">mytt</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">myCoeffs</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+      <span class="n">result</span><span class="p">[</span><span class="n">mytt</span><span class="p">[</span><span class="mi">3</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">myCoeffs</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+      <span class="n">result</span><span class="p">[</span><span class="n">mytt</span><span class="p">[</span><span class="mi">4</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">myCoeffs</span><span class="p">[</span><span class="mi">4</span><span class="p">];</span>
+      <span class="n">result</span><span class="p">[</span><span class="n">mytt</span><span class="p">[</span><span class="mi">5</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">myCoeffs</span><span class="p">[</span><span class="mi">5</span><span class="p">];</span>
+      <span class="n">result</span><span class="p">[</span><span class="n">mytt</span><span class="p">[</span><span class="mi">6</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">myCoeffs</span><span class="p">[</span><span class="mi">6</span><span class="p">];</span>
+      <span class="n">result</span><span class="p">[</span><span class="n">mytt</span><span class="p">[</span><span class="mi">7</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">myCoeffs</span><span class="p">[</span><span class="mi">7</span><span class="p">];</span>
+      <span class="n">result</span><span class="p">[</span><span class="n">mytt</span><span class="p">[</span><span class="mi">8</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">myCoeffs</span><span class="p">[</span><span class="mi">8</span><span class="p">];</span>
+    <span class="p">}</span>
+  <span class="p">}</span></code></pre></div>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<ul>
+  <li>My <code>C++</code> solver for the non-linear mild-slope equation can be found on my <a href="https://github.com/ssrb/ssrb.github.com/tree/master/assets/lyttelton/BabyHares">github</a>;</li>
+  <li>The <code>ocaml</code>/<code>CUDA</code> assembler based on graph coloring can be found on my <a href="https://github.com/ssrb/ssrb.github.com/tree/master/assets/hpc_in_ml">github</a></li>
+</ul>
+
+<p>This method is easy enough to implement and can be applied to other type of accelerator such as the Xeon Phi.</p>
+
+<p>There exist other parallel FEM assembly alogrithms targetting massively parallel architectures that I will try to implement.</p>
+
+<p>My main references were:</p>
+
+<ul>
+  <li><a href="http://mc.stanford.edu/cgi-bin/images/e/e1/Darve_FEM_GPU_2009.pdf">Assembly of Finite Element Methods on Graphics Processors</a>, By Cris Cecka, Adrian J. Lew and E. Darve</li>
+  <li><a href="http://arxiv.org/pdf/1305.3122.pdf">An efficient way to perform the assembly of finite element matrices in Matlab and Octave</a>, By
+François Cuvelier, Caroline Japhet and Gilles Scarella</li>
+  <li><a href="http://dl.acm.org/citation.cfm?id=1179">Simple linear-time algorithms to test chordality of graphs, test acyclicity of hypergraphs and selectively reduce acyclic hypergraphs</a> by Robert E. Tarjan and Mihalis Yannakakis</li>
+  <li><a href="https://en.wikipedia.org/wiki/Chordal_graph">Wikipedia</a></li>
+</ul>
+
+<!-- http://cass-mt.pnnl.gov/docs/ia3-2013/2-1.pdf -->
+
+    <hr>
+    <div class="pagination btn-group">
+      
+        <a class="btn prev" href="/hpc/2015/04/17/cooling-down-the-xeon-phi-sku31S1P" title="Cooling Down The Xeon Phi SKU 31S1P">&larr; Previous</a>
+      
+        <a class="btn" href="/archive.html">Archive</a>
+      
+        <a class="btn next" href="/computer%20graphics/2015/11/16/sci-ficoastal-scene" title="Sci-Fi/Coastal scene">Next &rarr;</a>
+      
+    </div>
+    <hr>
+    
+
+
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_developer = 1;
+    var disqus_shortname = 'ssrb'; // required: replace example with your forum shortname
+    
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+
+
+  </div>
+  
+  <div class="span4">
+    <section>
+      <h4>Published</h4>
+      <div class="date"><span>28 April 2015</span></div>
+    </section>
+    
+      <section>
+        <h4>Category</h4>
+        <span class="category">
+          Numerical methods
+        </span>
+      </section>
+         
+    
+      <section>
+        <h4>Tags</h4>
+        <ul class="tag_box">
+          
+          
+
+
+  
+     
+    	<li><a href="/tags.html#mathematics-ref">mathematics <span>7</span></a></li>
+     
+    	<li><a href="/tags.html#parallel computing-ref">parallel computing <span>7</span></a></li>
+     
+    	<li><a href="/tags.html#numerical hydraulics-ref">numerical hydraulics <span>4</span></a></li>
+    
+  
+
+
+
+        </ul>
+      </section>
+             
+  </div>
+</div>
+
+
+      </div>
+
+      <footer>
+        <p>&copy; 2018 Sébastien Bigot
+          with help from <a href="http://jekyllbootstrap.com" target="_blank" title="The Definitive Jekyll Blogging Framework">Jekyll Bootstrap</a>
+          and <a href="http://github.com/dhulihan/hooligan" target="_blank">The Hooligan Theme</a>
+        </p>
+      </footer>
+    </div> <!-- /container -->
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="/assets/themes/hooligan/js/jquery.min.js"><\/script>')</script>
+    <script src="/assets/themes/hooligan/bootstrap/js/bootstrap.min.js"></script>
+    
+    
+    
+  </body>
+</html>
+

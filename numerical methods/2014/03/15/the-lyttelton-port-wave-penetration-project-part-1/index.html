@@ -1,0 +1,498 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>
+      
+        The Lyttelton port wave penetration project: Part 1 - 
+      
+      Seb's blog
+    </title>
+    <meta name="description" content="">
+    <meta name="author" content="Sébastien Bigot">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+
+    <link href="/assets/themes/hooligan/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/themes/hooligan/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">    
+    <link rel="stylesheet" type="text/css" href="/assets/themes/hooligan/css-social-buttons/css/zocial.stripped.css">
+    <link href="/assets/themes/hooligan/css/pygments.css" rel="stylesheet" type="text/css" media="all">
+    <link href="/assets/themes/hooligan/css/darkstrap.css" rel="stylesheet" type="text/css" media="all">    
+    <link href="/assets/themes/hooligan/css/style.css?body=1" rel="stylesheet" type="text/css" media="all">
+
+    
+    <!-- fav and touch icons -->
+  <!-- Update these with your own images
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
+  -->
+
+    <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      TeX: { equationNumbers: { autoNumber: "AMS" } },
+        tex2jax: {
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      }
+    });
+    MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for(i=0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+    </script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    </script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.js">
+    </script>
+    <script type="text/javascript" src="/galleria/galleria-1.3.3.min.js">
+    </script>
+    <style>
+      .galleria{ width: 700px; height: 400px; background: #000 }
+    </style>
+  </head>
+
+  <body>
+    <div class="navbar">
+      <div class="navbar-inner">
+        <div class="container">
+          <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>      
+
+
+          <a class="brand" href="/">Seb's blog</a>
+
+
+          <div class="nav-collapse">
+            <ul class="nav">
+              
+              
+              
+
+
+  
+    
+      
+      	
+      	<li><a href="/archive.html">Archive</a></li>
+      	
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/categories.html">Categories</a></li>
+      	
+      
+    
+  
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/tags.html">Tags</a></li>
+      	
+      
+    
+  
+
+
+
+            </ul>
+            <ul class="nav pull-right social visible-desktop">
+              <li class="divider-vertical"></li>
+              
+                <li>
+                  <a href="https://github.com/ssrb" class="zocial github icon" target="_blank">
+                    <span class="hidden-desktop">Github</span>
+                  </a>
+                </li>
+              
+                  
+                                        
+                         
+                                  
+              
+              <li>
+                <a class="zocial icon rss" target="_blank" href="/rss.xml">
+                  <span class="hidden-desktop">ATOM Feed</a>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="content">
+        
+<div class="page-header">
+  <h1>
+    The Lyttelton port wave penetration project: Part 1 
+    
+  </h1>
+</div>
+
+<div class="row">
+  <div class="span8">
+    
+<p>In this series of mini-posts, I will try to create a wave penetration simulator, a baby version of <a href="http://www.svasek.com/modelling/hares.html">HARES</a>.</p>
+
+<p>For this kickoff post I will focus on retrieving the <a href="http://www.lpc.co.nz">Lyttelton port</a> geometry, generate a mesh, partition it into more than two subdomains (5 for example)
+and modify the Perl scripts we used in <a href="/numerical%20methods/2013/10/22/the-schur-complement-method">the first Schur complement post</a> in order to deal with many subdomains. I will also demonstrate how we can use the 
+<a href="https://developers.google.com/maps/documentation/javascript/tutorial">Google Maps JavaScript API</a>, the <a href="http://www.openstreetmap.org/#map=16/-43.6075/172.7155">OpenStreetMap</a> tiles as well as <a href="https://developer.mozilla.org/en-US/docs/Web/WebGL">WebGL</a> to display the mesh and the sudomains.</p>
+
+<!-- more -->
+
+<h2 id="retrieving-the-port-geometry">Retrieving the port geometry</h2>
+
+<h3 id="raw-data">Raw data</h3>
+
+<p>I will retrieve the Lyttelton port geometry from the OSM data using the <a href="http://wiki.openstreetmap.org/wiki/Overpass_API">Overpass API</a> and taking advantage 
+of the <a href="http://wiki.openstreetmap.org/wiki/Coastline">coastline tag</a>.</p>
+
+<p>Here is the query I’m using the get the coastline nearby the Lyttelton port:</p>
+
+<div class="highlight"><pre><code class="language-xml" data-lang="xml"><span class="lineno"> 1</span> <span class="nt">&lt;osm-script</span> <span class="na">output=</span><span class="s">&quot;xml&quot;</span><span class="nt">&gt;</span>
+<span class="lineno"> 2</span>   <span class="nt">&lt;query</span> <span class="na">type=</span><span class="s">&quot;way&quot;</span><span class="nt">&gt;</span>
+<span class="lineno"> 3</span>    <span class="nt">&lt;has-kv</span> <span class="na">k=</span><span class="s">&quot;natural&quot;</span> <span class="na">v=</span><span class="s">&quot;coastline&quot;</span><span class="nt">/&gt;</span>
+<span class="lineno"> 4</span>    <span class="nt">&lt;bbox-query</span>
+<span class="lineno"> 5</span>     <span class="na">w=</span><span class="s">&quot;172.70914950376547&quot;</span> <span class="na">s=</span><span class="s">&quot;-43.611191483302505&quot;</span>
+<span class="lineno"> 6</span>     <span class="na">e=</span><span class="s">&quot;172.72557535177208&quot;</span> <span class="na">n=</span><span class="s">&quot;-43.60308883447627&quot;</span><span class="nt">/&gt;</span>
+<span class="lineno"> 7</span>   <span class="nt">&lt;/query&gt;</span>
+<span class="lineno"> 8</span>  <span class="nt">&lt;print</span> <span class="na">mode=</span><span class="s">&quot;meta&quot;</span><span class="nt">/&gt;</span>
+<span class="lineno"> 9</span>  <span class="nt">&lt;recurse</span> <span class="na">type=</span><span class="s">&quot;down&quot;</span><span class="nt">/&gt;</span>
+<span class="lineno">10</span>  <span class="nt">&lt;print</span> <span class="na">mode=</span><span class="s">&quot;meta&quot;</span> <span class="na">order=</span><span class="s">&quot;quadtile&quot;</span><span class="nt">/&gt;</span>
+<span class="lineno">11</span> <span class="nt">&lt;/osm-script&gt;</span></code></pre></div>
+
+<p>Let’s run it in an Overpass sandbox:</p>
+<iframe width="850" height="350" frameborder="0" scrolling="yes" marginheight="0" marginwidth="0" src="http://overpass-turbo.eu/s/2O4" style="border: 1px solid black">unwantedtext</iframe>
+<p><br /><small><a href="http://overpass-turbo.eu/s/2O4">View Larger Map</a></small></p>
+
+<p>As you can see the query is returning too much coastline.</p>
+
+<p>Here is the exported data in the OSM XML file format:</p>
+
+<ul>
+  <li><a href="/assets/lyttelton/lyttleton_raw.osm">Raw Lyttleton port coastline</a></li>
+</ul>
+
+<h3 id="open-boundary">Open boundary</h3>
+
+<p>The next stage is to cleanup unwanted edges and close the geometry with an open boundary.
+An open boundary is not a physical boundary. The condition on the open boundary will be discused at a later stage.</p>
+
+<p>In order to do so, I’m using the <a href="https://josm.openstreetmap.de">josm</a> editor.</p>
+
+<div class="galleria">
+   <a href="/assets/lyttelton/lyttelton_raw.png">
+      <img src="/assets/lyttelton/lyttelton_raw.png" data-title="Raw data loaded into josm" data-description="" data-big="/assets/lyttelton/lyttelton_raw.png" />
+   </a>
+   <a href="/assets/lyttelton/lyttelton_with_open_boundary.png">
+      <img src="/assets/lyttelton/lyttelton_with_open_boundary.png" data-title="The final geometry with an open boundary" data-description="" data-big="/assets/lyttelton/lyttelton_with_open_boundary.png" />
+   </a>
+</div>
+
+<p>Here is the final geometry in the OSM XML file format:</p>
+
+<ul>
+  <li><a href="/assets/lyttelton/lyttleton.osm">Lyttleton port with open boundary</a></li>
+</ul>
+
+<p>It’s worth noticying that manually added nodes are flaged with an <code>action='modify'</code> tag by the editor:</p>
+
+<div class="highlight"><pre><code class="language-xml" data-lang="xml"><span class="nt">&lt;node</span> <span class="na">id=</span><span class="s">&#39;-2498&#39;</span> <span class="na">action=</span><span class="s">&#39;modify&#39;</span> <span class="na">visible=</span><span class="s">&#39;true&#39;</span> <span class="na">lat=</span><span class="s">&#39;-43.613555333973856&#39;</span> <span class="na">lon=</span><span class="s">&#39;172.71590659752025&#39;</span> <span class="nt">/&gt;</span></code></pre></div>
+
+<p>I will take advantage of this in order to distinguish between closed and open boundaries later on.</p>
+
+<h3 id="conclusion">Conclusion</h3>
+<p>I’m done with this part. Note that the current geometry is currently in “latitude/longitude” space. Next stage is to generate a mesh.</p>
+
+<h2 id="mesh-generation">Mesh generation</h2>
+
+<p>In this part I’m going to use <a href="http://www.ann.jussieu.fr/hecht/ftp/bamg/bamg.pdf">bamg</a>, which is shiped with the Metis software I demonstrated in the first post.
+Given a geometry, bamg will generate a mesh using sophisticated algorithm.</p>
+
+<p>I must convert the OSM file into the bamg mesh file format.</p>
+
+<p>One thing we have to take care of is to project the geometry from “lat/lon” space to <a href="http://en.wikipedia.org/wiki/Mercator_projection">Mercator</a> space and then make the projected geometry dimensionless.</p>
+
+<p>Here is a script doing that:</p>
+
+<div class="highlight"><pre><code class="language-perl" data-lang="perl"><span class="lineno"> 1</span> <span class="c1">#! /usr/bin/perl</span>
+<span class="lineno"> 2</span> <span class="k">use</span> <span class="n">strict</span><span class="p">;</span>
+<span class="lineno"> 3</span> <span class="k">use</span> <span class="n">warnings</span><span class="p">;</span>
+<span class="lineno"> 4</span> <span class="k">use</span> <span class="nn">XML::</span><span class="n">XPath</span><span class="p">;</span>
+<span class="lineno"> 5</span> <span class="k">use</span> <span class="nn">Math::</span><span class="n">Trig</span> <span class="s">&#39;pi&#39;</span><span class="p">;</span>
+<span class="lineno"> 6</span> <span class="k">use</span> <span class="nn">List::</span><span class="n">Util</span> <span class="s">&#39;min&#39;</span> <span class="p">,</span><span class="s">&#39;max&#39;</span><span class="p">;</span>
+<span class="lineno"> 7</span> 
+<span class="lineno"> 8</span> <span class="k">use</span> <span class="nn">Geo::</span><span class="n">Proj4</span><span class="p">;</span>
+<span class="lineno"> 9</span> <span class="k">my</span> <span class="nv">$proj</span> <span class="o">=</span> <span class="nn">Geo::</span><span class="n">Proj4</span><span class="o">-&gt;</span><span class="k">new</span><span class="p">(</span><span class="n">init</span> <span class="o">=&gt;</span> <span class="s">&quot;epsg:3857&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">die</span><span class="p">;</span>
+<span class="lineno">10</span> 
+<span class="lineno">11</span> <span class="k">my</span> <span class="nv">$osm</span> <span class="o">=</span> <span class="nn">XML::</span><span class="n">XPath</span><span class="o">-&gt;</span><span class="k">new</span><span class="p">(</span><span class="n">filename</span> <span class="o">=&gt;</span> <span class="s">&#39;lyttelton.osm&#39;</span><span class="p">);</span>
+<span class="lineno">12</span> <span class="k">my</span> <span class="nv">$nodeset</span> <span class="o">=</span> <span class="nv">$osm</span><span class="o">-&gt;</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;/osm/node&#39;</span><span class="p">);</span>
+<span class="lineno">13</span> 
+<span class="lineno">14</span> <span class="k">my</span> <span class="nv">$bamgid</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="lineno">15</span> <span class="k">my</span> <span class="nv">%nodes</span><span class="p">;</span>
+<span class="lineno">16</span> 
+<span class="lineno">17</span> <span class="k">my</span> <span class="nv">$xmin</span> <span class="o">=</span> <span class="s">&#39;inf&#39;</span><span class="p">;</span>
+<span class="lineno">18</span> <span class="k">my</span> <span class="nv">$xmax</span> <span class="o">=</span> <span class="s">&#39;-inf&#39;</span><span class="p">;</span>
+<span class="lineno">19</span> <span class="k">my</span> <span class="nv">$ymin</span> <span class="o">=</span> <span class="s">&#39;inf&#39;</span><span class="p">;</span>
+<span class="lineno">20</span> <span class="k">my</span> <span class="nv">$ymax</span> <span class="o">=</span> <span class="s">&#39;-inf&#39;</span><span class="p">;</span>
+<span class="lineno">21</span> 
+<span class="lineno">22</span> <span class="k">my</span> <span class="nv">$earthRadius</span> <span class="o">=</span> <span class="mi">6378137</span><span class="p">;</span>
+<span class="lineno">23</span> 
+<span class="lineno">24</span> <span class="k">foreach</span> <span class="k">my</span> <span class="nv">$node</span> <span class="p">(</span><span class="nv">$nodeset</span><span class="o">-&gt;</span><span class="n">get_nodelist</span><span class="p">)</span> <span class="p">{</span>
+<span class="lineno">25</span>   <span class="o">++</span><span class="nv">$bamgid</span><span class="p">;</span>
+<span class="lineno">26</span>     <span class="k">my</span> <span class="nv">$osmid</span> <span class="o">=</span> <span class="nv">$node</span><span class="o">-&gt;</span><span class="n">getAttribute</span><span class="p">(</span><span class="s">&quot;id&quot;</span><span class="p">);</span>
+<span class="lineno">27</span>     <span class="k">my</span> <span class="nv">$lat</span> <span class="o">=</span> <span class="nv">$node</span><span class="o">-&gt;</span><span class="n">getAttribute</span><span class="p">(</span><span class="s">&quot;lat&quot;</span><span class="p">);</span>
+<span class="lineno">28</span>     <span class="k">my</span> <span class="nv">$lon</span> <span class="o">=</span> <span class="nv">$node</span><span class="o">-&gt;</span><span class="n">getAttribute</span><span class="p">(</span><span class="s">&quot;lon&quot;</span><span class="p">);</span>
+<span class="lineno">29</span>     <span class="k">my</span> <span class="nv">$vnode</span> <span class="o">=</span> <span class="nv">$node</span><span class="o">-&gt;</span><span class="n">getAttribute</span><span class="p">(</span><span class="s">&quot;action&quot;</span><span class="p">);</span>
+<span class="lineno">30</span> 
+<span class="lineno">31</span>     <span class="c1"># EPSG 3857 projection</span>
+<span class="lineno">32</span>     <span class="k">my</span> <span class="p">(</span><span class="nv">$x</span><span class="p">,</span><span class="nv">$y</span><span class="p">)</span> <span class="o">=</span> <span class="nv">$proj</span><span class="o">-&gt;</span><span class="n">forward</span><span class="p">(</span><span class="nv">$lat</span><span class="p">,</span> <span class="nv">$lon</span><span class="p">);</span>
+<span class="lineno">33</span> 
+<span class="lineno">34</span>     <span class="c1"># Google mercator convertion</span>
+<span class="lineno">35</span>     <span class="nv">$x</span> <span class="o">=</span> <span class="mi">256</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.5</span> <span class="o">+</span> <span class="nv">$x</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">*</span> <span class="nv">$earthRadius</span><span class="p">));</span>
+<span class="lineno">36</span>     <span class="nv">$y</span> <span class="o">=</span> <span class="mi">256</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.5</span> <span class="o">-</span> <span class="nv">$y</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">*</span> <span class="nv">$earthRadius</span><span class="p">));</span>
+<span class="lineno">37</span> 
+<span class="lineno">38</span>     <span class="nv">$xmin</span> <span class="o">=</span> <span class="n">min</span><span class="p">(</span><span class="nv">$x</span><span class="p">,</span><span class="nv">$xmin</span><span class="p">);</span>
+<span class="lineno">39</span>     <span class="nv">$xmax</span> <span class="o">=</span> <span class="n">max</span><span class="p">(</span><span class="nv">$x</span><span class="p">,</span><span class="nv">$xmax</span><span class="p">);</span>
+<span class="lineno">40</span>         
+<span class="lineno">41</span>     <span class="nv">$ymin</span> <span class="o">=</span> <span class="n">min</span><span class="p">(</span><span class="nv">$y</span><span class="p">,</span><span class="nv">$ymin</span><span class="p">);</span>
+<span class="lineno">42</span>     <span class="nv">$ymax</span> <span class="o">=</span> <span class="n">max</span><span class="p">(</span><span class="nv">$y</span><span class="p">,</span><span class="nv">$ymax</span><span class="p">);</span>
+<span class="lineno">43</span> 
+<span class="lineno">44</span>     <span class="nv">$nodes</span><span class="p">{</span><span class="nv">$osmid</span><span class="p">}</span> <span class="o">=</span> <span class="p">[</span><span class="nv">$bamgid</span><span class="p">,</span> <span class="nv">$x</span><span class="p">,</span> <span class="nv">$y</span><span class="p">,</span> <span class="nv">$vnode</span><span class="p">];</span>
+<span class="lineno">45</span> <span class="p">}</span>
+<span class="lineno">46</span> 
+<span class="lineno">47</span> <span class="c1"># Make the geometry dimensionless</span>
+<span class="lineno">48</span> <span class="k">my</span> <span class="nv">$d</span> <span class="o">=</span> <span class="n">max</span><span class="p">(</span><span class="nv">$xmax</span> <span class="o">-</span> <span class="nv">$xmin</span><span class="p">,</span> <span class="nv">$ymax</span> <span class="o">-</span> <span class="nv">$ymin</span><span class="p">);</span>
+<span class="lineno">49</span> <span class="k">foreach</span> <span class="k">my</span> <span class="nv">$node</span> <span class="p">(</span><span class="nb">values</span><span class="p">(</span><span class="nv">%nodes</span><span class="p">))</span> <span class="p">{</span>
+<span class="lineno">50</span>     <span class="nv">$node</span><span class="o">-&gt;</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="nv">$node</span><span class="o">-&gt;</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="nv">$xmin</span><span class="p">)</span> <span class="o">/</span> <span class="nv">$d</span><span class="p">;</span>
+<span class="lineno">51</span>     <span class="nv">$node</span><span class="o">-&gt;</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="nv">$node</span><span class="o">-&gt;</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="nv">$ymin</span><span class="p">)</span> <span class="o">/</span> <span class="nv">$d</span><span class="p">;</span>
+<span class="lineno">52</span> <span class="p">}</span>
+<span class="lineno">53</span> 
+<span class="lineno">54</span> <span class="c1"># Remember these in order to display on top of a Google map later on</span>
+<span class="lineno">55</span> <span class="k">print</span> <span class="s">&quot;Translate: ($xmin, $ymin)\n&quot;</span><span class="p">;</span>
+<span class="lineno">56</span> <span class="k">print</span> <span class="s">&quot;Scale:$d\n&quot;</span><span class="p">;</span>
+<span class="lineno">57</span> 
+<span class="lineno">58</span> <span class="c1"># Create bamg input file</span>
+<span class="lineno">59</span> <span class="nb">open</span> <span class="k">my</span> <span class="nv">$out</span><span class="p">,</span> <span class="s">&quot;&gt; lyttelton_0.mesh&quot;</span><span class="p">;</span>
+<span class="lineno">60</span> <span class="k">print</span> <span class="nv">$out</span> <span class="s">&quot;MeshVersionFormatted 1\n\n&quot;</span><span class="p">;</span>
+<span class="lineno">61</span> <span class="k">print</span> <span class="nv">$out</span> <span class="s">&quot;Dimension 2\n\n&quot;</span><span class="p">;</span>
+<span class="lineno">62</span> <span class="k">print</span> <span class="nv">$out</span> <span class="s">&quot;Vertices &quot;</span> <span class="o">.</span> <span class="nv">$bamgid</span> <span class="o">.</span> <span class="s">&quot;\n&quot;</span><span class="p">;</span>
+<span class="lineno">63</span> 
+<span class="lineno">64</span> <span class="k">foreach</span> <span class="k">my</span> <span class="nv">$node</span> <span class="p">(</span><span class="nb">sort</span> <span class="p">{</span><span class="nv">$a</span><span class="o">-&gt;</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="sr">&lt;=&gt;</span> <span class="nv">$b</span><span class="o">-&gt;</span><span class="p">[</span><span class="mi">0</span><span class="p">]}</span> <span class="nb">values</span><span class="p">(</span><span class="nv">%nodes</span><span class="p">))</span> <span class="p">{</span>
+<span class="lineno">65</span>   <span class="nb">printf</span> <span class="nv">$out</span>  <span class="s">&quot;%.12f %.12f 1\n&quot;</span><span class="p">,</span> <span class="nv">$node</span><span class="o">-&gt;</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nv">$node</span><span class="o">-&gt;</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+<span class="lineno">66</span> <span class="p">}</span>
+<span class="lineno">67</span> 
+<span class="lineno">68</span> <span class="k">my</span> <span class="nv">$edgeset</span> <span class="o">=</span> <span class="nv">$osm</span><span class="o">-&gt;</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;/osm/way/nd&#39;</span><span class="p">);</span>
+<span class="lineno">69</span> 
+<span class="lineno">70</span> <span class="k">print</span> <span class="nv">$out</span> <span class="s">&quot;\nEdges &quot;</span> <span class="o">.</span> <span class="p">(</span><span class="nv">$edgeset</span><span class="o">-&gt;</span><span class="n">size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">.</span> <span class="s">&quot;\n&quot;</span><span class="p">;</span>
+<span class="lineno">71</span> 
+<span class="lineno">72</span> <span class="k">my</span> <span class="nv">$start</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="lineno">73</span> 
+<span class="lineno">74</span> <span class="k">foreach</span> <span class="k">my</span> <span class="nv">$edge</span> <span class="p">(</span><span class="nv">$edgeset</span><span class="o">-&gt;</span><span class="n">get_nodelist</span><span class="p">)</span> <span class="p">{</span>
+<span class="lineno">75</span>     <span class="k">my</span> <span class="nv">$end</span> <span class="o">=</span> <span class="nv">$edge</span><span class="o">-&gt;</span><span class="n">getAttribute</span><span class="p">(</span><span class="s">&quot;ref&quot;</span><span class="p">);</span>
+<span class="lineno">76</span>     <span class="k">if</span> <span class="p">(</span><span class="nv">$start</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+<span class="lineno">77</span>       <span class="k">my</span> <span class="nv">$boundaryId</span> <span class="o">=</span> <span class="nv">$nodes</span><span class="p">{</span><span class="nv">$start</span><span class="p">}</span><span class="o">-&gt;</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">||</span> <span class="nv">$nodes</span><span class="p">{</span><span class="nv">$end</span><span class="p">}</span><span class="o">-&gt;</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="p">?</span> <span class="mi">2</span> <span class="p">:</span> <span class="mi">1</span><span class="p">;</span>
+<span class="lineno">78</span>       <span class="k">print</span> <span class="nv">$out</span> <span class="nv">$nodes</span><span class="p">{</span><span class="nv">$start</span><span class="p">}</span><span class="o">-&gt;</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">.</span><span class="s">&quot; &quot;</span> <span class="o">.</span> <span class="nv">$nodes</span><span class="p">{</span><span class="nv">$end</span><span class="p">}</span><span class="o">-&gt;</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">.</span> <span class="s">&quot; &quot;</span> <span class="o">.</span> <span class="nv">$boundaryId</span> <span class="o">.</span> <span class="s">&quot;\n&quot;</span><span class="p">;</span>
+<span class="lineno">79</span>     <span class="p">}</span>
+<span class="lineno">80</span>     <span class="nv">$start</span> <span class="o">=</span> <span class="nv">$end</span><span class="p">;</span>
+<span class="lineno">81</span> <span class="p">}</span></code></pre></div>
+
+<p>Here is the bamg input:</p>
+
+<ul>
+  <li><a href="/assets/lyttelton/lyttelton_0.mesh">Lyttelton geometry for bamg</a></li>
+</ul>
+
+<p>Here is the command line for bamg:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">bamg  -g lyttelton_0.mesh -coef 0.06  -ratio <span class="m">20</span> -o lyttelton.mesh</code></pre></div>
+
+<p>And here is the generated mesh file:</p>
+
+<ul>
+  <li><a href="/assets/lyttelton/lyttelton.mesh">Lyttelton mesh</a></li>
+</ul>
+
+<p>This is what a Lyttelton port small mesh looks like:
+<img src="/assets/lyttelton/lyttelton_mesh.png" alt="yttelton mesh pic" /></p>
+
+<h3 id="conclusion-1">Conclusion</h3>
+
+<p>It seems quite easy to use the OSM data for baby coastal engineering. 
+I’m missing the water depth inside the port though: I will address this in another post (3rd one).
+In the next stage we will decompose the generated mesh into 5 subdomains.</p>
+
+<h2 id="partitioning">Partitioning</h2>
+
+<p>To make this project more challenging, I will implement a parallel solver.
+In order to do so I will apply domain decomposition techniques.
+I detailed the partioning tools and the methodology in <a href="/numerical%20methods/2013/10/22/the-schur-complement-method">the first Schur complement post</a> 
+so that this part is going to be concise.</p>
+
+<ul>
+  <li>Metis input graph : <a href="/assets/lyttelton/lyttelton.metis_graph">lyttelton.metis_graph</a></li>
+  <li>Metis output element partition : <a href="/assets/lyttelton/lyttelton.metis_graph.epart.5">lyttelton.metis_graph.epart.5</a></li>
+  <li>Metis output vertex partition : <a href="/assets/lyttelton/lyttelton.metis_graph.npart.5">lyttelton.metis_graph.npart.5</a></li>
+</ul>
+
+<p>That’s it.</p>
+
+<h3 id="interface-computation-and-unknown-reordering">Interface computation and unknown reordering</h3>
+
+<p>One last thing we have to do is to compute the domains interface and reorder the interface unknowns to improve the sparsity pattern of the “interface-interface” stiffness matrix.
+Again I addressed this in the first Schur complement post, but only for the two subdomains case. I had to slightly modify the scripts in that post to make them work for many
+subdomains.</p>
+
+<p>Here are the modifications on github:</p>
+
+<ul>
+  <li><a href="https://github.com/ssrb/ssrb.github.com/commit/d780cf949630b57695e050f1359d9434cc268803#diff-1ea8218905c12a730bfa1a0e6f720716">Find the interface for many subdomains</a></li>
+  <li><a href="https://github.com/ssrb/ssrb.github.com/commit/d780cf949630b57695e050f1359d9434cc268803#diff-74e54e3a95ea9e1eb5241ed29445b3df">Reorder the unknowns for many subdomains</a></li>
+</ul>
+
+<p>Ultimately here is the interface:</p>
+
+<ul>
+  <li><a href="/assets/lyttelton/interface2.vids]">interface2.vids</a></li>
+</ul>
+
+<h2 id="visualization">Visualization</h2>
+
+<p>So here we are ! Ready to display our domain and subdomains on top of the matching OSM tiles thanks to the Google Maps JavaScript API and WebGL:</p>
+
+<iframe width="850" height="700" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="/assets/lyttelton/map.html" style="border: 1px solid black">unwantedtext</iframe>
+<p><br /><small><a href="/assets/lyttelton/map.html">View Larger Map</a></small></p>
+
+<h2 id="conclusion-2">Conclusion</h2>
+<p>In the next mini-post, I will implement several parallel versions of the “trace first” Schur complement method applied to the data I generated using <a href="http://en.wikipedia.org/wiki/Message_Passing_Interface">MPI</a>.</p>
+
+<script type="text/javascript" src="/rungalleria.js"></script>
+
+
+    <hr>
+    <div class="pagination btn-group">
+      
+        <a class="btn prev" href="/numerical%20methods/2013/12/18/the-schur-complement-method-part-2" title="The Schur Complement Method: Part 2">&larr; Previous</a>
+      
+        <a class="btn" href="/archive.html">Archive</a>
+      
+        <a class="btn next" href="/numerical%20methods/2014/03/19/the-lyttelton-port-wave-penetration-project-part-2" title="The Lyttelton port wave penetration project: Part 2">Next &rarr;</a>
+      
+    </div>
+    <hr>
+    
+
+
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_developer = 1;
+    var disqus_shortname = 'ssrb'; // required: replace example with your forum shortname
+    
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+
+
+  </div>
+  
+  <div class="span4">
+    <section>
+      <h4>Published</h4>
+      <div class="date"><span>15 March 2014</span></div>
+    </section>
+    
+      <section>
+        <h4>Category</h4>
+        <span class="category">
+          Numerical methods
+        </span>
+      </section>
+         
+    
+      <section>
+        <h4>Tags</h4>
+        <ul class="tag_box">
+          
+          
+
+
+  
+     
+    	<li><a href="/tags.html#mathematics-ref">mathematics <span>7</span></a></li>
+     
+    	<li><a href="/tags.html#parallel computing-ref">parallel computing <span>7</span></a></li>
+     
+    	<li><a href="/tags.html#numerical hydraulics-ref">numerical hydraulics <span>4</span></a></li>
+    
+  
+
+
+
+        </ul>
+      </section>
+             
+  </div>
+</div>
+
+
+      </div>
+
+      <footer>
+        <p>&copy; 2018 Sébastien Bigot
+          with help from <a href="http://jekyllbootstrap.com" target="_blank" title="The Definitive Jekyll Blogging Framework">Jekyll Bootstrap</a>
+          and <a href="http://github.com/dhulihan/hooligan" target="_blank">The Hooligan Theme</a>
+        </p>
+      </footer>
+    </div> <!-- /container -->
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="/assets/themes/hooligan/js/jquery.min.js"><\/script>')</script>
+    <script src="/assets/themes/hooligan/bootstrap/js/bootstrap.min.js"></script>
+    
+    
+    
+  </body>
+</html>
+

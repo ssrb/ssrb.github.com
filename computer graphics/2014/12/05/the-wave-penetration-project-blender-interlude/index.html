@@ -1,0 +1,625 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>
+      
+        The wave penetration project: Blender interlude - 
+      
+      Seb's blog
+    </title>
+    <meta name="description" content="">
+    <meta name="author" content="Sébastien Bigot">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+
+    <link href="/assets/themes/hooligan/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/themes/hooligan/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">    
+    <link rel="stylesheet" type="text/css" href="/assets/themes/hooligan/css-social-buttons/css/zocial.stripped.css">
+    <link href="/assets/themes/hooligan/css/pygments.css" rel="stylesheet" type="text/css" media="all">
+    <link href="/assets/themes/hooligan/css/darkstrap.css" rel="stylesheet" type="text/css" media="all">    
+    <link href="/assets/themes/hooligan/css/style.css?body=1" rel="stylesheet" type="text/css" media="all">
+
+    
+    <!-- fav and touch icons -->
+  <!-- Update these with your own images
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
+  -->
+
+    <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      TeX: { equationNumbers: { autoNumber: "AMS" } },
+        tex2jax: {
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      }
+    });
+    MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for(i=0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+    </script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    </script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.js">
+    </script>
+    <script type="text/javascript" src="/galleria/galleria-1.3.3.min.js">
+    </script>
+    <style>
+      .galleria{ width: 700px; height: 400px; background: #000 }
+    </style>
+  </head>
+
+  <body>
+    <div class="navbar">
+      <div class="navbar-inner">
+        <div class="container">
+          <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>      
+
+
+          <a class="brand" href="/">Seb's blog</a>
+
+
+          <div class="nav-collapse">
+            <ul class="nav">
+              
+              
+              
+
+
+  
+    
+      
+      	
+      	<li><a href="/archive.html">Archive</a></li>
+      	
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/categories.html">Categories</a></li>
+      	
+      
+    
+  
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/tags.html">Tags</a></li>
+      	
+      
+    
+  
+
+
+
+            </ul>
+            <ul class="nav pull-right social visible-desktop">
+              <li class="divider-vertical"></li>
+              
+                <li>
+                  <a href="https://github.com/ssrb" class="zocial github icon" target="_blank">
+                    <span class="hidden-desktop">Github</span>
+                  </a>
+                </li>
+              
+                  
+                                        
+                         
+                                  
+              
+              <li>
+                <a class="zocial icon rss" target="_blank" href="/rss.xml">
+                  <span class="hidden-desktop">ATOM Feed</a>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="content">
+        
+<div class="page-header">
+  <h1>
+    The wave penetration project: Blender interlude 
+    
+  </h1>
+</div>
+
+<div class="row">
+  <div class="span8">
+    
+<p>In this post I will describe how to add a new modifier similar to the ocean modifier into <a href="http://www.blender.org">Blender</a>.</p>
+
+<video width="640" height="480" controls="controls">
+<source src="https://www.dropbox.com/s/ihsuqnqg3yzo5pp/lyttelton_reenc.mp4?raw=1" type="video/mp4" />
+</video>
+
+<!-- more -->
+
+<p>Artists can use Blender modifiers to modify object geometry on the fly.</p>
+
+<p>After importing a mesh of the studied coastal domain, my modifier will update the Z component of all vertices using the formula:
+<script type="math/tex">\zeta(x,y,t)=\Re\{\eta(x,y)\, e^{-i \omega t} \}</script>
+where <code>\(\eta : \Omega(\mathbb{R} \times \mathbb{R}) \to \mathbb{C}\)</code> is the solution of the mild-slope equation.</p>
+
+<p>The modifier will allow users to <a href="http://wiki.blender.org/index.php/Doc:2.6/Manual/Animation/Basics/Actions">keyframe</a> the time parameter <code>\(t\)</code> to animate the water surface.</p>
+
+<h2 id="mesh-import">Mesh import</h2>
+
+<p>Blender is a mix of C/C++ and Python. The <a href="http://www.blender.org/api/blender_python_api_2_74_release">Blender Python API</a>
+can be used for task automation as well as adding extra features.
+Unfortunately it’s not possible to implement a new modifier using the Python API. 
+One reason for that could be that updating large model geometry on the fly using Python is too slow.</p>
+
+<p>The modifier will have to be implemented in C but before that we will import the mesh using the Python API.</p>
+
+<h3 id="importer-skeleton">Importer skeleton</h3>
+
+<p>The importer will parse a <code>.mesh</code> file and will add the following objects to the scene :</p>
+
+<ul>
+  <li>a mesh for the water;</li>
+  <li>polylines for the boundaries (optional, enabled by default);</li>
+  <li>a mesh for the bottom geometry (optional, disabled by default)</li>
+</ul>
+
+<p>Both meshes will have their boundary vertices assigned to distinct 
+<a href="http://wiki.blender.org/index.php/Doc:2.6/Manual/Modeling/Meshes/Vertex_Groups/Vertex_Groups">vertex groups</a>.</p>
+
+<p>A <a href="http://www.blender.org/api/blender_python_api_2_74_release/info_tutorial_addon.html">concise tutorial</a>
+is included in the API documentation.</p>
+
+<p>The “shallow water body” importer plugin can be found on <a href="https://github.com/ssrb/blender-addons-contrib/tree/master/shallow_water">my github</a></p>
+
+<p>A Blender plugin can be implemented as a stand alone Python script or as a module.
+The plugin must declare:</p>
+
+<ul>
+  <li>a <code>bl_info</code> dictionnary describing the plugin;</li>
+  <li>a <code>register()</code> function;</li>
+  <li>an <code>unregister()</code> function</li>
+</ul>
+
+<h4 id="blinfo">bl_info</h4>
+
+<p>The <code>bl_info</code> meta-data are mainly used by the <code>User Preferences =&gt; Addons</code> dialog, to populate the UI describing the plugin to the user:</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">bl_info</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="s">&quot;Shallow Water&quot;</span><span class="p">,</span>
+    <span class="s">&quot;author&quot;</span><span class="p">:</span> <span class="s">&quot;Sebastien Bigot&quot;</span><span class="p">,</span>
+    <span class="s">&quot;version&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+    <span class="s">&quot;blender&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">72</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+    <span class="s">&quot;location&quot;</span><span class="p">:</span> <span class="s">&quot;File &gt; Import-Export&quot;</span><span class="p">,</span>
+    <span class="s">&quot;description&quot;</span><span class="p">:</span> <span class="s">&quot;Add a shallow water body&quot;</span><span class="p">,</span>
+    <span class="s">&quot;warning&quot;</span><span class="p">:</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
+    <span class="s">&quot;wiki_url&quot;</span><span class="p">:</span> <span class="s">&quot;http://ssrb.github.io&quot;</span><span class="p">,</span>
+    <span class="s">&quot;category&quot;</span><span class="p">:</span> <span class="s">&quot;Import-Export&quot;</span><span class="p">,</span>
+<span class="p">}</span></code></pre></div>
+
+<div class="galleria">
+   <a href="/assets/blendershallowwater/addons.png">
+      <img src="/assets/blendershallowwater/addons.png" data-title="" data-description="" data-big="/assets/blendershallowwater/addons.png" />
+   </a>
+</div>
+
+<h4 id="register--unregister">register &amp; unregister</h4>
+
+<p><code>register()</code> (respectively <code>unregister()</code>) is called when the plugin is enabled (respectively disabled).</p>
+
+<p>These functions usualy add new UI elements bound to custom <a href="http://www.blender.org/api/blender_python_api_2_74_release/bpy.types.Operator.html">Blender operators</a>.</p>
+
+<p>We register the plugin and add a new entry to the <code>File =&gt; Import</code> sub menu:</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">register</span><span class="p">():</span>
+    <span class="n">bpy</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_module</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+    <span class="n">bpy</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">INFO_MT_file_import</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">menu_func_import</span><span class="p">)</span></code></pre></div>
+
+<p>You can find the Python name of the UI element of interest by simply “mouse hovering”:</p>
+
+<div class="galleria">
+   <a href="/assets/blendershallowwater/INFO_MT_file_import.png">
+      <img src="/assets/blendershallowwater/INFO_MT_file_import.png" data-title="" data-description="" data-big="/assets/blendershallowwater/INFO_MT_file_import.png" />
+   </a>
+</div>
+
+<p><code>menu_func_import</code> will then be called when the UI is exercised and given the oportunity to modify its layout,
+for example adding a clickable text bound to an <code>ImportShallowWaterBody</code> operator:</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">menu_func_import</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">layout</span><span class="o">.</span><span class="n">operator</span><span class="p">(</span><span class="n">ImportShallowWaterBody</span><span class="o">.</span><span class="n">bl_idname</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s">&quot;Shallow Water Body (.mesh)&quot;</span><span class="p">)</span></code></pre></div>
+
+<p>An operator is another abstraction allowing the user to furthermore interact not only with the UI but with the <em>scene</em> itself.
+The Blender API comes with a couple of helpers in order to build the operator’s UI. One such helper is the <code>ImportHelper</code> 
+which creates a customizable file explorer dialog:</p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="k">class</span> <span class="nc">ImportShallowWaterBody</span><span class="p">(</span><span class="n">bpy</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">Operator</span><span class="p">,</span> <span class="n">ImportHelper</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Import a Shallow Water Body&quot;&quot;&quot;</span>
+    <span class="n">bl_idname</span> <span class="o">=</span> <span class="s">&quot;import_scene.shallow_water_body&quot;</span>
+    <span class="n">bl_label</span> <span class="o">=</span> <span class="s">&#39;Import Shallow Water Body&#39;</span>
+    <span class="n">bl_options</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;UNDO&#39;</span><span class="p">}</span>
+
+    <span class="n">filename_ext</span> <span class="o">=</span> <span class="s">&quot;.mesh&quot;</span>
+    <span class="n">filter_glob</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="s">&quot;*.mesh&quot;</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;HIDDEN&#39;</span><span class="p">})</span>
+
+    <span class="n">separate_boundary_objects</span> <span class="o">=</span> <span class="n">BoolProperty</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s">&quot;Create polyline objects for each boundary&quot;</span><span class="p">,</span>
+            <span class="n">description</span><span class="o">=</span><span class="s">&quot;In addition to the boundary vertex groups, create separate polyline objects for each boundary&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="bp">True</span>
+            <span class="p">)</span>
+
+    <span class="n">import_bottom</span> <span class="o">=</span> <span class="n">BoolProperty</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s">&quot;Import the bottom geometry&quot;</span><span class="p">,</span>
+            <span class="n">description</span><span class="o">=</span><span class="s">&quot;If a depth file is found, create a bottom geometry object&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="bp">False</span>
+            <span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">shallow_water</span>
+        <span class="n">keywords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">as_keywords</span><span class="p">(</span><span class="n">ignore</span><span class="o">=</span><span class="p">(</span><span class="s">&quot;filter_glob&quot;</span><span class="p">,))</span>
+        <span class="k">return</span> <span class="n">shallow_water</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="o">**</span><span class="n">keywords</span><span class="p">)</span></code></pre></div>
+
+<div class="galleria">
+   <a href="/assets/blendershallowwater/import.png">
+      <img src="/assets/blendershallowwater/import.png" data-title="" data-description="" data-big="/assets/blendershallowwater/import.png" />
+   </a>
+</div>
+
+<p>The <code>execute</code> method of the operator is called when the “Import Shallow Water Body” button is clicked:
+interaction with the scene is achieved through the <code>context</code>.
+I’m parsing a file and creating a few objects here but what you do next is only limited by your ingenuity.
+Here are a few examples:</p>
+
+<h4 id="create-a-mesh-and-an-object-from-a-list-of-vertices-faces-and-edges">Create a mesh and an object from a list of vertices, faces and edges</h4>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="nn">bpy</span>
+<span class="kn">from</span> <span class="nn">bpy_extras</span> <span class="kn">import</span> <span class="n">object_utils</span>
+<span class="n">mymesh</span> <span class="o">=</span> <span class="n">bpy</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">meshes</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> 
+<span class="n">mymesh</span><span class="o">.</span><span class="n">from_pydata</span><span class="p">(</span><span class="n">verts</span><span class="p">,</span> <span class="n">edges</span><span class="p">,</span> <span class="n">faces</span><span class="p">)</span>
+<span class="n">mymesh</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+<span class="n">myobject</span> <span class="o">=</span> <span class="n">object_utils</span><span class="o">.</span><span class="n">object_data_add</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">mymesh</span><span class="p">,</span> <span class="n">operator</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span></code></pre></div>
+
+<h4 id="add--setup-a-modifier">Add &amp; setup a modifier</h4>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">mymodifier</span> <span class="o">=</span> <span class="n">myobject</span><span class="o">.</span><span class="n">modifiers</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s">&quot;sw&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s">&#39;SHALLOW_WATER&#39;</span><span class="p">)</span>
+<span class="n">mymodifier</span><span class="o">.</span><span class="n">solution</span> <span class="o">=</span> <span class="n">solutionfile</span></code></pre></div>
+
+<h4 id="add--setup-a-vertex-group">Add &amp; setup a vertex group</h4>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">myvgrp</span> <span class="o">=</span> <span class="n">myobject</span><span class="o">.</span><span class="n">vertex_groups</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s">&quot;ClosedBoundary&quot;</span><span class="p">)</span>
+<span class="n">myvgrp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">vertices</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s">&#39;REPLACE&#39;</span><span class="p">)</span></code></pre></div>
+
+<h2 id="mesh-displacement">Mesh displacement</h2>
+
+<p>Now that we can import the geometry into Blender, let’s apply the solution on the fly.
+This is a bit more involved and requires you to setup a build environment and add some C code to Blender’s guts.
+Multiple build setups are described <a href="http://wiki.blender.org/index.php/Dev:Doc/Building_Blender">here</a>.
+I choosed <a href="http://www.scons.org">scons</a> on both Linux and Windows.</p>
+
+<h3 id="modifier-c-skeleton">Modifier C skeleton</h3>
+
+<p>Creating a new modifier requires you to update Blender’s DNA, RNA and UI.
+Here is an explanation from <a href="http://en.wikipedia.org/wiki/Ton_Roosendaal">Ton Roosendaal</a> I found <a href="http://www.blendernation.com/2008/12/01/blender-dna-rna-and-backward-compatibility/">here</a> about DNA &amp; RNA:</p>
+
+<blockquote>
+  <p>Q: do DNA and RNA actually stand for anything?</p>
+
+  <p>They’re analog to the biological meaning. Blender DNA is as old as Blender, it’s a long string with encoded types for the entire internal structure of Blender’s data, saved in  every .blend, and in every Blender binary. With this DNA it can read older or even newer files. Blender is even “aware” of its own data types, i.e. you can give it a pointer, and Blender can find the item named “vertex” in it. This makes .blend files still readable, even when saved in 1.00 .</p>
+
+  <p>Q: .. and RNA?</p>
+
+  <p>That’s a 2.50 feature, a system to wrap DNA into a nice API to read/set Blender data and properties. It actually means “messenger DNA”, which is not totally correct, because RNA makes DNA in cells.
+Our RNA can auto-generate a Python data-access API, and will allow feature “everything animatable”, auto-button-list-view of data and it will even handle dependencies in future.</p>
+</blockquote>
+
+<h4 id="dna">DNA</h4>
+
+<p>This part is about defining the data which are going to be serialized into the <code>.blend</code> files.
+First you want to add a new value to the <code>ModifierType</code> enum in <a href="https://github.com/ssrb/Blender/blob/master/source/blender/makesdna/DNA_modifier_types.h">source/blender/makesdna/DNA_modifier_types.h</a>:</p>
+
+<div class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="k">typedef</span> <span class="k">enum</span> <span class="n">ModifierType</span> <span class="p">{</span>
+  <span class="p">[...]</span>
+  <span class="n">eModifierType_ShallowWater</span>      <span class="o">=</span> <span class="mi">49</span><span class="p">,</span>
+  <span class="n">NUM_MODIFIER_TYPES</span>
+<span class="p">}</span> <span class="n">ModifierType</span><span class="p">;</span></code></pre></div>
+
+<p>Next, and in the same file, define a structure for your modifier’s data. This structure might need some padding.
+Mine needs to keep a path to a solution file, an array of complex numbers, an epoch as well as an amplitude multiplier:</p>
+
+<div class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">ShallowWaterModifierData</span> <span class="p">{</span>       
+       <span class="kt">float</span> <span class="o">*</span><span class="n">real</span><span class="p">;</span>
+       <span class="kt">float</span> <span class="o">*</span><span class="n">imag</span><span class="p">;</span>
+       <span class="kt">float</span> <span class="n">time</span><span class="p">;</span>
+       <span class="kt">float</span> <span class="n">amplitude_multiplier</span><span class="p">;</span>
+       <span class="kt">char</span> <span class="n">solution</span><span class="p">[</span><span class="mi">1024</span><span class="p">];</span>
+<span class="p">}</span> <span class="n">ShallowWaterModifierData</span><span class="p">;</span></code></pre></div>
+
+<h4 id="rna">RNA</h4>
+
+<p>The next step is to modify the <code>makesrna</code> code generator used to implement the plugin system and generate the Python API. 
+It’s also required if you want to keyframe using your modifier’s parameters.
+In <a href="https://github.com/ssrb/Blender/blob/master/source/blender/makesrna/intern/rna_modifier.c">source/blender/makesrna/intern/rna_modifier.c</a>, update</p>
+
+<div class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="n">EnumPropertyItem</span> <span class="n">modifier_type_items</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="p">[...]</span>
+ <span class="p">{</span><span class="n">eModifierType_ShallowWater</span><span class="p">,</span> <span class="s">&quot;SHALLOW_WATER&quot;</span><span class="p">,</span> <span class="n">ICON_MOD_OCEAN</span><span class="p">,</span> <span class="s">&quot;Shallow Water&quot;</span><span class="p">,</span> <span class="s">&quot;&quot;</span><span class="p">},</span>
+  <span class="p">{</span><span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">}</span>
+<span class="p">};</span></code></pre></div>
+
+<p>and</p>
+
+<div class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="k">static</span> <span class="n">StructRNA</span> <span class="o">*</span><span class="nf">rna_Modifier_refine</span><span class="p">(</span><span class="k">struct</span> <span class="n">PointerRNA</span> <span class="o">*</span><span class="n">ptr</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="p">[...]</span>
+  <span class="k">switch</span> <span class="p">((</span><span class="n">ModifierType</span><span class="p">)</span><span class="n">md</span><span class="o">-&gt;</span><span class="n">type</span><span class="p">)</span> <span class="p">{</span>
+    <span class="p">[...]</span>
+    <span class="k">case</span> <span class="nl">eModifierType_ShallowWater</span><span class="p">:</span>
+      <span class="k">return</span> <span class="o">&amp;</span><span class="n">RNA_ShallowWaterModifier</span><span class="p">;</span>
+    <span class="p">[...]</span>
+<span class="p">}</span></code></pre></div>
+
+<p>then write a function describing your modifier’s data:</p>
+
+<div class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="k">static</span> <span class="kt">void</span> <span class="nf">rna_def_modifier_shallowwater</span><span class="p">(</span><span class="n">BlenderRNA</span> <span class="o">*</span><span class="n">brna</span><span class="p">)</span>
+<span class="p">{</span>
+ <span class="n">StructRNA</span> <span class="o">*</span><span class="n">srna</span><span class="p">;</span>
+ <span class="n">PropertyRNA</span> <span class="o">*</span><span class="n">prop</span><span class="p">;</span>
+
+ <span class="n">srna</span> <span class="o">=</span> <span class="n">RNA_def_struct</span><span class="p">(</span><span class="n">brna</span><span class="p">,</span> <span class="s">&quot;ShallowWaterModifier&quot;</span><span class="p">,</span> <span class="s">&quot;Modifier&quot;</span><span class="p">);</span>
+ <span class="n">RNA_def_struct_ui_text</span><span class="p">(</span><span class="n">srna</span><span class="p">,</span> <span class="s">&quot;ShallowWater Modifier&quot;</span><span class="p">,</span> <span class="s">&quot;Shallow Water Simulation&quot;</span><span class="p">);</span>
+ <span class="n">RNA_def_struct_sdna</span><span class="p">(</span><span class="n">srna</span><span class="p">,</span> <span class="s">&quot;ShallowWaterModifierData&quot;</span><span class="p">);</span>
+ <span class="n">RNA_def_struct_ui_icon</span><span class="p">(</span><span class="n">srna</span><span class="p">,</span> <span class="n">ICON_MOD_OCEAN</span><span class="p">);</span>
+
+ <span class="n">prop</span> <span class="o">=</span> <span class="n">RNA_def_property</span><span class="p">(</span><span class="n">srna</span><span class="p">,</span> <span class="s">&quot;time&quot;</span><span class="p">,</span> <span class="n">PROP_FLOAT</span><span class="p">,</span> <span class="n">PROP_NONE</span><span class="p">);</span>
+ <span class="n">RNA_def_property_float_sdna</span><span class="p">(</span><span class="n">prop</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="s">&quot;time&quot;</span><span class="p">);</span>
+ <span class="n">RNA_def_property_ui_text</span><span class="p">(</span><span class="n">prop</span><span class="p">,</span> <span class="s">&quot;Time&quot;</span><span class="p">,</span> <span class="s">&quot;Current time of the simulation&quot;</span><span class="p">);</span>
+ <span class="n">RNA_def_property_ui_range</span><span class="p">(</span><span class="n">prop</span><span class="p">,</span> <span class="o">-</span><span class="n">FLT_MAX</span><span class="p">,</span> <span class="n">FLT_MAX</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+ <span class="n">RNA_def_property_update</span><span class="p">(</span><span class="n">prop</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s">&quot;rna_Modifier_update&quot;</span><span class="p">);</span>
+ <span class="p">[...]</span>
+<span class="p">}</span></code></pre></div>
+
+<p>and make sure it’s called</p>
+
+<div class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="kt">void</span> <span class="nf">RNA_def_modifier</span><span class="p">(</span><span class="n">BlenderRNA</span> <span class="o">*</span><span class="n">brna</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="p">[...]</span>
+  <span class="n">rna_def_modifier_shallowwater</span><span class="p">(</span><span class="n">brna</span><span class="p">);</span>
+<span class="p">}</span></code></pre></div>
+
+<p>Finaly, in <a href="https://github.com/ssrb/Blender/blob/master/source/blender/makesrna/RNA_access.h">source/blender/makesrna/RNA_access.h</a>, forward declare</p>
+
+<div class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="k">extern</span> <span class="n">StructRNA</span> <span class="n">RNA_ShallowWaterModifier</span><span class="p">;</span></code></pre></div>
+
+<p>Done with the plumbing ! We can implement the modifier.
+The modifier related structures and API are documented in the <a href="https://github.com/ssrb/Blender/blob/master/source/blender/blenkernel/BKE_modifier.h">source/blender/blenkernel/BKE_modifier.h</a> file.</p>
+
+<p>My deform modifier can be found <a href="https://github.com/ssrb/Blender/blob/master/source/blender/modifiers/intern/MOD_shallowwater.c">here</a>.
+Here’s the modifier definition:</p>
+
+<div class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="n">ModifierTypeInfo</span> <span class="n">modifierType_ShallowWater</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="cm">/* name */</span>              <span class="s">&quot;ShallowWater&quot;</span><span class="p">,</span>
+  <span class="cm">/* structName */</span>        <span class="s">&quot;ShallowWaterModifierData&quot;</span><span class="p">,</span>
+  <span class="cm">/* structSize */</span>        <span class="k">sizeof</span><span class="p">(</span><span class="n">ShallowWaterModifierData</span><span class="p">),</span>
+  <span class="cm">/* type */</span>              <span class="n">eModifierTypeType_OnlyDeform</span><span class="p">,</span>
+  <span class="cm">/* flags */</span>             <span class="n">eModifierTypeFlag_AcceptsMesh</span> <span class="o">|</span>
+                          <span class="n">eModifierTypeFlag_SupportsEditmode</span> <span class="o">|</span>
+                          <span class="n">eModifierTypeFlag_EnableInEditmode</span><span class="p">,</span>
+  <span class="cm">/* copyData */</span>          <span class="n">copyData</span><span class="p">,</span>
+  <span class="cm">/* deformVerts */</span>       <span class="n">deformVerts</span><span class="p">,</span>
+  <span class="cm">/* deformMatrices */</span>    <span class="nb">NULL</span><span class="p">,</span>
+  <span class="cm">/* deformVertsEM */</span>     <span class="n">deformVertsEM</span><span class="p">,</span>
+  <span class="cm">/* deformMatricesEM */</span>  <span class="nb">NULL</span><span class="p">,</span>
+  <span class="cm">/* applyModifier */</span>     <span class="nb">NULL</span><span class="p">,</span>
+  <span class="cm">/* applyModifierEM */</span>   <span class="nb">NULL</span><span class="p">,</span>
+  <span class="cm">/* initData */</span>          <span class="n">initData</span><span class="p">,</span>
+  <span class="cm">/* requiredDataMask */</span>  <span class="nb">NULL</span><span class="p">,</span>
+  <span class="cm">/* freeData */</span>          <span class="n">freeData</span><span class="p">,</span>
+  <span class="cm">/* isDisabled */</span>        <span class="nb">NULL</span><span class="p">,</span>
+  <span class="cm">/* updateDepgraph */</span>    <span class="nb">NULL</span><span class="p">,</span>
+  <span class="cm">/* dependsOnTime */</span>     <span class="nb">NULL</span><span class="p">,</span>
+  <span class="cm">/* dependsOnNormals */</span>  <span class="n">dependsOnNormals</span><span class="p">,</span>
+  <span class="cm">/* foreachObjectLink */</span> <span class="nb">NULL</span><span class="p">,</span>
+  <span class="cm">/* foreachIDLink */</span>     <span class="nb">NULL</span><span class="p">,</span>
+  <span class="cm">/* foreachTexLink */</span>    <span class="nb">NULL</span><span class="p">,</span>
+<span class="p">};</span></code></pre></div>
+
+<p>The definition has to be forward declared in <a href="https://github.com/ssrb/Blender/blob/master/source/blender/modifiers/MOD_modifiertypes.h">source/blender/modifiers/MOD_modifiertypes.h</a></p>
+
+<div class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="k">extern</span> <span class="n">ModifierTypeInfo</span> <span class="n">modifierType_ShallowWater</span><span class="p">;</span></code></pre></div>
+
+<p>And registered in <a href="https://github.com/ssrb/Blender/blob/master/source/blender/modifiers/intern/MOD_util.c">source/blender/modifiers/intern/MOD_util.c</a>:</p>
+
+<div class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="kt">void</span> <span class="nf">modifier_type_init</span><span class="p">(</span><span class="n">ModifierTypeInfo</span> <span class="o">*</span><span class="n">types</span><span class="p">[])</span>
+<span class="p">{</span>
+<span class="cp">#define INIT_TYPE(typeName) (types[eModifierType_##typeName] = &amp;modifierType_##typeName)</span>
+  <span class="p">[...]</span>
+  <span class="n">INIT_TYPE</span><span class="p">(</span><span class="n">ShallowWater</span><span class="p">);</span>
+<span class="cp">#undef INIT_TYPE</span>
+<span class="p">}</span></code></pre></div>
+
+<p>I will just “describe” the <code>deformVerts</code> callback which apply the displacement based on the mild-slope equation solution.
+It lazily parses the solution file (<code>loadWaveComplexAmplitude</code>) the first time <code>deformVerts</code> is called and fills two arrays with the real &amp; imaginary components of the solution.
+Every time, it applies the formula to the geometry, using the current value of the time parameter <code>\(t\)</code>. This is done in parallel using <a href="http://en.wikipedia.org/wiki/OpenMP">OpenMP</a>.</p>
+
+<div class="highlight"><pre><code class="language-c--" data-lang="c++"><span class="k">static</span> <span class="kt">void</span> <span class="nf">applyAmplitude</span><span class="p">(</span><span class="n">ShallowWaterModifierData</span> <span class="o">*</span><span class="n">swmd</span><span class="p">,</span> <span class="kt">float</span> <span class="p">(</span><span class="o">*</span><span class="n">vertexCos</span><span class="p">)[</span><span class="mi">3</span><span class="p">],</span> <span class="kt">int</span> <span class="n">numVerts</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="kt">int</span> <span class="n">vi</span><span class="p">;</span>
+  <span class="kt">double</span> <span class="n">ct</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">swmd</span><span class="o">-&gt;</span><span class="n">time</span><span class="p">),</span> <span class="n">st</span> <span class="o">=</span> <span class="n">sin</span><span class="p">(</span><span class="n">swmd</span><span class="o">-&gt;</span><span class="n">time</span><span class="p">);</span>
+  <span class="cp">#pragma omp parallel for private(vi) if (numVerts &gt; OMP_MIN_RES)</span>
+  <span class="k">for</span> <span class="p">(</span><span class="n">vi</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">vi</span> <span class="o">&lt;</span> <span class="n">numVerts</span><span class="p">;</span> <span class="o">++</span><span class="n">vi</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">vertexCos</span><span class="p">[</span><span class="n">vi</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">+=</span> <span class="n">swmd</span><span class="o">-&gt;</span><span class="n">amplitude_multiplier</span> <span class="o">*</span> <span class="p">(</span><span class="n">swmd</span><span class="o">-&gt;</span><span class="n">real</span><span class="p">[</span><span class="n">vi</span><span class="p">]</span> <span class="o">*</span> <span class="n">ct</span> <span class="o">-</span> <span class="n">swmd</span><span class="o">-&gt;</span><span class="n">imag</span><span class="p">[</span><span class="n">vi</span><span class="p">]</span> <span class="o">*</span> <span class="n">st</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">static</span> <span class="kt">void</span> <span class="nf">doShallowWater</span><span class="p">(</span><span class="n">ShallowWaterModifierData</span> <span class="o">*</span><span class="n">swmd</span><span class="p">,</span> <span class="kt">float</span> <span class="p">(</span><span class="o">*</span><span class="n">vertexCos</span><span class="p">)[</span><span class="mi">3</span><span class="p">],</span> <span class="kt">int</span> <span class="n">numVerts</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="k">static</span> <span class="kt">bool</span> <span class="n">failedToLoadOnce</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">failedToLoadOnce</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">swmd</span><span class="o">-&gt;</span><span class="n">real</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">swmd</span><span class="o">-&gt;</span><span class="n">imag</span><span class="p">)</span> <span class="p">{</span>    
+    <span class="n">failedToLoadOnce</span> <span class="o">=</span> <span class="o">!</span><span class="n">loadWaveComplexAmplitude</span><span class="p">(</span><span class="n">swmd</span><span class="p">,</span> <span class="n">numVerts</span><span class="p">);</span>
+  <span class="p">}</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">swmd</span><span class="o">-&gt;</span><span class="n">real</span> <span class="o">&amp;&amp;</span> <span class="n">swmd</span><span class="o">-&gt;</span><span class="n">imag</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">applyAmplitude</span><span class="p">(</span><span class="n">swmd</span><span class="p">,</span> <span class="n">vertexCos</span><span class="p">,</span> <span class="n">numVerts</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">static</span> <span class="kt">void</span> <span class="nf">deformVerts</span><span class="p">(</span>  <span class="k">struct</span> <span class="n">ModifierData</span> <span class="o">*</span><span class="n">md</span><span class="p">,</span> <span class="k">struct</span> <span class="n">Object</span> <span class="o">*</span><span class="n">UNUSED</span><span class="p">(</span><span class="n">ob</span><span class="p">),</span>
+                      <span class="k">struct</span> <span class="n">DerivedMesh</span> <span class="o">*</span><span class="n">UNUSED</span><span class="p">(</span><span class="n">derivedData</span><span class="p">),</span>
+                      <span class="kt">float</span> <span class="p">(</span><span class="o">*</span><span class="n">vertexCos</span><span class="p">)[</span><span class="mi">3</span><span class="p">],</span> <span class="kt">int</span> <span class="n">numVerts</span><span class="p">,</span>
+                      <span class="n">ModifierApplyFlag</span> <span class="n">UNUSED</span><span class="p">(</span><span class="n">flag</span><span class="p">))</span>
+<span class="p">{</span>
+  <span class="n">doShallowWater</span><span class="p">((</span><span class="n">ShallowWaterModifierData</span> <span class="o">*</span><span class="p">)</span><span class="n">md</span><span class="p">,</span> <span class="n">vertexCos</span><span class="p">,</span> <span class="n">numVerts</span><span class="p">);</span>
+<span class="p">}</span></code></pre></div>
+
+<h4 id="ui">UI</h4>
+
+<p>The UI is updated in <a href="https://github.com/ssrb/Blender/blob/master/release/scripts/startup/bl_ui/properties_data_modifier.py">release/scripts/startup/bl_ui/properties_data_modifier.py</a></p>
+
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">SHALLOW_WATER</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layout</span><span class="p">,</span> <span class="n">ob</span><span class="p">,</span> <span class="n">md</span><span class="p">):</span>
+
+  <span class="n">row</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">row</span><span class="p">()</span>
+  <span class="n">row</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="s">&quot;Solution path:&quot;</span><span class="p">)</span>
+  <span class="n">row</span><span class="o">.</span><span class="n">prop</span><span class="p">(</span><span class="n">md</span><span class="p">,</span> <span class="s">&quot;solution&quot;</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s">&quot;&quot;</span><span class="p">)</span>
+
+  <span class="n">row</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">row</span><span class="p">()</span>
+  <span class="n">row</span><span class="o">.</span><span class="n">prop</span><span class="p">(</span><span class="n">md</span><span class="p">,</span> <span class="s">&quot;time&quot;</span><span class="p">)</span>
+
+  <span class="n">row</span> <span class="o">=</span> <span class="n">layout</span><span class="o">.</span><span class="n">row</span><span class="p">()</span>
+  <span class="n">row</span><span class="o">.</span><span class="n">prop</span><span class="p">(</span><span class="n">md</span><span class="p">,</span> <span class="s">&quot;amplitude_multiplier&quot;</span><span class="p">)</span></code></pre></div>
+
+<p>And this is what it looks like:</p>
+
+<div class="galleria">
+  <a href="/assets/blendershallowwater/modifier1.png">
+    <img src="/assets/blendershallowwater/modifier1.png" data-title="" data-description="" data-big="/assets/blendershallowwater/modifier1.png" />
+  </a>
+  <a href="/assets/blendershallowwater/modifier2.png">
+    <img src="/assets/blendershallowwater/modifier2.png" data-title="" data-description="" data-big="/assets/blendershallowwater/modifier2.png" />
+  </a>
+  <a href="/assets/blendershallowwater/vgroup1.png">
+    <img src="/assets/blendershallowwater/vgroup1.png" data-title="" data-description="" data-big="/assets/blendershallowwater/vgroup1.png" />
+  </a>
+  <a href="/assets/blendershallowwater/vgroup2.png">
+    <img src="/assets/blendershallowwater/vgroup2.png" data-title="" data-description="" data-big="/assets/blendershallowwater/vgroup2.png" />
+  </a>
+</div>
+
+<h2 id="conclusion">Conclusion</h2>
+<p>As you can see you don’t need to be a half living God to add new features to Blender.
+Sadly, the rendered animation doesn’t look as good as I was expecting:
+even though we used a sound mathematical model to describe the behavior of a wave near the shore, the model only captures <em>macroscopic</em> behavior.
+This model <em>alone</em> probably won’t allow an artist to compose a believable realistic coastal environment as it’s missing all the “high frequency” details found in the real life.</p>
+
+<p>In the next post I will try to add energy dissipation to the model: the equation won’t be linear any more.</p>
+
+<script type="text/javascript" src="/rungalleria.js"></script>
+
+
+    <hr>
+    <div class="pagination btn-group">
+      
+        <a class="btn prev" href="/gaming/2014/05/11/recycling-old-video-game-controllers" title="Recycling old video game controllers">&larr; Previous</a>
+      
+        <a class="btn" href="/archive.html">Archive</a>
+      
+        <a class="btn next" href="/hpc/2015/04/17/cooling-down-the-xeon-phi-sku31S1P" title="Cooling Down The Xeon Phi SKU 31S1P">Next &rarr;</a>
+      
+    </div>
+    <hr>
+    
+
+
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_developer = 1;
+    var disqus_shortname = 'ssrb'; // required: replace example with your forum shortname
+    
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+
+
+  </div>
+  
+  <div class="span4">
+    <section>
+      <h4>Published</h4>
+      <div class="date"><span>05 December 2014</span></div>
+    </section>
+    
+      <section>
+        <h4>Category</h4>
+        <span class="category">
+          Computer graphics
+        </span>
+      </section>
+         
+             
+  </div>
+</div>
+
+
+      </div>
+
+      <footer>
+        <p>&copy; 2018 Sébastien Bigot
+          with help from <a href="http://jekyllbootstrap.com" target="_blank" title="The Definitive Jekyll Blogging Framework">Jekyll Bootstrap</a>
+          and <a href="http://github.com/dhulihan/hooligan" target="_blank">The Hooligan Theme</a>
+        </p>
+      </footer>
+    </div> <!-- /container -->
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="/assets/themes/hooligan/js/jquery.min.js"><\/script>')</script>
+    <script src="/assets/themes/hooligan/bootstrap/js/bootstrap.min.js"></script>
+    
+    
+    
+  </body>
+</html>
+

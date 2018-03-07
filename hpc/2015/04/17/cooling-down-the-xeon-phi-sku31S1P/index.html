@@ -1,0 +1,381 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>
+      
+        Cooling Down The Xeon Phi SKU 31S1P - 
+      
+      Seb's blog
+    </title>
+    <meta name="description" content="">
+    <meta name="author" content="Sébastien Bigot">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+
+    <link href="/assets/themes/hooligan/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/themes/hooligan/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">    
+    <link rel="stylesheet" type="text/css" href="/assets/themes/hooligan/css-social-buttons/css/zocial.stripped.css">
+    <link href="/assets/themes/hooligan/css/pygments.css" rel="stylesheet" type="text/css" media="all">
+    <link href="/assets/themes/hooligan/css/darkstrap.css" rel="stylesheet" type="text/css" media="all">    
+    <link href="/assets/themes/hooligan/css/style.css?body=1" rel="stylesheet" type="text/css" media="all">
+
+    
+    <!-- fav and touch icons -->
+  <!-- Update these with your own images
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
+  -->
+
+    <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      TeX: { equationNumbers: { autoNumber: "AMS" } },
+        tex2jax: {
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      }
+    });
+    MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for(i=0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+    </script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    </script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.js">
+    </script>
+    <script type="text/javascript" src="/galleria/galleria-1.3.3.min.js">
+    </script>
+    <style>
+      .galleria{ width: 700px; height: 400px; background: #000 }
+    </style>
+  </head>
+
+  <body>
+    <div class="navbar">
+      <div class="navbar-inner">
+        <div class="container">
+          <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>      
+
+
+          <a class="brand" href="/">Seb's blog</a>
+
+
+          <div class="nav-collapse">
+            <ul class="nav">
+              
+              
+              
+
+
+  
+    
+      
+      	
+      	<li><a href="/archive.html">Archive</a></li>
+      	
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/categories.html">Categories</a></li>
+      	
+      
+    
+  
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/tags.html">Tags</a></li>
+      	
+      
+    
+  
+
+
+
+            </ul>
+            <ul class="nav pull-right social visible-desktop">
+              <li class="divider-vertical"></li>
+              
+                <li>
+                  <a href="https://github.com/ssrb" class="zocial github icon" target="_blank">
+                    <span class="hidden-desktop">Github</span>
+                  </a>
+                </li>
+              
+                  
+                                        
+                         
+                                  
+              
+              <li>
+                <a class="zocial icon rss" target="_blank" href="/rss.xml">
+                  <span class="hidden-desktop">ATOM Feed</a>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="content">
+        
+<div class="page-header">
+  <h1>
+    Cooling Down The Xeon Phi SKU 31S1P 
+    
+  </h1>
+</div>
+
+<div class="row">
+  <div class="span8">
+    
+<script src="https://embed.github.com/view/3d/ssrb/ssrb.github.com/master/assets/cooldownphi/phifan.stl"></script>
+
+<!-- more -->
+
+<p>A few months ago, Dr Z who’s with the <a href="http://www.capsl.udel.edu/people.shtml">CAPSL team</a> sent me a <a href="http://en.wikipedia.org/wiki/Xeon_Phi">Xeon Phi co-processor</a>:</p>
+
+<p><img src="/assets/cooldownphi/2015-04-29 21.07.45.jpg" alt="Phi" /></p>
+
+<p>This particular board, SKU 31S1P, is not usually installed inside desktop computers as it is meant to be passively cooled in HPC data center environment.</p>
+
+<p>Airflow requirements for the passive cooling solutions are listed in the section 3.3.2 of the <a href="&quot;/assets/cooldownphi/Xeon-Phi-Coprocessor-Datasheet.pdf&quot;">coprocessor datasheet</a>:</p>
+
+<blockquote>
+  <p>In order to ensure adequate cooling of the SE10P/7120P/3120P 300W and 31S1P
+270W SKUs with a 45oC inlet temperature, the system must be able to provide 33 ft3/
+min of airflow to the card with 7.2 ft3/min on the secondary side and the remainder on
+the primary side. The total pressure drop (assuming a multi-card installation conforming
+to the PCI Express* mechanical specification) is 0.54 in H2O at this flow rate.</p>
+</blockquote>
+
+<h2 id="rapid-prototyping">Rapid prototyping</h2>
+
+<p>To cool down the Phi inside an ATX desktop case I came up with a custom 8mm fan duct adapter I designed in Blender and 3D printed using my DIY <a href="http://reprap.org/wiki/Prusa_Mendel">Prusa Mendel</a>:</p>
+
+<div class="galleria">
+  <a href="/assets/cooldownphi/blenderviewport.png">
+    <img src="/assets/cooldownphi/blenderviewport.png" data-title="" data-description="" data-big="/assets/cooldownphi/blenderviewport.png" />
+  </a>
+  <a href="/assets/cooldownphi/2015-04-28 00.00.03.jpg">
+    <img src="/assets/cooldownphi/2015-04-28 00.00.03.jpg" data-title="" data-description="" data-big="/assets/cooldownphi/2015-04-28 00.00.03.jpg" />
+  </a>
+  <a href="/assets/cooldownphi/2015-03-05 00.49.48.jpg">
+    <img src="/assets/cooldownphi/2015-03-05 00.49.48.jpg" data-title="" data-description="" data-big="/assets/cooldownphi/2015-03-05 00.49.48.jpg" />
+  </a>
+  <a href="/assets/cooldownphi/2015-03-05 00.50.05.jpg">
+    <img src="/assets/cooldownphi/2015-03-05 00.50.05.jpg" data-title="" data-description="" data-big="/assets/cooldownphi/2015-03-05 00.50.05.jpg" />
+  </a>
+</div>
+
+<video width="640" height="480" controls="controls">
+<source src="https://www.dropbox.com/s/b9pl26lpjuxc63z/phifantimelapse3.mp4?raw=1" type="video/mp4" />
+</video>
+
+<p>Here are the files if your interested in customizing or printing your own:</p>
+
+<ul>
+  <li><a href="&quot;/assets/cooldownphi/phifan.blend&quot;">Blend file</a></li>
+  <li><a href="&quot;/assets/cooldownphi/phifan.stl&quot;">STL file</a></li>
+</ul>
+
+<h2 id="tests">Tests</h2>
+
+<p>I tested the fan duct with 2 different 12VDC fans:</p>
+
+<ul>
+  <li>a <strong>YATE LOON D80SH-12</strong>, 12V, 0.18A <strong>32ft3/m</strong>, 34 dBA ;</li>
+  <li>a <strong>Delta Electronics FFB0812EHE</strong>, 12V, 1.35A, <strong>80.16ft3/m</strong>, 52.5 dBA</li>
+</ul>
+
+<div class="galleria">
+  <a href="/assets/cooldownphi/2015-04-27 13.47.57.jpg">
+    <img src="/assets/cooldownphi/2015-04-27 13.47.57.jpg" data-title="YATE LOON VS Delta Electronics" data-description="" data-big="/assets/cooldownphi/2015-04-27 13.47.57.jpg" />
+  </a>
+  <a href="/assets/cooldownphi/2015-04-27 11.00.50.jpg">
+    <img src="/assets/cooldownphi/2015-04-27 11.00.50.jpg" data-title="Phi installed" data-description="" data-big="/assets/cooldownphi/2015-04-27 11.00.50.jpg" />
+  </a>
+</div>
+
+<p>To test, I’m running the <a href="https://embree.github.io">Embree</a> high performance raytracing kernels examples on the Phi
+and monitoring temperature VS power.</p>
+
+<h3 id="d80sh-12">D80SH-12</h3>
+
+<ul>
+  <li>67°C@103W</li>
+  <li>73°C@121W</li>
+  <li>86°C@168W</li>
+</ul>
+
+<div class="galleria">
+  <a href="/assets/cooldownphi/phi1.png">
+    <img src="/assets/cooldownphi/phi1.png" data-title="" data-description="" data-big="/assets/cooldownphi/phi1.png" />
+  </a>
+  <a href="/assets/cooldownphi/phi2.png">
+    <img src="/assets/cooldownphi/phi2.png" data-title="" data-description="" data-big="/assets/cooldownphi/phi2.png" />
+  </a>
+  <a href="/assets/cooldownphi/phi3.png">
+    <img src="/assets/cooldownphi/phi3.png" data-title="" data-description="" data-big="/assets/cooldownphi/phi3.png" />
+  </a>
+</div>
+
+<p>According to Intel that’s too much:</p>
+
+<p><img src="/assets/cooldownphi/thermalspec.png" alt="Thermal spec" /></p>
+
+<h3 id="delta-electronics-ffb0812ehe">Delta Electronics FFB0812EHE</h3>
+
+<ul>
+  <li>39°C@93W</li>
+  <li>42°C@112W</li>
+  <li>48°C@156W</li>
+</ul>
+
+<div class="galleria">
+  <a href="/assets/cooldownphi/phi4.png">
+    <img src="/assets/cooldownphi/phi4.png" data-title="" data-description="" data-big="/assets/cooldownphi/phi4.png" />
+  </a>
+  <a href="/assets/cooldownphi/phi5.png">
+    <img src="/assets/cooldownphi/phi5.png" data-title="" data-description="" data-big="/assets/cooldownphi/phi5.png" />
+  </a>
+  <a href="/assets/cooldownphi/phi6.png">
+    <img src="/assets/cooldownphi/phi6.png" data-title="" data-description="" data-big="/assets/cooldownphi/phi6.png" />
+  </a>
+</div>
+
+<p>This is good but …</p>
+
+<p>it’s extremely noisy (rated 52.5 dBA …) so that I simply can’t work near the box and must unplug/remove the Phi from the computer when I’m not using it. Not a big problem as it’s just a hobby.</p>
+
+<p>In the next post of this “series”, I will try to implement a parallel <a href="https://en.wikipedia.org/wiki/Lattice_Boltzmann_methods">Lattice Boltzmann</a> fluid simulation targetting the Phi. Stay tuned :-)</p>
+
+<script type="text/javascript" src="/rungalleria.js"></script>
+
+
+    <hr>
+    <div class="pagination btn-group">
+      
+        <a class="btn prev" href="/computer%20graphics/2014/12/05/the-wave-penetration-project-blender-interlude" title="The wave penetration project: Blender interlude">&larr; Previous</a>
+      
+        <a class="btn" href="/archive.html">Archive</a>
+      
+        <a class="btn next" href="/numerical%20methods/2015/04/28/the-wave-penetration-project-energy-dissipation-by-bottom-friction" title="The wave penetration project: energy dissipation by bottom friction">Next &rarr;</a>
+      
+    </div>
+    <hr>
+    
+
+
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_developer = 1;
+    var disqus_shortname = 'ssrb'; // required: replace example with your forum shortname
+    
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+
+
+  </div>
+  
+  <div class="span4">
+    <section>
+      <h4>Published</h4>
+      <div class="date"><span>17 April 2015</span></div>
+    </section>
+    
+      <section>
+        <h4>Category</h4>
+        <span class="category">
+          HPC
+        </span>
+      </section>
+         
+    
+      <section>
+        <h4>Tags</h4>
+        <ul class="tag_box">
+          
+          
+
+
+  
+     
+    	<li><a href="/tags.html#parallel computing-ref">parallel computing <span>7</span></a></li>
+    
+  
+
+
+
+        </ul>
+      </section>
+             
+  </div>
+</div>
+
+
+      </div>
+
+      <footer>
+        <p>&copy; 2018 Sébastien Bigot
+          with help from <a href="http://jekyllbootstrap.com" target="_blank" title="The Definitive Jekyll Blogging Framework">Jekyll Bootstrap</a>
+          and <a href="http://github.com/dhulihan/hooligan" target="_blank">The Hooligan Theme</a>
+        </p>
+      </footer>
+    </div> <!-- /container -->
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="/assets/themes/hooligan/js/jquery.min.js"><\/script>')</script>
+    <script src="/assets/themes/hooligan/bootstrap/js/bootstrap.min.js"></script>
+    
+    
+    
+  </body>
+</html>
+

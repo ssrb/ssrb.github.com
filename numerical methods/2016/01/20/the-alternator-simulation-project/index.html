@@ -1,0 +1,649 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>
+      
+        The alternator simulation project - 
+      
+      Seb's blog
+    </title>
+    <meta name="description" content="">
+    <meta name="author" content="Sébastien Bigot">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+
+    <link href="/assets/themes/hooligan/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/themes/hooligan/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">    
+    <link rel="stylesheet" type="text/css" href="/assets/themes/hooligan/css-social-buttons/css/zocial.stripped.css">
+    <link href="/assets/themes/hooligan/css/pygments.css" rel="stylesheet" type="text/css" media="all">
+    <link href="/assets/themes/hooligan/css/darkstrap.css" rel="stylesheet" type="text/css" media="all">    
+    <link href="/assets/themes/hooligan/css/style.css?body=1" rel="stylesheet" type="text/css" media="all">
+
+    
+    <!-- fav and touch icons -->
+  <!-- Update these with your own images
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
+  -->
+
+    <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      TeX: { equationNumbers: { autoNumber: "AMS" } },
+        tex2jax: {
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      }
+    });
+    MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for(i=0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+    </script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    </script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.js">
+    </script>
+    <script type="text/javascript" src="/galleria/galleria-1.3.3.min.js">
+    </script>
+    <style>
+      .galleria{ width: 700px; height: 400px; background: #000 }
+    </style>
+  </head>
+
+  <body>
+    <div class="navbar">
+      <div class="navbar-inner">
+        <div class="container">
+          <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>      
+
+
+          <a class="brand" href="/">Seb's blog</a>
+
+
+          <div class="nav-collapse">
+            <ul class="nav">
+              
+              
+              
+
+
+  
+    
+      
+      	
+      	<li><a href="/archive.html">Archive</a></li>
+      	
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/categories.html">Categories</a></li>
+      	
+      
+    
+  
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/tags.html">Tags</a></li>
+      	
+      
+    
+  
+
+
+
+            </ul>
+            <ul class="nav pull-right social visible-desktop">
+              <li class="divider-vertical"></li>
+              
+                <li>
+                  <a href="https://github.com/ssrb" class="zocial github icon" target="_blank">
+                    <span class="hidden-desktop">Github</span>
+                  </a>
+                </li>
+              
+                  
+                                        
+                         
+                                  
+              
+              <li>
+                <a class="zocial icon rss" target="_blank" href="/rss.xml">
+                  <span class="hidden-desktop">ATOM Feed</a>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="content">
+        
+<div class="page-header">
+  <h1>
+    The alternator simulation project 
+    
+  </h1>
+</div>
+
+<div class="row">
+  <div class="span8">
+    
+<p>In this post I’m going to illustrate how to implement a finite element simulation of an <a href="https://en.wikipedia.org/wiki/Induction_generator">alternator</a> in motion coupled to a linear electrical circuit.</p>
+
+<!-- more -->
+
+<p>The simulation computes the magnetic vector potential within a (2D) radial cross section of the machine I’m about to describe.</p>
+
+<p>Here’s an example for a 3000rpm rotor speed and a stator energized with a 50Hz AC current:</p>
+
+<iframe width="500" height="500" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="http://ssrb.github.io/alternator-fem-webapp/alternator.html" style="border: 1px solid black">unwantedtext</iframe>
+<p><br /><small><a href="http://ssrb.github.io/alternator-fem-webapp/alternator.html">View Larger Simulation</a></small></p>
+
+<p>The code is <a href="https://github.com/ssrb/alternator-fem-webapp">here</a></p>
+
+<h2 id="description-of-the-machine">Description of the machine</h2>
+
+<p>The machine we’re going to study is an unusual induction generator of the <a href="https://en.wikipedia.org/wiki/Squirrel-cage_rotor">squirel-cage</a> type.</p>
+
+<p>This is <code>\(1/12^{th}\)</code> of the machine:
+<img src="/assets/alternator/machine.png" alt="machine" /></p>
+
+<p>The rotor has 12 massive coper rods shorted by rings at both ends: the so called squirel cage.
+Rods are enclosed in a cyclinder made of iron laminations.</p>
+
+<p>The stator, made of iron laminations too, has 12 winding slots. The winding pattern is as follow:</p>
+
+<p><img src="/assets/alternator/winding-1.png" alt="winding1" /></p>
+
+<p>Notice that the field coil goes up/up, down/down, up/up …
+This will be very important later on when computing the <a href="https://en.wikipedia.org/wiki/Current_density">current density</a> in the coils.</p>
+
+<p><img src="/assets/alternator/winding-2.png" alt="winding2" /></p>
+
+<p>Again, notice that the armature coil goes up/down when the field coil goes up/up, and then down/up, up/down …</p>
+
+<p>The diameter of the machine is 80mm, its depth/thickness is 50mm.</p>
+
+<h2 id="modelization">Modelization</h2>
+
+<h3 id="periodicity">Periodicity</h3>
+
+<p>Because of the problem periodicity, we can reduce the ammount of computation by modeling only a slice of the machine.</p>
+
+<p>To find the size of the smallest possible slice we compute the <a href="https://en.wikipedia.org/wiki/Greatest_common_divisor">greatest common divisor</a> (<code>\(gcd\)</code>) of the number of rods and slots and only simulate a <code>\(360 / gcd\)</code> degrees machine slice.</p>
+
+<p>Next, in order to decide if we need to use <a href="https://en.wikipedia.org/wiki/Periodic_boundary_conditions">periodic or anti-periodic boundary conditions</a> to join our alternator slices, we simply observe that if we apply <a href="https://en.wikipedia.org/wiki/Kirchhoff%27s_circuit_laws">Kirchoff current’s law</a> to the rotor squirel cage topology, the <a href="https://en.wikipedia.org/wiki/Eddy_current">eddy currents</a> flowing through one rod will flow in the opposite direction in the previous and next rods so that we use periodic (respectively anti-periodic) boundary condition if the slice contains an even (respectively odd) number of rod.</p>
+
+<p>It comes that for this particular endeavour we can simulate <code>\(1/12^{th}\)</code> of the machine (30 degrees), so a single rod and a single slot, and must use <em>anti-periodic</em> boundary condition.</p>
+
+<p>When implementing the finite element method using first order Lagrange element to solve non periodic problem we have a one to one mapping between mesh vertices and <a href="https://en.wikipedia.org/wiki/Degrees_of_freedom_(physics_and_chemistry)">degrees of freedom</a> (<code>\(dof\)</code>) so that we can identify vertices with <code>\(dof\)</code>.</p>
+
+<p>For example a single quadrangular first order Lagrange element has 4 vertices and leads to a 4 <code>\(dof\)</code> <a href="https://en.wikipedia.org/wiki/Stiffness_matrix">stiffness matrix</a>:</p>
+
+<p><img src="/assets/alternator/element-1.png" alt="element" /></p>
+
+<p>However if we consider an (anti-)periodic along one axis element, it leads to a 2 <code>\(dof\)</code> stiffness matrix:</p>
+
+<p><img src="/assets/alternator/element-2.png" alt="periodic element" /></p>
+
+<p>We can also illustrate further what’s going on by writing the equations:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned} 
+    & 
+    \begin{pmatrix}
+    a_{0,0} & a_{0,1} & a_{0,2} & a_{0,3}\\\
+    a_{1,0} & a_{1,1} & a_{1,2} & a_{1,3}\\\
+    a_{2,0} & a_{2,1} & a_{2,2} & a_{2,3}\\\
+    a_{3,0} & a_{3,1} & a_{3,2} & a_{3,3}
+    \end{pmatrix}
+    \begin{pmatrix}
+    x_0\\\
+    x_1\\\
+    x_2\\\
+  	x_3
+    \end{pmatrix}
+    =
+    \begin{pmatrix}
+    b_0 \\\
+    b_1 \\\ 
+    b_2 \\\
+    b_3
+    \end{pmatrix}\\\
+	\Leftrightarrow & 
+    \begin{pmatrix}
+    a_{0,0} & a_{0,1} & a_{0,2} & a_{0,3}\\\
+    a_{0,1} & a_{1,1} & a_{1,2} & a_{1,3}\\\
+    a_{0,2} & a_{1,2} & a_{2,2} & a_{2,3}\\\
+    a_{0,3} & a_{1,3} & a_{2,3} & a_{3,3}
+    \end{pmatrix}
+    \begin{pmatrix}
+    x_0\\\
+    \pm x_0\\\
+    x_2\\\
+  	\pm x_2
+    \end{pmatrix}
+    =
+    \begin{pmatrix}
+    b_0 \\\
+    b_1 \\\ 
+    b_2 \\\
+    b_3
+    \end{pmatrix}, x_1 = \pm x_0, x_3 = \pm x_2 \text{, as per stiffness matrix symmetry and element periodicity}\\\
+	\Leftrightarrow & 
+    \begin{pmatrix}
+    a_{0,0} \pm a_{0,1} & a_{0,2} \pm a_{0,3}\\\
+    a_{0,1} \pm a_{1,1} & a_{1,2} \pm a_{1,3}\\\
+    a_{0,2} \pm a_{1,2} & a_{2,2} \pm a_{2,3}\\\
+    a_{0,3} \pm a_{1,3} & a_{2,3} \pm a_{3,3}
+    \end{pmatrix}
+    \begin{pmatrix}
+    x_0\\\
+    x_2
+    \end{pmatrix}
+    =
+    \begin{pmatrix}
+    b_0 \\\
+    b_1 \\\ 
+    b_2 \\\
+    b_3
+    \end{pmatrix}, x_1 = \pm x_0, x_3 = \pm x_2\\\
+    \Leftrightarrow & 
+    \begin{pmatrix}
+    a_{0,0} \pm 2 a_{0,1} + a_{1,1} & a_{0,2} \pm a_{0,3} \pm a_{1,2} + a_{1,3}\\\
+    a_{0,2} \pm a_{0,3} \pm a_{1,2} + a_{1,3} & a_{2,2} \pm 2 a_{2,3} + a_{3,3}
+    \end{pmatrix}
+    \begin{pmatrix}
+    x_0\\\
+    x_2
+    \end{pmatrix}
+    =
+    \begin{pmatrix}
+    b_0 \pm b_1\\\
+    b_2 \pm b_3
+    \end{pmatrix}, x_1 = \pm x_0, x_3 = \pm x_2
+    \end{aligned} %]]></script>
+
+<p>Notice that we also end up with a symmetric linear system.</p>
+
+<p>So that the key to implement (anti-)peridic boundary conditions is to compute the <a href="https://en.wikipedia.org/wiki/Injective_function">non injective</a> mapping from mesh vertices to <code>\(dof\)</code> as well as introduce a sign/polarity vector in order to remember the sign of each nodal value relative to its <code>\(dof\)</code>
+(or in short: to deal with all these <code>\(\pm\)</code> in the equations).</p>
+
+<ul>
+  <li>This is how I compute the mapping:</li>
+</ul>
+
+<script src="https://gist.github.com/ssrb/44a84951fe6dca229bf3.js"> </script>
+
+<p>The relevant project class is in <a href="https://github.com/ssrb/alternator-fem-webapp/blob/master/domain.ts">https://github.com/ssrb/alternator-fem-webapp/blob/master/domain.ts</a></p>
+
+<ul>
+  <li>And this is how I assemble the stiffness matrix and load vector using the computed mapping:</li>
+</ul>
+
+<script src="https://gist.github.com/ssrb/6ff15cec796b1e1a0116.js"> </script>
+
+<p>The relevant project class is in <a href="https://github.com/ssrb/alternator-fem-webapp/blob/master/solver.ts">https://github.com/ssrb/alternator-fem-webapp/blob/master/solver.ts</a></p>
+
+<h3 id="motion">Motion</h3>
+
+<p>In order to simulate the entire machine, we need to match rotor and stator <code>\(dof\)</code> along their common interface.
+One way to get a match is to first discretize the interface and then use these interface vertices to compute the <a href="https://en. wikipedia.org/wiki/Delaunay_triangulation">Delaunay triangulations</a> of both the stator and rotor domains.</p>
+
+<p><img src="/assets/alternator/alter012.000.png" alt="mesh" /></p>
+
+<p>How about motion ? Ideally we would like to solve for <em>any</em> rotor/stator angle.
+That’s doable but a bit too ambitious and we’re instead going to only consider rotations multiple of a fixed “rotation step”.
+Furthermore we choose a “rotation step” equal to a unit fraction of the domain slice angle, for example <code>\(1/32\)</code> of 30 degrees, so that, by uniformly dividing the interface into 32 segments we can match rotor and stator <code>\(dof\)</code> regardless of the “discrete” rotation angle.</p>
+
+<p>The advantage of this method is that we compute the mesh for both domains once and for all, regardless of the rotation angle.</p>
+
+<p>A drawback of this method is that given the angular speed of the rotor we need to choose the time step of the simulation accordingly.
+In our example, for a rotor speed of 3000rpm, the time step will be <code>\(60 / (12 * 32 * 3000)\)</code> seconds.</p>
+
+<p>As it rotates, the rotor slice will face both a stator and an “anti-stator” slice. 
+But we won’t explicitly model the anti-stator slice since its nodal values are the opposite of those of the stator slice.
+Instead we will model a rotor slice which wraps around and use the sign/polarity vector introduced earlier in order to decide if a rotor nodal value is coupled to a stator or “anti-stator” <code>\(dof\)</code>.</p>
+
+<p>One last thing we need to discuss is how to generate the mapping between rotor/stator “local” <code>\(dof\)</code> to the machine “global” <code>\(dof\)</code>:</p>
+
+<ol>
+  <li>We first map interior “local” <code>\(dof\)</code> for both domains;</li>
+  <li>We then match interface rotor/stator local <code>\(dof\)</code> and assign a single “global” <code>\(dof\)</code> to each pair.</li>
+</ol>
+
+<p>Here is a sketch:
+<img src="/assets/alternator/element-3.png" alt="motion" /></p>
+
+<p>Here is how I compute the mapping:</p>
+
+<script src="https://gist.github.com/ssrb/c56b14b2e89c331e9a40.js"> </script>
+
+<p>Relevant project class is in <a href="https://github.com/ssrb/alternator-fem-webapp/blob/master/domain.ts">https://github.com/ssrb/alternator-fem-webapp/blob/master/domain.ts</a></p>
+
+<h3 id="maxwells-equations">Maxwell’s equations</h3>
+
+<p>In this section, I will describe as concisely as I can the derivation of the <a href="https://en.wikipedia.org/wiki/Partial_differential_equation">PDE</a> we’re about to solve.</p>
+
+<p>DISCLAIMER: I’M BY NO MEANS A MAXWELL’S EQUATIONS EXPERT.</p>
+
+<p>Within the machine, the physical quantities we’re intested in, such as magnetic vector potential and current density, are governed by <a href="https://en.wikipedia.org/wiki/Maxwell%27s_equations">Maxwell’s equations</a>.</p>
+
+<ul>
+  <li>The main equation we’re interested in is the differential form of <a href="https://en.wikipedia.org/wiki/Amp%C3%A8re%27s_circuital_law#Differential_form">Ampère’s circuital law</a> which
+relates the magnetic vector potential <code>\(A\)</code> (V·s·m<sup>-1</sup>) to the <a href="https://en.wikipedia.org/wiki/Electric_field">electric field</a> <code>\(E\)</code> (V·m<sup>-1</sup>):</li>
+</ul>
+
+<script type="math/tex; mode=display">\nabla \times \left(\mu \nabla \times A \right) = \sigma E \</script>
+
+<p><code>\(\mu\)</code> (H·m<sup>-1</sup>) is the <a href="https://en.wikipedia.org/wiki/Permeability_(electromagnetism)">relative magnetic permeability</a> and <code>\(\sigma\)</code> (S·m<sup>-1</sup>) the <a href="https://en.wikipedia.org/wiki/Electrical_resistivity_and_conductivity">electrical conductivity</a>. In this toy simulation, these quantities are assumed constant for a particular medium (coper, iron, air).</p>
+
+<ul>
+  <li>The next equation we use is the <a href="https://en.wikipedia.org/wiki/Faraday%27s_law_of_induction#Maxwell.E2.80.93Faraday_equation">Maxwell–Faraday induction law</a>.
+It relates the electric field <code>\(E\)</code> to the magnetic vector potential <code>\(A\)</code> and the <a href="https://en.wikipedia.org/wiki/Electric_potential">electric potential</a> <code>\(V\)</code> :</li>
+</ul>
+
+<script type="math/tex; mode=display">E = -\nabla V - \frac{\partial A}{\partial t}</script>
+
+<p>Putting these two together we got:</p>
+
+<script type="math/tex; mode=display">\nabla \times \left(\mu \nabla \times A \right) + \sigma \frac{\partial A}{\partial t} = - \sigma \nabla V</script>
+
+<p>For this 2D problem <code>\(A\)</code> and <code>\(\nabla V\)</code> are reduced to their z components. That is <code>\(A \equiv \left(0,0,A\right)\)</code> and <code>\(\nabla V \equiv \left(0,0,\partial V / \partial z\right) \)</code>.</p>
+
+<p>Now we’re going to make a gross simplification and say that <code>\(\partial V / \partial z \neq 0\)</code> only within the coils. 
+Furthermore, within a coil, we’re going to estimate this quantity as the difference of electric potential at both ends of a single conductor 
+divided by its length:</p>
+
+<script type="math/tex; mode=display">\frac{\partial V}{\partial z} = \frac{V_{z_b} - V_{z_a}}{L}</script>
+
+<p>Since the machine is 50mm thick, we set <code>\(L = 0.05\)</code>.</p>
+
+<p>Then, using <a href="https://en.wikipedia.org/wiki/Ohm%27s_law">Ohm’s law</a>, we say that:</p>
+
+<script type="math/tex; mode=display">V_{z_a} - V_{z_b} = iR</script>
+
+<p>with <code>\(i\)</code> the current going through the coil and <code>\(R\)</code> the resistance of that 50mm long coper conductor.
+Remember that we care about the sign of <code>\(i\)</code> which depends on the winding pattern.</p>
+
+<p>We can estimate <code>\(R\)</code> using <a href="https://en.wikipedia.org/wiki/Electrical_resistivity_and_conductivity">Pouillet’s law</a>:</p>
+
+<script type="math/tex; mode=display">R = \frac{L}{\sigma \mathscr{A}}</script>
+
+<p>with <code>\(\mathscr{A}\)</code> the cross-sectional area of the conductor.</p>
+
+<p>Ultimately within a single conductor we got:</p>
+
+<script type="math/tex; mode=display">- \sigma \nabla V \equiv \sigma \frac{V_{z_a} - V_{z_b}}{L} = \sigma \frac{iR}{L} = \sigma \frac{i}{L} \cdot \frac{L}{\sigma \mathscr{A}} = \frac{i}{\mathscr{A}}</script>
+
+<p>In the code we estimate the cross-sectional area of a single conductor dividing the cross-sectional area of the entire coil by the number of conductors within the coil.</p>
+
+<p>Putting everything back together we want to solve:</p>
+
+<script type="math/tex; mode=display">\begin{equation}\begin{aligned} 
+\nabla \times \left(\mu \nabla \times A \right) + \sigma \frac{\partial A}{\partial t} = \sum_{k = 1}^{n_{coil}}\psi_k i_k\\\
+\psi_k(x) = \begin{cases}
+\frac{1}{\mathscr{A}_k} \text{ within coil } k\\\
+0 \text{ otherwise}
+\end{cases}
+\end{aligned}\label{eq:eq_potential_current}\end{equation}</script>
+
+<p>for <code>\(A \equiv \left(0,0,A\right)\)</code> and <code>\(i_k, k = 1 \dots n_{coil}\)</code>.</p>
+
+<h3 id="coupling-between-magnetic--electrical-equations">Coupling between magnetic &amp; electrical equations</h3>
+
+<p>At this stage we got two unknowns:</p>
+
+<ul>
+  <li>the magnetic vector potential <code>\(A\)</code>;</li>
+  <li>the currents flowing through the coils <code>\(i_k, k = 1 \dots n_{coil}\)</code></li>
+</ul>
+
+<p>We are going to get rid of the current.</p>
+
+<h4 id="admittance-matrix">Admittance matrix</h4>
+
+<p>In order to do so we model the <em>linear</em> electrical circuit connected to the machine using a <a href="https://en.wikipedia.org/wiki/Lumped_element_model">lumped element model</a>:
+this will give us another relationship between <code>\(A\)</code> and <code>\(i_k, k = 1 \dots n_{coil}\)</code>.</p>
+
+<p>The lumped element model of an N port linear electrical circuit can be treated as a single black box whose behavior is concisely described by its <a href="https://en.wikipedia.org/wiki/Admittance_parameters">admittance parameters</a>:</p>
+
+<script type="math/tex; mode=display">\begin{pmatrix}i_1\\\ \vdots \\\ i_N \end{pmatrix} = Y \begin{pmatrix}v_1\\\ \vdots \\\ v_N \end{pmatrix}</script>
+
+<p>where <code>\(v_k, k = 1, \ldots, N\)</code> is the voltage at each port of the circuit.</p>
+
+<p><code>\(Y\)</code> is called the <a href="https://en.wikipedia.org/wiki/Nodal_admittance_matrix">nodal admittance matrix</a>.</p>
+
+<p><code>\(Y\)</code> is symmetrical and it is extremely important as if it wasn’t we would not end up with a <a href="https://en.wikipedia.org/wiki/Symmetric_bilinear_form">symmetrical bilinear form</a> later on when trying to solve the PDE.</p>
+
+<p>We can label the ports of the electrical circuit so that:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{pmatrix}i_1\\\ \vdots \\\ i_{n_{coil}}\\\ i_{n_{coil} + 1}\\\ \vdots \\\ i_N \end{pmatrix} = \begin{pmatrix} Y_{coils, coils} && Y_{coils, others} \\\  Y_{others, coils}  && Y_{others, others} \end{pmatrix} \begin{pmatrix}v_1\\\ \vdots \\\ v_{n_{coil}} \\\ v_{n_{coil} + 1} \\\ \vdots \\\ v_N \end{pmatrix} %]]></script>
+
+<p>and since we only care about <code>\(i_k, k = 1, \ldots, n_{coil}\)</code> we write:</p>
+
+<script type="math/tex; mode=display">\begin{cases}
+\begin{pmatrix}i_1\\\ \vdots \\\ i_{n_{coil}}\end{pmatrix} = I_0 + Y_{coils, coils} \begin{pmatrix}v_1\\\ \vdots \\\ v_{n_{coil}}\end{pmatrix}\\\
+I_0 = Y_{coils, others} \begin{pmatrix}v_{n_{coil} + 1} \\\ \vdots \\\ v_N\end{pmatrix}
+\end{cases}</script>
+
+<h4 id="electromotive-force">Electromotive force</h4>
+
+<p>When the machine is connected to the circuit, the voltage at each port will be equal to the <a href="https://en.wikipedia.org/wiki/Electromotive_force">electromotive force</a> <code>\(\mathcal{E}_k\)</code> generated in the matching coil:</p>
+
+<script type="math/tex; mode=display">v_k = \mathcal{E}_k, k = 1, \ldots, n_{coil}</script>
+
+<p>As per <a href="https://en.wikipedia.org/wiki/Lenz%27s_law">Lenz’s law</a>:</p>
+
+<script type="math/tex; mode=display">\mathcal{E_k}=-\frac{\partial \Phi_k}{\partial t}</script>
+
+<p>where <code>\(\Phi_k\)</code> is the <a href="https://en.wikipedia.org/wiki/Magnetic_flux">magnetic flux</a> (V·s).</p>
+
+<p>Furthermore</p>
+
+<script type="math/tex; mode=display">\Phi_k = L \int_{\Omega} \psi_k A dx</script>
+
+<p>Finally we can rewrite the dextral side of <code>\(\eqref{eq:eq_potential_current}\)</code>:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned} 
+\sum_{k = 1}^{n_{coil}}\psi_k i_k & = \sum_{k = 1}^{n_{coil}}\psi_k \left( I_{0,k} + \sum_{l = 1}^{n_{coil}} Y_{k.l} v_l\right) \\\
+& = \sum_{k = 1}^{n_{coil}}\psi_k \left( I_{0,k} - \sum_{l = 1}^{n_{coil}} Y_{k.l} \frac{\partial \Phi_l}{\partial t} \right) \\\
+& = \sum_{k = 1}^{n_{coil}}\psi_k \left( I_{0,k} - L \frac{\partial}{\partial t} \sum_{l = 1}^{n_{coil}} Y_{k,l} \int_{\Omega} \psi_l A dx \right)
+\end{aligned} %]]></script>
+
+<p>and group the vector potential terms on the sinistral side:</p>
+
+<script type="math/tex; mode=display">\begin{equation}
+\nabla \times \left(\mu \nabla \times A \right) + \sigma \frac{\partial A}{\partial t} + L \frac{\partial}{\partial t} \sum_{k,l = 1}^{n_{coil}} Y_{k,l} \psi_k \int_{\Omega} \psi_l A dx = \sum_{k = 1}^{n_{coil}}\psi_k I_{0,k}
+\label{eq:eq_potential}\end{equation}</script>
+
+<p>We want to solve for the magnetic vector potential.</p>
+
+<h3 id="discretization">Discretization</h3>
+
+<p>At this stage it’s only calculus.</p>
+
+<h4 id="time">Time</h4>
+
+<p>To solve <code>\(\eqref{eq:eq_potential}\)</code> numericaly we first integrate over time using the <a href="https://en.wikipedia.org/wiki/Backward_Euler_method">backward Euler method</a>.
+It leads to</p>
+
+<script type="math/tex; mode=display">\begin{equation}
+\nabla \times \left(\mu \nabla \times A_{t+\Delta t} \right) + \frac{\sigma}{\Delta t} A_{t+\Delta t} + \frac{L}{\Delta t} \sum_{k,l = 1}^{n_{coil}} Y_{k,l} \psi_k \int_{\Omega} \psi_l A_{t+\Delta t} dx = \frac{\sigma}{\Delta t}A_{t} + \frac{L}{\Delta t} \sum_{k,l = 1}^{n_{coil}} Y_{k,l} \psi_k \int_{\Omega} \psi_l A_{t} dx + \sum_{k = 1}^{n_{coil}}\psi_k I_{0,k}\label{eq:eq_potential_time}
+\end{equation}</script>
+
+<p>We want to solve for <code>\(A_{t+\Delta t}\)</code>.</p>
+
+<p>BEWARE: remember that <code>\(\Delta t\)</code> depends on the way we spatially discretized the rotor/stator interface as well as the rotor speed.</p>
+
+<h4 id="space">Space</h4>
+
+<p>We next integrate over space using the <a href="https://en.wikipedia.org/wiki/Finite_element_method">finite element method</a>. Weak formulation of <code>\(\eqref{eq:eq_potential_time}\)</code> one baby step at a time (as usual, I skip all the functional analysis details as I’m an engineer, not a mathematician :-)):</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{equation}
+\begin{aligned} 
+& \nabla \times \left(\mu \nabla \times A_{t+\Delta t} \right) + \frac{\sigma}{\Delta t} A_{t+\Delta t} + \frac{L}{\Delta t} \sum_{k,l = 1}^{n_{coil}} Y_{k,l} \psi_k \int_{\Omega} \psi_l A_{t+\Delta t} dx = \frac{\sigma}{\Delta t}A_{t} + \frac{L}{\Delta t} \sum_{k,l = 1}^{n_{coil}} Y_{k,l} \psi_k \int_{\Omega} \psi_l A_{t} dx + \sum_{k = 1}^{n_{coil}}\psi_k I_{0,k}\\\
+\Leftrightarrow & v \cdot \nabla \times \left(\mu \nabla \times A_{t+\Delta t} \right) + \frac{\sigma}{\Delta t} v A_{t+\Delta t} + \frac{L}{\Delta t} \sum_{k,l = 1}^{n_{coil}} v Y_{k,l} \psi_k \int_{\Omega} \psi_l A_{t+\Delta t} dx = \frac{\sigma}{\Delta t} v A_{t} + \frac{L}{\Delta t} \sum_{k,l = 1}^{n_{coil}} v Y_{k,l} \psi_k \int_{\Omega} \psi_l A_{t} dx + \sum_{k = 1}^{n_{coil}} v \psi_k I_{0,k}, \forall v\\\
+\Leftrightarrow & \int_{\Omega}  v \cdot \nabla \times \left(\mu \nabla \times A_{t+\Delta t} \right) dx + \int_{\Omega}  \frac{\sigma}{\Delta t} v A_{t+\Delta t} dx + \int_{\Omega} \left( \frac{L}{\Delta t} \sum_{k,l = 1}^{n_{coil}} v Y_{k,l} \psi_k \int_{\Omega} \psi_l A_{t+\Delta t} dx \right) dx = \int_{\Omega} \frac{\sigma}{\Delta t} v A_{t} dx + \int_{\Omega} \left( \frac{L}{\Delta t} \sum_{k,l = 1}^{n_{coil}} v Y_{k,l} \psi_k \int_{\Omega} \psi_l A_{t} dx \right) dx + \int_{\Omega} \left( \sum_{k = 1}^{n_{coil}} v \psi_k I_{0,k} \right) dx, \forall v\\\
+\Leftrightarrow & \int_{\Omega}  \mu  \left( \nabla \times v \right) \left( \nabla \times A_{t+\Delta t} \right) dx + \frac{1}{\Delta t} \int_{\Omega} \sigma v A_{t+\Delta t} dx + \frac{L}{\Delta t} \sum_{k,l = 1}^{n_{coil}} Y_{k,l} \left( \int_{\Omega}  \psi_k v dx \right) \left( \int_{\Omega} \psi_l A_{t+\Delta t} dx \right) = \frac{1}{\Delta t} \int_{\Omega} \sigma v A_{t} dx + \frac{L}{\Delta t} \sum_{k,l = 1}^{n_{coil}} Y_{k,l} \left( \int_{\Omega} \psi_k v dx \right) \left( \int_{\Omega} \psi_l A_{t} dx \right) + \sum_{k = 1}^{n_{coil}} \int_{\Omega} v \psi_k I_{0,k} dx, \forall v\\\
+\Leftrightarrow & \int_{\Omega}  \mu  \left( \nabla \cdot v \right) \left( \nabla \cdot A_{t+\Delta t} \right) dx + \frac{1}{\Delta t} \int_{\Omega} \sigma v A_{t+\Delta t} dx + \frac{L}{\Delta t} \sum_{k,l = 1}^{n_{coil}} Y_{k,l} \left( \int_{\Omega}  \psi_k v dx \right) \left( \int_{\Omega} \psi_l A_{t+\Delta t} dx \right) = \frac{1}{\Delta t} \int_{\Omega} \sigma v A_{t} dx + \frac{L}{\Delta t} \sum_{k,l = 1}^{n_{coil}} Y_{k,l} \left( \int_{\Omega} \psi_k v dx \right) \left( \int_{\Omega} \psi_l A_{t} dx \right) + \sum_{k = 1}^{n_{coil}} \int_{\Omega} v \psi_k I_{0,k} dx, \forall v
+\end{aligned}\label{eq:eq_potential_space_time}
+\end{equation} %]]></script>
+
+<p>BEWARE: coils <code>\(dof\)</code> are coupled together even though the corresponding vertices don’t belong to a same triangle. This coupling is due to the linear electrical circuit.
+This corresponds to the <code>\(\left( \int_{\Omega}  \psi_k v dx \right) \left( \int_{\Omega} \psi_l A_{t+\Delta t} dx \right)\)</code> terms in the equation.</p>
+
+<p><img src="/assets/alternator/element-4.png" alt="electrical" /></p>
+
+<p>This is how I account for the electrical coupling:</p>
+
+<script src="https://gist.github.com/ssrb/285c101f5b03e9b37784.js"> </script>
+
+<p>Relevant project class is in <a href="https://github.com/ssrb/alternator-fem-webapp/blob/master/solver.ts">https://github.com/ssrb/alternator-fem-webapp/blob/master/solver.ts</a></p>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>That was quite an entertaining project. I must now find a way to validate the results.</p>
+
+<p>My references were:</p>
+
+<ul>
+  <li><a href="https://github.com/ssrb/alternator-fem-webapp/blob/master/papers/ajp-rphysap_1990_25_7_649_0.pdf">Modélisation de systèmes électrotechniques par couplage des équations électriques et magnétiques</a>, By Fréderic Hecht, A. Marrocco, F. Piriou and A. Razek</li>
+  <li><a href="">A general purpose method for electric and magnetic combined problems for 2D, axisymmetruc and transient systems</a>, By P. Lombard and G.Meunier</li>
+  <li><a href="http://au.wiley.com/WileyCDA/WileyTitle/productCd-1848210302.html">The Finite Element Method for Electromagnetic Modeling</a>, By G. Meunier</li>
+  <li><a href="https://www.crcpress.com/Electromagnetic-Modeling-by-Finite-Element-Methods/Bastos-Sadowski/9780824742690">Electromagnetic Modeling by Finite Element Methods</a> By João Pedro, A. Bastos and N. Sadowski</li>
+  <li>Wikipedia</li>
+</ul>
+
+    <hr>
+    <div class="pagination btn-group">
+      
+        <a class="btn prev" href="/computer%20graphics/2015/11/16/sci-ficoastal-scene" title="Sci-Fi/Coastal scene">&larr; Previous</a>
+      
+        <a class="btn" href="/archive.html">Archive</a>
+      
+        <a class="btn next" href="/2016/02/05/freefem-source-code-review" title="FreeFem++ Source Code Review">Next &rarr;</a>
+      
+    </div>
+    <hr>
+    
+
+
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_developer = 1;
+    var disqus_shortname = 'ssrb'; // required: replace example with your forum shortname
+    
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+
+
+  </div>
+  
+  <div class="span4">
+    <section>
+      <h4>Published</h4>
+      <div class="date"><span>20 January 2016</span></div>
+    </section>
+    
+      <section>
+        <h4>Category</h4>
+        <span class="category">
+          Numerical methods
+        </span>
+      </section>
+         
+    
+      <section>
+        <h4>Tags</h4>
+        <ul class="tag_box">
+          
+          
+
+
+  
+     
+    	<li><a href="/tags.html#mathematics-ref">mathematics <span>7</span></a></li>
+     
+    	<li><a href="/tags.html#electrotechnics-ref">electrotechnics <span>1</span></a></li>
+    
+  
+
+
+
+        </ul>
+      </section>
+             
+  </div>
+</div>
+
+
+      </div>
+
+      <footer>
+        <p>&copy; 2018 Sébastien Bigot
+          with help from <a href="http://jekyllbootstrap.com" target="_blank" title="The Definitive Jekyll Blogging Framework">Jekyll Bootstrap</a>
+          and <a href="http://github.com/dhulihan/hooligan" target="_blank">The Hooligan Theme</a>
+        </p>
+      </footer>
+    </div> <!-- /container -->
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="/assets/themes/hooligan/js/jquery.min.js"><\/script>')</script>
+    <script src="/assets/themes/hooligan/bootstrap/js/bootstrap.min.js"></script>
+    
+    
+    
+  </body>
+</html>
+

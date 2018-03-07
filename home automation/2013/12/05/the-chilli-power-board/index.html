@@ -1,0 +1,667 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>
+      
+        The Chilli Power Board - 
+      
+      Seb's blog
+    </title>
+    <meta name="description" content="">
+    <meta name="author" content="Sébastien Bigot">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+
+    <link href="/assets/themes/hooligan/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/themes/hooligan/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">    
+    <link rel="stylesheet" type="text/css" href="/assets/themes/hooligan/css-social-buttons/css/zocial.stripped.css">
+    <link href="/assets/themes/hooligan/css/pygments.css" rel="stylesheet" type="text/css" media="all">
+    <link href="/assets/themes/hooligan/css/darkstrap.css" rel="stylesheet" type="text/css" media="all">    
+    <link href="/assets/themes/hooligan/css/style.css?body=1" rel="stylesheet" type="text/css" media="all">
+
+    
+    <!-- fav and touch icons -->
+  <!-- Update these with your own images
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
+  -->
+
+    <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      TeX: { equationNumbers: { autoNumber: "AMS" } },
+        tex2jax: {
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      }
+    });
+    MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for(i=0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+    </script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    </script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.js">
+    </script>
+    <script type="text/javascript" src="/galleria/galleria-1.3.3.min.js">
+    </script>
+    <style>
+      .galleria{ width: 700px; height: 400px; background: #000 }
+    </style>
+  </head>
+
+  <body>
+    <div class="navbar">
+      <div class="navbar-inner">
+        <div class="container">
+          <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>      
+
+
+          <a class="brand" href="/">Seb's blog</a>
+
+
+          <div class="nav-collapse">
+            <ul class="nav">
+              
+              
+              
+
+
+  
+    
+      
+      	
+      	<li><a href="/archive.html">Archive</a></li>
+      	
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/categories.html">Categories</a></li>
+      	
+      
+    
+  
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/tags.html">Tags</a></li>
+      	
+      
+    
+  
+
+
+
+            </ul>
+            <ul class="nav pull-right social visible-desktop">
+              <li class="divider-vertical"></li>
+              
+                <li>
+                  <a href="https://github.com/ssrb" class="zocial github icon" target="_blank">
+                    <span class="hidden-desktop">Github</span>
+                  </a>
+                </li>
+              
+                  
+                                        
+                         
+                                  
+              
+              <li>
+                <a class="zocial icon rss" target="_blank" href="/rss.xml">
+                  <span class="hidden-desktop">ATOM Feed</a>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="content">
+        
+<div class="page-header">
+  <h1>
+    The Chilli Power Board 
+    
+  </h1>
+</div>
+
+<div class="row">
+  <div class="span8">
+    
+<h2 id="hola-me-dicen-dedoverde">Hola, me dicen Dedoverde</h2>
+<p>I’m starting growing <a href="http://en.wikipedia.org/wiki/Bhut_Jolokia">Bhut Jolokia</a> and other peppers out of seeds.
+I would like to automate, monitor and document as much as possible the process so that I decided to build an overkill programable
+power board out of stuff I ordered some time ago from <a href="http://dx.com/">DX</a> as well as some scrap parts.
+This includes:</p>
+
+<ul>
+  <li>a <a href="http://dx.com/p/4-channel-relay-module-extension-board-for-arduino-avr-arm-51-141651">4x relay PCB</a>: ~8USD;</li>
+  <li>a <a href="http://dx.com/p/jy-mcu-arduino-bluetooth-wireless-serial-port-module-104299">tiny bluetooth &lt;=&gt; serial module</a>: ~8USD;</li>
+  <li>a <a href="http://dx.com/p/diy-atmega328p-16mhz-electric-block-module-blue-172858">tiny ATmega328P based prototyping board</a> a.k.a. <a href="http://arduino.cc/en/Main/ArduinoBoardProMini">Arduino pro mini</a>: ~8USD;</li>
+  <li>a <a href="http://www.nxp.com/documents/data_sheet/PCF8583.pdf">PCF8583 I2C real time clock</a>: free sample from NXP;</li>
+  <li>resitors, crystal, “OR-ing” diodes, buzzer, &amp;c: scrap + <a href="http://www.jaycar.co.nz/">Jaycar</a>, less than 10NZD;</li>
+  <li>a power board with lots of space inside: free.</li>
+</ul>
+
+<p>For this first milestone, I only want to be able to schedule events like turn heater, lighting or irrigation circuits on &amp; off independantly.
+Later I would like to take advantage of the remaining inputs of the embeded <code>MCU</code> to read temperature and humidity 
+sensors like <a href="http://www.jaycar.co.nz/productView.asp?ID=XC4246">this one</a> for example.</p>
+
+<!-- more -->
+
+<h2 id="bitlash">Bitlash</h2>
+<p>The power board <a href="http://www.atmel.com/Images/doc8161.pdf">8-bit MCU</a> will run an enhanced version of <a href="http://bitlash.net/">Bitlash</a>.
+Enhancements include:</p>
+
+<ul>
+  <li>a<code>time</code> user function allowing to set/get the date/time from a real time clock;</li>
+  <li>a Unix like <code>cron</code> service relying on the Bitlash task scheduler: the cron service will check every seconds if cronjobs must be run;</li>
+  <li>a few user functions used to interact with the cron service: <code>addcronjob</code>, <code>delcronjob</code>, <code>erasecrontab</code> &amp; <code>lscrontab</code>;</li>
+  <li>a basic watchdog mechanism which will warn me whem something’s wrong (too many consecutive faulty cronjobs): the watchdog will play the Super Mario tune through the piezo buzzer every minutes in such case.</li>
+</ul>
+
+<p>The code is available on github <a href="https://github.com/ssrb/ChilliPowerBoard/blob/master/powerboard.ino">here</a>.</p>
+
+<p>In the following examples, I’m connected to my power board using <code>screen</code>:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">screen /dev/ChilliPowerBoard 57600</code></pre></div>
+
+<h3 id="switching-power-plugs">Switching power plugs</h3>
+
+<p>The <code>MCU</code> digital ouputs used to control the power plug relays go from <code>d2</code> (plug 1) to <code>d5</code> (plug 4).
+For example, in order to switch the third plug on, one would type in the power board shell:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">&gt; <span class="nv">d4</span><span class="o">=</span>1</code></pre></div>
+
+<p>In order to toggle the second one:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">&gt; <span class="nv">d3</span><span class="o">=</span>!d3</code></pre></div>
+
+<p>This one could be the building block of an Annoy-a-tron:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">&gt; <span class="nv">d2</span><span class="o">=</span>random<span class="o">(</span>2<span class="o">)</span></code></pre></div>
+
+<h3 id="crontab">Crontab</h3>
+
+<p>The crontab relies on Bitlash task scheduler. It runs once per second:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">&gt; ps
+0: cronsvc</code></pre></div>
+
+<p>Toggle the plug #1 every 10 seconds:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">&gt; addcronjob<span class="o">(</span>-10,-1,-1,-1,-1,-1,-1,<span class="s2">&quot;d2=!d2&quot;</span>,0<span class="o">)</span>
+&gt; lscrontab
+JOB<span class="p">|</span>   s    m    h  dow  dom    M    Y <span class="p">|</span> CMD
+ <span class="m">0</span> <span class="p">|</span>*/10    *    *    *    *    *    * <span class="p">|</span> <span class="nv">d2</span><span class="o">=</span>!d2</code></pre></div>
+
+<p>Delete cronjob 0:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">&gt; lscrontab
+JOB<span class="p">|</span>   s    m    h  dow  dom    M    Y <span class="p">|</span> CMD
+ <span class="m">0</span> <span class="p">|</span>*/10    *    *    *    *    *    * <span class="p">|</span> <span class="nv">d2</span><span class="o">=</span>!d2
+&gt; delcronjob<span class="o">(</span>0<span class="o">)</span>
+&gt; lscrontab
+JOB<span class="p">|</span>   s    m    h  dow  dom    M    Y <span class="p">|</span> CMD</code></pre></div>
+
+<p>From monday to friday, Switch on plug #2 from 8am to 11:30am:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">&gt; addcronjob<span class="o">(</span>0,0,8,0b01111100,-1,-1,-1,<span class="s2">&quot;d3=1&quot;</span>,0<span class="o">)</span>
+&gt; addcronjob<span class="o">(</span>0,30,11,0b01111100,-1,-1,-1,<span class="s2">&quot;d3=0&quot;</span>,1<span class="o">)</span>
+&gt; lscrontab
+JOB<span class="p">|</span>   s    m    h  dow  dom    M    Y <span class="p">|</span> CMD
+ <span class="m">0</span> <span class="p">|</span>   <span class="m">0</span>    <span class="m">0</span>    <span class="m">8</span>   7C    *    *    * <span class="p">|</span> <span class="nv">d3</span><span class="o">=</span>1
+ <span class="m">1</span> <span class="p">|</span>   <span class="m">0</span>   <span class="m">30</span>   <span class="m">11</span>   7C    *    *    * <span class="p">|</span> <span class="nv">d3</span><span class="o">=</span>0</code></pre></div>
+
+<p>Erase the crontab:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">&gt; erasecrontab</code></pre></div>
+
+<h3 id="eeprom">EEPROM</h3>
+
+<p>All the cronjobs are stored in the MCU’s’ <code>EEPROM</code> so that the number of job is limited.
+Since Bitlash is also using the EEPROM to store functions, we need to tell it at compile time how much of
+it can be used (see the “Reserving EEPROM for Other Applications” section in the <a href="http://bitlash.net/bitlash-users-guide.pdf">Bitlash User’s Guide</a>).</p>
+
+<p>Dump of the EEPROM:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">&gt; peep
+
+E000:  cron svc<span class="nv">$ </span>  cro nd<span class="p">;</span>   <span class="nv">$sta</span> rtcr  ond<span class="nv">$ </span> cro  nd<span class="p">;</span>  run   cron svc,  <span class="m">1000</span> <span class="p">;</span> <span class="nv">$p</span>  lug<span class="nv">$ $.</span>..
+E040:  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....
+E080:  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....
+E0C0:  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....
+E100:  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....
+E140:  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....
+E180:  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....
+E1C0:  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....
+E200:  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....
+E240:  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....
+E280:  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....
+E2C0:  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....
+E300:  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....
+E340:  .... ....  .... ....  .... ....  .... ....  .... ....  .... ....  .... ...�  .... ..d2
+E380:  <span class="o">=</span>!d2 <span class="nv">$$$$</span>  ���� ����  ���� ����  ���� ����  ���� ����  ���� ����  ���� ����  ���� ����
+E3C0:  ���� ����  ���� ����  ���� ����  ���� ����  ���� ����  ���� ����  ���� ����  ���� ���.</code></pre></div>
+
+<h2 id="bluetooth-setup-pimp-my-hc06">Bluetooth setup (Pimp my HC06)</h2>
+
+<p>First thing I’m going to do, is setup the BT module.</p>
+
+<p>According to the product <a href="/assets/ChilliPowerBoard/HC-06_datasheet_201104_revised.pdf">datasheet</a> (chapter 9 “AT command set”), one can change the name, the baudrate as well as the pin of the module sending
+<code>AT</code> commands on its serial interface.</p>
+
+<p>In order to do so, I will use an Arduino nano connected to my computer and loaded with a serial pipe program.
+Then, I will just send the correct <code>AT</code> commands from a serial terminal.
+I’m using the “serial monitor” built into the Arduino IDE but one could use gtkterm or even screen.</p>
+
+<p>The pipe program:</p>
+
+<div class="highlight"><pre><code class="language-c" data-lang="c"><span class="lineno"> 1</span> <span class="cp">#include &lt;SoftwareSerial.h&gt;</span>
+<span class="lineno"> 2</span> 
+<span class="lineno"> 3</span> <span class="n">SoftwareSerial</span> <span class="nf">btSerialAdapter</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">);</span> <span class="c1">// RX, TX</span>
+<span class="lineno"> 4</span> 
+<span class="lineno"> 5</span> <span class="kt">void</span> <span class="nf">setup</span><span class="p">()</span> <span class="p">{</span> 
+<span class="lineno"> 6</span>   <span class="n">Serial</span><span class="p">.</span><span class="n">begin</span><span class="p">(</span><span class="mi">9600</span><span class="p">);</span>
+<span class="lineno"> 7</span>   <span class="k">while</span> <span class="p">(</span><span class="o">!</span><span class="n">Serial</span><span class="p">);</span>
+<span class="lineno"> 8</span>   <span class="n">btSerialAdapter</span><span class="p">.</span><span class="n">begin</span><span class="p">(</span><span class="mi">9600</span><span class="p">);</span>
+<span class="lineno"> 9</span> <span class="p">}</span> 
+<span class="lineno">10</span> 
+<span class="lineno">11</span> <span class="kt">void</span> <span class="nf">loop</span><span class="p">()</span> <span class="p">{</span> 
+<span class="lineno">12</span>   <span class="k">if</span><span class="p">(</span><span class="n">Serial</span><span class="p">.</span><span class="n">available</span><span class="p">())</span> <span class="p">{</span>
+<span class="lineno">13</span>     <span class="n">btSerialAdapter</span><span class="p">.</span><span class="n">write</span><span class="p">(</span><span class="n">Serial</span><span class="p">.</span><span class="n">read</span><span class="p">());</span>
+<span class="lineno">14</span>   <span class="p">}</span>
+<span class="lineno">15</span>   <span class="k">if</span><span class="p">(</span><span class="n">btSerialAdapter</span><span class="p">.</span><span class="n">available</span><span class="p">())</span> <span class="p">{</span>
+<span class="lineno">16</span>     <span class="n">Serial</span><span class="p">.</span><span class="n">write</span><span class="p">(</span><span class="n">btSerialAdapter</span><span class="p">.</span><span class="n">read</span><span class="p">());</span>
+<span class="lineno">17</span>   <span class="p">}</span>
+<span class="lineno">18</span> <span class="p">}</span></code></pre></div>
+
+<p>and the circuit:</p>
+
+<p><img src="/assets/ChilliPowerBoard/JY-MCU_linvor.png" alt="JY-MCU" /></p>
+
+<p>We’re ready to send the <code>AT</code> commands:</p>
+
+<div class="galleria">
+  <a href="/assets/ChilliPowerBoard/AT+VERSION.png">
+   <img src="/assets/ChilliPowerBoard/AT+VERSION.png" data-title="AT+VERSION" data-description="This command displays the product version: linvor1.5" data-big="/assets/ChilliPowerBoard/AT+VERSION.png" />
+ </a>
+ <a href="/assets/ChilliPowerBoard/AT+NAME.png">
+   <img src="/assets/ChilliPowerBoard/AT+NAME.png" data-title="AT+NAME" data-description="Set the name of the product to ChilliPowerBoard. Default was linvor. The BT manager reflects that change. It will be handy to distinguish among multiple power boards." data-big="/assets/ChilliPowerBoard/AT+NAME.png" />
+ </a>
+ <a href="/assets/ChilliPowerBoard/AT+BAUD.png">
+   <img src="/assets/ChilliPowerBoard/AT+BAUD.png" data-title="AT+BAUD" data-description="Set the UART to 57600Bd. Default was 9600Bd." data-big="/assets/ChilliPowerBoard/AT+BAUD.png" />
+ </a>
+</div>
+
+<h3 id="linux-setup">Linux setup</h3>
+
+<p>Let’s go through the few steps needed to easily talk to the power board from Linux.</p>
+
+<ul>
+  <li>First thing is to retrieve the device address:</li>
+</ul>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="lineno">1</span> <span class="nv">$ </span>hcitool scan
+<span class="lineno">2</span> Scanning ...
+<span class="lineno">3</span>   00:12:10:23:02:31 ChilliPowerBoard</code></pre></div>
+
+<ul>
+  <li>Then we can add some stuff in<code>/etc/bluetooth/rfcomm.conf</code> to connect auto-magically at startup:</li>
+</ul>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="lineno"> 1</span> <span class="c">#</span>
+<span class="lineno"> 2</span> <span class="c"># RFCOMM configuration file.</span>
+<span class="lineno"> 3</span> <span class="c">#</span>
+<span class="lineno"> 4</span> 
+<span class="lineno"> 5</span> rfcomm0 <span class="o">{</span>
+<span class="lineno"> 6</span>         <span class="c"># Automatically bind the device at startup</span>
+<span class="lineno"> 7</span>         <span class="nb">bind </span>yes<span class="p">;</span>
+<span class="lineno"> 8</span> 
+<span class="lineno"> 9</span>         <span class="c"># Bluetooth address of the device</span>
+<span class="lineno">10</span>         device 00:12:10:23:02:31<span class="p">;</span>
+<span class="lineno">11</span> 
+<span class="lineno">12</span>         <span class="c"># RFCOMM channel for the connection</span>
+<span class="lineno">13</span>         channel 1<span class="p">;</span>
+<span class="lineno">14</span> 
+<span class="lineno">15</span>         <span class="c"># Description of the connection</span>
+<span class="lineno">16</span>         comment <span class="s2">&quot;Chilli Power Board&quot;</span><span class="p">;</span>
+<span class="lineno">17</span> <span class="o">}</span></code></pre></div>
+
+<ul>
+  <li>Then we setup permission on the <code>/dev/rfcomm0</code> file and tell modem-manager not to probe the power board.
+In <code>/etc/udev/rules.d/100-ChilliPowerBoard.rules</code> (create this one):</li>
+</ul>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">KERNEL</span><span class="o">==</span><span class="s2">&quot;rfcomm0&quot;</span>, <span class="nv">MODE</span><span class="o">=</span><span class="s2">&quot;0666&quot;</span>, ENV<span class="o">{</span>ID_MM_DEVICE_IGNORE<span class="o">}=</span><span class="s2">&quot;1&quot;</span></code></pre></div>
+
+<ul>
+  <li>Add ourselves to the <code>dialup</code> group (or whatever group is used for rfcomm on your distrib). In <code>/etc/group</code>:</li>
+</ul>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">dialout:x:20:sb</code></pre></div>
+
+<ul>
+  <li>Optionally create a user friendly symlink:</li>
+</ul>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>sudo ln -s /dev/rfcomm0 /dev/ChilliPowerBoard</code></pre></div>
+
+<ul>
+  <li>Manualy connect to the power board ?</li>
+</ul>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="lineno">1</span> <span class="nv">$ </span>sudo rfcomm connect 0
+<span class="lineno">2</span> Connected /dev/rfcomm0 to 00:12:10:23:02:31 on channel 1
+<span class="lineno">3</span> Press CTRL-C <span class="k">for</span> hangup</code></pre></div>
+
+<ul>
+  <li>Disconnect …</li>
+</ul>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>sudo rfcomm release 0</code></pre></div>
+
+<ul>
+  <li>Talk to the board:</li>
+</ul>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>screen /dev/ChilliPowerBoard 57600</code></pre></div>
+
+<ul>
+  <li>Optionally create a user friendly alias:</li>
+</ul>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span><span class="nb">alias </span><span class="nv">ChilliPowerBoard</span><span class="o">=</span><span class="s2">&quot;screen /dev/ChilliPowerBoard 57600&quot;</span></code></pre></div>
+
+<p>That’s all ! The BT module is now ready and I will keep it on a corner of my desk until it’s time to put everything together.
+The next stage is to hack a little RTC circuit.</p>
+
+<h2 id="real-time-clock">Real Time Clock</h2>
+<p>Since I’m willing to schedule events at a given date and time on my power board, it needs to track time pretty accurately.
+### Basic circuit
+I had a spare <code>PCF8583</code> I2C <a href="http://en.wikipedia.org/wiki/Real-time_clock">real time clock</a> I decided to use:</p>
+
+<p><img src="/assets/ChilliPowerBoard/PCF8583P.png" alt="PCF8583P" /></p>
+
+<p>All it needs is a 32.768Khz crystal (<code>\(2^{15}\)</code> cycles per seconds).
+The basic circuit looks like this:</p>
+
+<p><img src="/assets/ChilliPowerBoard/real_time_clock_basic_bboard.png" alt="RTC circuit on breadboard" /></p>
+
+<p>According to <a href="http://www.nxp.com/documents/user_manual/UM10301.pdf">another datasheet</a>, page 10 of 52, the theoretical capacitance required at <code>OSCI</code> is 18pF. The corresponding capacitor should be connected to <code>\(V_{DD}\)</code> (page 11 of 52). I added one to the circuit in the end.
+I choosed not to use a trimpot capacitor <code>\(C_{trim}\)</code> (5 to 25pF as per datasheet) since I can easily compensate for the expected 5 minutes error a year
+by resetting the RTC via bluetooth, based on <a href="http://en.wikipedia.org/wiki/Network_Time_Protocol">NTP</a> time for example (see page 24).</p>
+
+<p>Also, page 12 of 37, it is said that
+&gt; If the alarm enable bit of the control and status register is reset (logic 0), a 1 Hz signal is observed on the interrupt pin <code>\(\overline{INT}\)</code>.</p>
+
+<p>and page 13:
+&gt; In the clock mode, if the alarm enable is not activated (alarm enable bit of the control and 
+&gt; status register is logic 0), the interrupt output toggles at 1 Hz with a 50 % duty cycle (may 
+&gt; be used for calibration).</p>
+
+<p>Here is what I observe (looks good to me):</p>
+
+<p><img src="/assets/ChilliPowerBoard/pcf8583_1hz_ref.bmp" alt="RTC 1Hz signal" /></p>
+
+<h3 id="power-backup">Power backup</h3>
+
+<p><code>RTC</code> circuits often come with a backup power. For example a 3V coin battery.
+A simple way to implement this is a diode based “OR-ing” circuit.</p>
+
+<p>Here is a little schematic and an attempt at explaining how it works (I hope you can read my handwriting):
+<img src="/assets/ChilliPowerBoard/oring_diodes.jpg" alt="OR-ing" /></p>
+
+<p>The circuit upgraded with a backup power:
+<img src="/assets/ChilliPowerBoard/real_time_clock_backup_power_bboard.png" alt="RTC circuit with backup power on breadboard" /></p>
+
+<p>I only had <code>1N4150</code> diodes available. Best practice for this circuit is to use <a href="http://en.wikipedia.org/wiki/Schottky_diode">Schottky diode</a> in order to minimise the forward voltage drop.</p>
+
+<p>I measured the current with and without primary power supplied and checked against the datasheet (page 21).
+The measured current is higher than what’s expected (4.3 vs ~3 micro amps @ 3V). I wonder why.</p>
+
+<div class="galleria">
+  <img src="/assets/ChilliPowerBoard/real_time_clock_no_backup_current.jpg" data-title="With primary power supplied" data-description="My guess is that I'm measuring the diode reverse current: 0.1 micro amp" data-big="/assets/ChilliPowerBoard/real_time_clock_no_backup_current.jpg" />
+  <img src="/assets/ChilliPowerBoard/real_time_clock_backup_current.jpg" data-title="Without primary power supplied" data-description="The current supplied by the battery is 4.3 micro amps" data-big="/assets/ChilliPowerBoard/real_time_clock_backup_current.jpg" />
+  <img src="/assets/ChilliPowerBoard/PC8583PSupplyCurrentClockMode.png" data-title="Typical supply current in clock mode" data-description="The measure is higher than what's expected on the datasheet: ~3 micro amps @ 3V" data-big="/assets/ChilliPowerBoard/PC8583PSupplyCurrentClockMode.png" />
+</div>
+
+<p>Since the circuit is simple, I decided to transfer it on a stripboard:</p>
+
+<div class="galleria">
+  <img src="/assets/ChilliPowerBoard/real_time_clock_final1.jpg" />
+  <img src="/assets/ChilliPowerBoard/real_time_clock_final2.jpg" />
+  <img src="/assets/ChilliPowerBoard/real_time_clock_final3.jpg" />
+</div>
+
+<p>This wasn’t a great idea. The clock is either running too fast or too slow. Just like <a href="http://electronics.stackexchange.com/questions/79841/how-to-improve-i2c-rtc-accuracy">this guy</a>.
+Hopefuly the <code>UM10301</code> datasheet, section “14. PCB layout guidelines” will allow me
+to create a proper PCB. But that will be another time.</p>
+
+<p>Also it’s worth noting that a <a href="http://dx.com/p/i2c-rtc-ds1307-24c32-real-time-clock-module-for-arduino-blue-149493">DX RTC module</a>
+costs about 3 yankee dollars.</p>
+
+<p>That’s all for the RTC hardware. Let’s talk quickly about the software.</p>
+
+<h3 id="software">Software</h3>
+<p>On the software side, a PCF8583 Arduino library is available on <a href="https://github.com/edebill/PCF8583">github</a>:</p>
+
+<ul>
+  <li>it’s incomplete because I found out that a dude called jiki974 added <a href="http://forum.arduino.cc/index.php/topic,33217.0.html">support for the daily alarm</a> but these changes never made it to the repo;</li>
+  <li>it’s somehow buggy since it ignores the day of the week and doesn’t really cope well with leap years.</li>
+</ul>
+
+<p>Anyway, I submitted a <a href="https://github.com/edebill/PCF8583/pull/1">pull request</a> to cope with these issues.</p>
+
+<p>Interacting with the component is done via read and write operations from and to its <code>CMOS RAM</code>.
+The map of the <code>RAM</code> is at available page 8 of the datasheet.</p>
+
+<p>Ultimately this is what a <code>time</code> command using the PCF8583 library looks like in Bitlash:</p>
+
+<div class="highlight"><pre><code class="language-c" data-lang="c"><span class="lineno"> 1</span> <span class="n">numvar</span> <span class="nf">time</span><span class="p">()</span> <span class="p">{</span>
+<span class="lineno"> 2</span>     <span class="k">if</span><span class="p">(</span><span class="n">getarg</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+<span class="lineno"> 3</span>       <span class="k">static</span> <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">DayStrings</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span>
+<span class="lineno"> 4</span>         <span class="s">&quot;Sunday&quot;</span><span class="p">,</span> <span class="s">&quot;Monday&quot;</span><span class="p">,</span> <span class="s">&quot;Tuesday&quot;</span><span class="p">,</span> 
+<span class="lineno"> 5</span>         <span class="s">&quot;Wednesday&quot;</span><span class="p">,</span> <span class="s">&quot;Thursday&quot;</span><span class="p">,</span> <span class="s">&quot;Friday&quot;</span><span class="p">,</span> 
+<span class="lineno"> 6</span>         <span class="s">&quot;Saturday&quot;</span><span class="p">};</span>
+<span class="lineno"> 7</span>       <span class="n">theRTClock</span><span class="p">.</span><span class="n">get_time</span><span class="p">();</span>
+<span class="lineno"> 8</span>       <span class="kt">char</span> <span class="n">t</span><span class="p">[</span><span class="mi">50</span><span class="p">];</span>
+<span class="lineno"> 9</span>       <span class="n">sprintf_P</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">PSTR</span><span class="p">(</span><span class="s">&quot; %04d/%02d/%02d %02d:%02d:%02d&quot;</span><span class="p">),</span>
+<span class="lineno">10</span>         <span class="n">theRTClock</span><span class="p">.</span><span class="n">year</span><span class="p">,</span> <span class="n">theRTClock</span><span class="p">.</span><span class="n">month</span><span class="p">,</span> <span class="n">theRTClock</span><span class="p">.</span><span class="n">day</span><span class="p">,</span>
+<span class="lineno">11</span>         <span class="n">theRTClock</span><span class="p">.</span><span class="n">hour</span><span class="p">,</span> <span class="n">theRTClock</span><span class="p">.</span><span class="n">minute</span><span class="p">,</span> <span class="n">theRTClock</span><span class="p">.</span><span class="n">second</span><span class="p">);</span>
+<span class="lineno">12</span>       <span class="n">sp</span><span class="p">(</span><span class="n">DayStrings</span><span class="p">[</span><span class="n">theRTClock</span><span class="p">.</span><span class="n">get_day_of_week</span><span class="p">()]);</span> <span class="n">sp</span><span class="p">(</span><span class="n">t</span><span class="p">);</span> <span class="n">speol</span><span class="p">();</span>
+<span class="lineno">13</span>     <span class="p">}</span> <span class="k">else</span> <span class="k">if</span><span class="p">(</span><span class="n">getarg</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="mi">6</span><span class="p">)</span> <span class="p">{</span>
+<span class="lineno">14</span>        <span class="n">theRTClock</span><span class="p">.</span><span class="n">year</span><span class="o">=</span> <span class="n">getarg</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+<span class="lineno">15</span>        <span class="n">theRTClock</span><span class="p">.</span><span class="n">month</span> <span class="o">=</span> <span class="n">getarg</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+<span class="lineno">16</span>        <span class="n">theRTClock</span><span class="p">.</span><span class="n">day</span> <span class="o">=</span> <span class="n">getarg</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+<span class="lineno">17</span>        <span class="n">theRTClock</span><span class="p">.</span><span class="n">hour</span> <span class="o">=</span> <span class="n">getarg</span><span class="p">(</span><span class="mi">4</span><span class="p">);</span>
+<span class="lineno">18</span>        <span class="n">theRTClock</span><span class="p">.</span><span class="n">minute</span> <span class="o">=</span> <span class="n">getarg</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+<span class="lineno">19</span>        <span class="n">theRTClock</span><span class="p">.</span><span class="n">second</span> <span class="o">=</span> <span class="n">getarg</span><span class="p">(</span><span class="mi">6</span><span class="p">);</span>    
+<span class="lineno">20</span>        <span class="n">theRTClock</span><span class="p">.</span><span class="n">set_time</span><span class="p">();</span>
+<span class="lineno">21</span>     <span class="p">}</span>
+<span class="lineno">22</span>    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="lineno">23</span> <span class="p">}</span></code></pre></div>
+
+<h2 id="flashing-the-mcu">Flashing the MCU</h2>
+
+<p>I’m programming the MCU using a USBtinyISP clone, bypassing the bootloader. I find this method really reliable and 
+it allows me to play with the fuse bits as well.</p>
+
+<p>It looks like this:</p>
+
+<p><img src="/assets/ChilliPowerBoard/mini_isp_prog.png" alt="Programming the Mini using ISP" /></p>
+
+<p>On my Linux distribution, I setup credentials for the USBtinyISP by creating a <code>/etc/udev/rules.d/103-USBtinyISP.rules</code> file containing:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">SUBSYSTEM</span><span class="o">==</span><span class="s2">&quot;usb&quot;</span>, ATTR<span class="o">{</span>idVendor<span class="o">}==</span><span class="s2">&quot;1781&quot;</span>, ATTR<span class="o">{</span>idProduct<span class="o">}==</span><span class="s2">&quot;0c9f&quot;</span>, <span class="nv">GROUP</span><span class="o">=</span><span class="s2">&quot;plugdev&quot;</span>, <span class="nv">MODE</span><span class="o">=</span><span class="s2">&quot;0666&quot;</span></code></pre></div>
+
+<p>I must tell the Arduino IDE I’m using an ISP programmer: <code>File =&gt; Upload Using Programmer</code> or <code>Ctrl+Shift+U</code>, 
+as well as select the proper programmer in <code>Tools =&gt; Programmer</code>. 
+I could also use <code>avrdude</code> directly:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>avrdude -v -c usbtiny -p m328p -U flash:w:ChilliPowerBoard.hex</code></pre></div>
+
+<h2 id="putting-everything-together">Putting everything together</h2>
+
+<ul>
+  <li>Software: check !</li>
+  <li>BT &lt;=&gt; serial pimping: check !</li>
+  <li>DIY RTC: check ! (kinda)</li>
+  <li>Flashed MCU: check !</li>
+</ul>
+
+<p>We’re good to go. Here is the plan:</p>
+
+<p><img src="/assets/ChilliPowerBoard/fritzingchillipowerboard.png" alt="Fritzing breadboard" /></p>
+
+<p>Its implementation looks like this:</p>
+
+<p><img src="/assets/ChilliPowerBoard/everything_together.png" alt="Everything together" /></p>
+
+<p>Now comes the real challenge: fit everything in the power board …</p>
+
+<div class="galleria">
+  <img src="/assets/ChilliPowerBoard/power_board_1.jpg" />
+  <img src="/assets/ChilliPowerBoard/power_board_3.jpg" />
+  <img src="/assets/ChilliPowerBoard/power_board_4.jpg" />
+  <img src="/assets/ChilliPowerBoard/power_board_5.jpg" />
+</div>
+
+<h3 id="conclusion">Conclusion</h3>
+<p>It’s a bit scarry and looks like a dangerous protoype. 
+It works just fine.
+In the near futur I plan to design a proper RTC circuit, hack an Android app to control
+the board and ultimately read temperature and humidity sensors. That’s all folks.</p>
+
+<script type="text/javascript" src="/rungalleria.js"></script>
+
+
+    <hr>
+    <div class="pagination btn-group">
+      
+        <a class="btn prev" href="/numerical%20methods/2013/10/22/the-schur-complement-method" title="The Schur Complement Method: Part 1">&larr; Previous</a>
+      
+        <a class="btn" href="/archive.html">Archive</a>
+      
+        <a class="btn next" href="/numerical%20methods/2013/12/18/the-schur-complement-method-part-2" title="The Schur Complement Method: Part 2">Next &rarr;</a>
+      
+    </div>
+    <hr>
+    
+
+
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_developer = 1;
+    var disqus_shortname = 'ssrb'; // required: replace example with your forum shortname
+    
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+
+
+  </div>
+  
+  <div class="span4">
+    <section>
+      <h4>Published</h4>
+      <div class="date"><span>05 December 2013</span></div>
+    </section>
+    
+      <section>
+        <h4>Category</h4>
+        <span class="category">
+          Home automation
+        </span>
+      </section>
+         
+    
+      <section>
+        <h4>Tags</h4>
+        <ul class="tag_box">
+          
+          
+
+
+  
+     
+    	<li><a href="/tags.html#arduino-ref">arduino <span>2</span></a></li>
+     
+    	<li><a href="/tags.html#electronics-ref">electronics <span>2</span></a></li>
+    
+  
+
+
+
+        </ul>
+      </section>
+             
+  </div>
+</div>
+
+
+      </div>
+
+      <footer>
+        <p>&copy; 2018 Sébastien Bigot
+          with help from <a href="http://jekyllbootstrap.com" target="_blank" title="The Definitive Jekyll Blogging Framework">Jekyll Bootstrap</a>
+          and <a href="http://github.com/dhulihan/hooligan" target="_blank">The Hooligan Theme</a>
+        </p>
+      </footer>
+    </div> <!-- /container -->
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="/assets/themes/hooligan/js/jquery.min.js"><\/script>')</script>
+    <script src="/assets/themes/hooligan/bootstrap/js/bootstrap.min.js"></script>
+    
+    
+    
+  </body>
+</html>
+

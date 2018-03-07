@@ -1,0 +1,647 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>
+      
+        The Lyttelton port wave penetration project: Part 3 - 
+      
+      Seb's blog
+    </title>
+    <meta name="description" content="">
+    <meta name="author" content="Sébastien Bigot">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+
+    <link href="/assets/themes/hooligan/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/themes/hooligan/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">    
+    <link rel="stylesheet" type="text/css" href="/assets/themes/hooligan/css-social-buttons/css/zocial.stripped.css">
+    <link href="/assets/themes/hooligan/css/pygments.css" rel="stylesheet" type="text/css" media="all">
+    <link href="/assets/themes/hooligan/css/darkstrap.css" rel="stylesheet" type="text/css" media="all">    
+    <link href="/assets/themes/hooligan/css/style.css?body=1" rel="stylesheet" type="text/css" media="all">
+
+    
+    <!-- fav and touch icons -->
+  <!-- Update these with your own images
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
+  -->
+
+    <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      TeX: { equationNumbers: { autoNumber: "AMS" } },
+        tex2jax: {
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      }
+    });
+    MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for(i=0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+    </script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    </script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.js">
+    </script>
+    <script type="text/javascript" src="/galleria/galleria-1.3.3.min.js">
+    </script>
+    <style>
+      .galleria{ width: 700px; height: 400px; background: #000 }
+    </style>
+  </head>
+
+  <body>
+    <div class="navbar">
+      <div class="navbar-inner">
+        <div class="container">
+          <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>      
+
+
+          <a class="brand" href="/">Seb's blog</a>
+
+
+          <div class="nav-collapse">
+            <ul class="nav">
+              
+              
+              
+
+
+  
+    
+      
+      	
+      	<li><a href="/archive.html">Archive</a></li>
+      	
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/categories.html">Categories</a></li>
+      	
+      
+    
+  
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/tags.html">Tags</a></li>
+      	
+      
+    
+  
+
+
+
+            </ul>
+            <ul class="nav pull-right social visible-desktop">
+              <li class="divider-vertical"></li>
+              
+                <li>
+                  <a href="https://github.com/ssrb" class="zocial github icon" target="_blank">
+                    <span class="hidden-desktop">Github</span>
+                  </a>
+                </li>
+              
+                  
+                                        
+                         
+                                  
+              
+              <li>
+                <a class="zocial icon rss" target="_blank" href="/rss.xml">
+                  <span class="hidden-desktop">ATOM Feed</a>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="content">
+        
+<div class="page-header">
+  <h1>
+    The Lyttelton port wave penetration project: Part 3 
+    
+  </h1>
+</div>
+
+<div class="row">
+  <div class="span8">
+    
+<p>In this third mini post, I will tackle the weak formulation of the <a href="http://en.wikipedia.org/wiki/Mild-slope_equation">linear mild-slope equation</a> and introduce
+the boundary conditions. The linear version of the equation takes into account the following physical phenomena:</p>
+
+<ul>
+  <li><a href="http://en.wikipedia.org/wiki/Diffraction">diffraction</a></li>
+  <li><a href="http://en.wikipedia.org/wiki/Reflection_%28physics%29">reflection</a></li>
+  <li><a href="http://en.wikipedia.org/wiki/Refraction">refraction</a></li>
+  <li><a href="http://en.wikipedia.org/wiki/Wave_shoaling">shoaling</a></li>
+</ul>
+
+<p>Here is the equatiom:</p>
+
+<script type="math/tex; mode=display">\nabla\cdot\left( c_p c_g \nabla \eta \right)\, +\, k^2 c_p c_g \eta = 0</script>
+
+<p>where</p>
+
+<ul>
+  <li><code>\(\eta : \Omega(\mathbb{R} \times \mathbb{R}) \to \mathbb{C}\)</code> is the unknown complex amplitude of the water free-surface elevation within the domain <code>\(\Omega\)</code>;</li>
+  <li><code>\(k \in \mathbb{R}^{+}\)</code> is the <a href="http://en.wikipedia.org/wiki/Wavenumber">wave number</a>;</li>
+  <li><code>\(c_p, c_g : \Omega(\mathbb{R} \times \mathbb{R}) \to \mathbb{R}^{+}\)</code> are respectively the <a href="http://en.wikipedia.org/wiki/Phase_speed">phase</a> and <a href="http://en.wikipedia.org/wiki/Group_speed">group</a> velocities of the prescribed wave.</li>
+</ul>
+
+<p>The boundary conditions will be introduced too.</p>
+
+<p>I won’t discuss the derivation of the governing equation in this post.</p>
+
+<p>If everything goes smoothly, at the end of that post, we should see how a monochromatic wave behaves in the Lyttelton port.</p>
+
+<p><img src="/assets/lyttelton/lyttelton_wave_beta.png" alt="wave" /></p>
+
+<!-- more -->
+
+<h2 id="bathymetry">Bathymetry</h2>
+
+<p>First thing we need to do is to gather all the data required: we already retrieved the coastline from the OSM database but
+we’re missing the bathymetry as both the phase speed <code>\(c_p\)</code> and the group speed <code>\(c_g\)</code> depend on it.
+Luckily <a href="http://www.linz.govt.nz">Land Information New Zealand</a> has a wonderful platform where you can access a lot of information, including nautical charts:</p>
+
+<ul>
+  <li><a href="https://data.linz.govt.nz/layer/1414-chart-nz-6321-lyttelton-harbour-whakaraupo-port-of-lyttelton">Raster chart image of: NZ 6321 Lyttelton Harbour / Whakaraupo: Port of Lyttelton</a></li>
+  <li><a href="https://data.linz.govt.nz/layer/671-depth-area-polygons-hydro-14k-122k">New Zealand Depth area polygons (Hydro, 1:4k - 1:22k)</a></li>
+</ul>
+
+<p>The second chart is a set of depth polygons and can be downloaded from LINZ as an <a href="http://en.wikipedia.org/wiki/Shapefile">Esri shapefile</a>.</p>
+
+<p>Then we need to lookup the depth at either each vertex or each triangle of the mesh we generated in the first part.
+I will consider that the depth is constant over a triangle in order to make the maths easier later on (in particular integration).</p>
+
+<p>To lookup efficiently, I’m first building a spatial index of the depth polygons (I’m using a <a href="http://en.wikipedia.org/wiki/R-tree">R-tree</a>) and then query every mesh vertices.
+Here is how to do that in Perl:</p>
+
+<div class="highlight"><pre><code class="language-octave" data-lang="octave"><span class="lineno"> 1</span> <span class="c">#! /usr/bin/perl</span>
+<span class="lineno"> 2</span> <span class="n">use</span> <span class="n">warnings</span><span class="p">;</span>
+<span class="lineno"> 3</span> <span class="n">use</span> <span class="n">strict</span><span class="p">;</span>
+<span class="lineno"> 4</span> 
+<span class="lineno"> 5</span> <span class="n">use</span> <span class="n">Geo</span><span class="p">::</span><span class="n">ShapeFile</span><span class="p">;</span>
+<span class="lineno"> 6</span> <span class="n">use</span> <span class="n">Math</span><span class="p">::</span><span class="n">Trig</span> <span class="s">&#39;pi&#39;</span><span class="p">;</span>
+<span class="lineno"> 7</span> <span class="n">use</span> <span class="n">List</span><span class="p">::</span><span class="n">Util</span> <span class="s">&#39;min&#39;</span> <span class="p">,</span><span class="s">&#39;max&#39;</span><span class="p">;</span>
+<span class="lineno"> 8</span> 
+<span class="lineno"> 9</span> <span class="n">my</span> $<span class="n">shapefile</span> <span class="p">=</span> <span class="n">new</span> <span class="n">Geo</span><span class="p">::</span><span class="n">ShapeFile</span><span class="p">(</span><span class="s">&quot;depth-area-polygons-hydro-14k-122k&quot;</span><span class="p">);</span>
+<span class="lineno">10</span> $<span class="n">shapefile</span><span class="o">-&gt;</span><span class="n">build_spatial_index</span><span class="p">();</span>
+<span class="lineno">11</span> 
+<span class="lineno">12</span> <span class="n">my</span> $<span class="n">rtree</span> <span class="p">=</span> $<span class="n">shapefile</span><span class="o">-&gt;</span><span class="n">get_spatial_index</span><span class="p">();</span>
+<span class="lineno">13</span> 
+<span class="lineno">14</span> <span class="n">my</span> $<span class="n">d</span> <span class="p">=</span> <span class="mf">0.00955042966330666</span><span class="p">;</span>
+<span class="lineno">15</span> <span class="n">my</span> $<span class="n">xmin</span> <span class="p">=</span> <span class="mf">250.816739768889</span><span class="p">;</span>
+<span class="lineno">16</span> <span class="n">my</span> $<span class="n">ymin</span> <span class="p">=</span> <span class="mf">162.523014276134</span><span class="p">;</span>
+<span class="lineno">17</span> <span class="n">my</span> $<span class="n">earthRadius</span> <span class="p">=</span> <span class="mi">6378137</span><span class="p">;</span>
+<span class="lineno">18</span> 
+<span class="lineno">19</span> <span class="n">my</span> <span class="p">@</span><span class="n">vertices</span><span class="p">;</span>
+<span class="lineno">20</span> 
+<span class="lineno">21</span> <span class="n">open</span> <span class="n">my</span> $<span class="nb">mesh</span><span class="p">,</span> <span class="s">&quot;&lt; ../lyttelton.mesh&quot;</span><span class="p">;</span>
+<span class="lineno">22</span> <span class="k">while</span> <span class="p">(</span><span class="o">&lt;</span>$<span class="nb">mesh</span><span class="o">&gt;</span><span class="p">)</span> <span class="p">{</span>
+<span class="lineno">23</span> 	<span class="n">last</span> <span class="k">if</span> <span class="o">/</span><span class="n">Vertices</span><span class="o">/</span><span class="p">;</span>
+<span class="lineno">24</span> <span class="p">}</span>
+<span class="lineno">25</span> <span class="n">my</span> $<span class="n">nbVertex</span> <span class="p">=</span> <span class="o">&lt;</span>$<span class="nb">mesh</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="lineno">26</span> <span class="n">foreach</span> <span class="n">my</span> $<span class="n">vid</span> <span class="p">(</span><span class="mf">1.</span><span class="p">.</span>$<span class="n">nbVertex</span><span class="p">)</span> <span class="p">{</span>
+<span class="lineno">27</span> 	<span class="o">&lt;</span>$<span class="nb">mesh</span><span class="o">&gt;</span> <span class="p">=</span><span class="o">~</span> <span class="o">/</span>^<span class="p">([</span><span class="o">-+</span><span class="p">]</span>?<span class="p">[</span><span class="mi">0</span><span class="o">-</span><span class="mi">9</span><span class="p">]</span><span class="o">*\</span><span class="p">.</span>?<span class="p">[</span><span class="mi">0</span><span class="o">-</span><span class="mi">9</span><span class="p">]</span><span class="o">+</span><span class="p">(</span>?<span class="p">:[</span><span class="n">eE</span><span class="p">][</span><span class="o">-+</span><span class="p">]</span>?<span class="p">[</span><span class="mi">0</span><span class="o">-</span><span class="mi">9</span><span class="p">]</span><span class="o">+</span><span class="p">)</span>?<span class="p">)</span><span class="o">\</span><span class="n">s</span><span class="o">+</span><span class="p">([</span><span class="o">-+</span><span class="p">]</span>?<span class="p">[</span><span class="mi">0</span><span class="o">-</span><span class="mi">9</span><span class="p">]</span><span class="o">*\</span><span class="p">.</span>?<span class="p">[</span><span class="mi">0</span><span class="o">-</span><span class="mi">9</span><span class="p">]</span><span class="o">+</span><span class="p">(</span>?<span class="p">:[</span><span class="n">eE</span><span class="p">][</span><span class="o">-+</span><span class="p">]</span>?<span class="p">[</span><span class="mi">0</span><span class="o">-</span><span class="mi">9</span><span class="p">]</span><span class="o">+</span><span class="p">)</span>?<span class="p">)</span><span class="o">\</span><span class="n">s</span><span class="o">+\</span><span class="n">d</span><span class="o">+</span>$<span class="o">/</span><span class="p">;</span>
+<span class="lineno">28</span> 
+<span class="lineno">29</span> 	<span class="n">my</span> $<span class="n">x</span> <span class="p">=</span> $<span class="n">d</span> <span class="o">*</span> $<span class="mi">1</span> <span class="o">+</span> $<span class="n">xmin</span><span class="p">;</span>
+<span class="lineno">30</span> 	<span class="n">my</span> $<span class="n">y</span> <span class="p">=</span> $<span class="n">d</span> <span class="o">*</span> $<span class="mi">2</span> <span class="o">+</span> $<span class="n">ymin</span><span class="p">;</span>
+<span class="lineno">31</span>  		
+<span class="lineno">32</span> 	<span class="c"># From Google mercator convertion</span>
+<span class="lineno">33</span>     $<span class="n">x</span> <span class="p">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">pi</span> <span class="o">*</span> $<span class="n">earthRadius</span> <span class="o">*</span> <span class="p">(</span>$<span class="n">x</span> <span class="o">/</span> <span class="mi">256</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">);</span>
+<span class="lineno">34</span>     $<span class="n">y</span> <span class="p">=</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="nb">pi</span> <span class="o">*</span> $<span class="n">earthRadius</span> <span class="o">*</span> <span class="p">(</span>$<span class="n">y</span> <span class="o">/</span> <span class="mi">256</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">);</span>
+<span class="lineno">35</span> 
+<span class="lineno">36</span>     <span class="n">my</span> <span class="p">@</span><span class="n">shapes</span><span class="p">;</span>
+<span class="lineno">37</span>     $<span class="n">rtree</span><span class="o">-&gt;</span><span class="n">query_point</span><span class="p">((</span>$<span class="n">x</span><span class="p">,</span> $<span class="n">y</span><span class="p">),</span><span class="o">\</span><span class="p">@</span><span class="n">shapes</span><span class="p">);</span>
+<span class="lineno">38</span> 
+<span class="lineno">39</span> 	<span class="n">my</span> $<span class="n">z</span> <span class="p">=</span> <span class="mi">12</span><span class="p">;</span>
+<span class="lineno">40</span> 	<span class="n">foreach</span> <span class="n">my</span> $<span class="n">shape</span> <span class="p">(@</span><span class="n">shapes</span><span class="p">)</span> <span class="p">{</span>
+<span class="lineno">41</span> 		<span class="k">if</span> <span class="p">(</span>$<span class="n">shape</span><span class="o">-&gt;</span><span class="n">contains_point</span><span class="p">(</span><span class="n">Geo</span><span class="p">::</span><span class="n">ShapeFile</span><span class="p">::</span><span class="n">Point</span><span class="o">-&gt;</span><span class="n">new</span><span class="p">(</span><span class="n">X</span> <span class="p">=</span><span class="o">&gt;</span> $<span class="n">x</span><span class="p">,</span> <span class="n">Y</span> <span class="p">=</span><span class="o">&gt;</span> $<span class="n">y</span><span class="p">)))</span> <span class="p">{</span>
+<span class="lineno">42</span> 			<span class="n">my</span> <span class="c">%db = $shapefile-&gt;get_dbf_record($shape-&gt;shape_id());</span>
+<span class="lineno">43</span> 			$<span class="n">z</span> <span class="p">=</span> $<span class="n">db</span><span class="p">{</span><span class="s">&#39;DRVAL2&#39;</span><span class="p">};</span>
+<span class="lineno">44</span> 			<span class="n">last</span><span class="p">;</span>
+<span class="lineno">45</span> 		<span class="p">}</span>
+<span class="lineno">46</span> 	<span class="p">}</span>
+<span class="lineno">47</span> 	<span class="n">push</span> <span class="p">@</span><span class="n">vertices</span><span class="p">,</span> <span class="p">[</span>$<span class="n">x</span><span class="p">,</span> $<span class="n">y</span><span class="p">,</span> $<span class="n">z</span><span class="p">];</span>
+<span class="lineno">48</span> <span class="p">}</span>
+<span class="lineno">49</span> 
+<span class="lineno">50</span> <span class="k">while</span> <span class="p">(</span><span class="o">&lt;</span>$<span class="nb">mesh</span><span class="o">&gt;</span><span class="p">)</span> <span class="p">{</span>
+<span class="lineno">51</span> 	<span class="n">last</span> <span class="k">if</span> <span class="o">/</span><span class="n">Triangles</span><span class="o">/</span><span class="p">;</span>
+<span class="lineno">52</span> <span class="p">}</span>
+<span class="lineno">53</span> <span class="n">my</span> $<span class="n">nbTriangle</span> <span class="p">=</span> <span class="o">&lt;</span>$<span class="nb">mesh</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="lineno">54</span> <span class="n">foreach</span> <span class="n">my</span> $<span class="n">vid</span> <span class="p">(</span><span class="mf">1.</span><span class="p">.</span>$<span class="n">nbTriangle</span><span class="p">)</span> <span class="p">{</span>
+<span class="lineno">55</span> 	<span class="o">&lt;</span>$<span class="nb">mesh</span><span class="o">&gt;</span> <span class="p">=</span><span class="o">~</span> <span class="o">/</span>^<span class="p">(</span><span class="o">\</span><span class="n">d</span><span class="o">+</span><span class="p">)</span><span class="o">\</span><span class="n">s</span><span class="o">+</span><span class="p">(</span><span class="o">\</span><span class="n">d</span><span class="o">+</span><span class="p">)</span><span class="o">\</span><span class="n">s</span><span class="o">+</span><span class="p">(</span><span class="o">\</span><span class="n">d</span><span class="o">+</span><span class="p">)</span><span class="o">\</span><span class="n">s</span><span class="o">+\</span><span class="n">d</span><span class="o">+</span>$<span class="o">/</span><span class="p">;</span>
+<span class="lineno">56</span> 
+<span class="lineno">57</span> 	<span class="n">my</span> $<span class="n">v1</span> <span class="p">=</span> $<span class="mi">1</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+<span class="lineno">58</span> 	<span class="n">my</span> $<span class="n">v2</span> <span class="p">=</span> $<span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+<span class="lineno">59</span> 	<span class="n">my</span> $<span class="n">v3</span> <span class="p">=</span> $<span class="mi">3</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+<span class="lineno">60</span> 
+<span class="lineno">61</span> 	<span class="nb">print</span> <span class="nb">min</span><span class="p">(</span>$<span class="n">vertices</span><span class="p">[</span>$<span class="n">v1</span><span class="p">]</span><span class="o">-&gt;</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> $<span class="n">vertices</span><span class="p">[</span>$<span class="n">v2</span><span class="p">]</span><span class="o">-&gt;</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> $<span class="n">vertices</span><span class="p">[</span>$<span class="n">v3</span><span class="p">]</span><span class="o">-&gt;</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="p">.</span><span class="s">&quot;\n&quot;</span><span class="p">;</span>
+<span class="lineno">62</span> <span class="p">}</span></code></pre></div>
+
+<p>Ultimately we can display the depth (red is ~12m deep):</p>
+
+<iframe width="850" height="700" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="/assets/lyttelton/depth.html" style="border: 1px solid black">unwantedtext</iframe>
+<p><br /><small><a href="/assets/lyttelton/depth.html">View Larger Map</a></small></p>
+
+<p>As you can see there are some artifacts close to the border due to differences in the port geometry between the OSM and LINZ datasets. I will write a tool to fix that but it will be later.</p>
+
+<h3 id="boundary-conditions">Boundary conditions</h3>
+
+<h2 id="weak-formulation">Weak formulation</h2>
+
+<p>We follow the exact same steps as in the “FEM for dummies” section of the <a href="/numerical%20methods/2013/12/18/the-schur-complement-method-part-2">second Schur complement method post</a>, that is,
+start from the governing equation, write it in the sense of <a href="https://www.coursera.org/course/distributions">distribution</a> and apply the Green-Ostrogradsky theorem when needed. Again, I will skip all the functional analysis details regarding functional spaces. If you’re interested there is <a href="https://www.coursera.org/course/functionalanalysis">this wonderful course</a>.</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned} & & \nabla\cdot\left( c_p c_g \nabla \eta \right)\, +\, k^2 c_p c_g \eta = 0\\\\
+ & \Leftrightarrow & \int_\Omega \psi \left\lbrace \nabla\cdot\left( c_p c_g \nabla \eta \right)\, +\,  k^2 c_p c_g \eta \right\rbrace dxdy= 0, & \forall \psi \\\\
+ & \Leftrightarrow & \int_\Omega \psi \nabla\cdot\left( c_p c_g \nabla \eta \right)dxdy\, +\, k^2 \int_\Omega  c_p c_g \psi\eta dxdy= 0\\\\
+ & \Leftrightarrow &  \overbrace{ \int_\Omega c_p c_g \nabla \psi \nabla \eta dxdy \, +\, \oint_{\partial\Omega} c_p c_g \psi \frac{\partial \eta}{\partial n}d\sigma} \, +\, k^2 \int_\Omega  c_p c_g \psi\eta dxdy= 0\end{aligned} %]]></script>
+
+<p>Let <code>\((e_{i})_{1 \leq i \leq N}\)</code> a basis of the finite dimensional <code>\(\mathbb{C}\)</code>-vector space of the
+<code>\(\Omega(\mathbb{R} \times \mathbb{R}) \to \mathbb{C}\)</code> piecewise linear functions over our mesh <code>\((T_{i})_{1 \leq i \leq N}\)</code>. 
+Let’s remark that we can choose <code>\((e_{i})\)</code> to be real valued tent functions so that we’re not going to compute integrals over complex valued functions.</p>
+
+<h2 id="interior">Interior</h2>
+
+<p>The contribution of the first (interior) integral to the discrete operator being built is easy to compute as it has already been encountered in the <a href="/numerical%20methods/2013/12/18/the-schur-complement-method-part-2">second Schur complement method post</a>.</p>
+
+<p>Given <code>\(T_{i} = (q_{i_{1}},q_{i_{2}},q_{i_{3}})\)</code>, it goes:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned} & & \int_{T_{i}} c_p c_g \nabla e_{i_{j}} \nabla e_{i_{k}}  dxdy, & 1 \leq j,k \leq 3\\\\
+& = & c_p\restriction_{T_{i}} c_g\restriction_{T_{i}} \int_{T_{i}}  \nabla e_{i_{j}} \nabla e_{i_{k}}  dxdy\\\\
+& = & c_p\restriction_{T_{i}} c_g\restriction_{T_{i}} \frac{(q_{j^-} q_{j^+}) (q_{k^-} q_{k^+})}{4 |T_{i}|}\end{aligned} %]]></script>
+
+<p>The contribution of the third (interior) integral goes:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned} & & k^2 \int_{T_{i}}  c_p c_g e_{i_{j}}e_{i_{k}} dxdy, & 1 \leq j,k \leq 3\\\\
+& = & k^2 c_p\restriction_{T_{i}} c_g\restriction_{T_{i}} \int_{T_{i}} e_{i_{j}} e_{i_{k}} dxdy\\\\
+& = & k^2 c_p\restriction_{T_{i}} c_g\restriction_{T_{i}} |T_{i}| \frac{(e_{i_{j}} e_{i_{k}})\bigg|_{\frac{q_{i_{1}} + q_{i_{2}}}{2}} + (e_{i_{j}} e_{i_{k}})\bigg|_{\frac{q_{i_{2}} + q_{i_{3}}}{2}} + (e_{i_{j}} e_{i_{k}})\bigg|_{\frac{q_{i_{3}} + q_{i_{1}}}{2}}}{3}\\\\
+& = & \begin{cases} k^2 c_p\restriction_{T_{i}} c_g\restriction_{T_{i}} |T_{i}| \frac{0.5 * 0.5 + 0.5 * 0 + 0 * 0.5}{3} & = & k^2 c_p\restriction_{T_{i}} c_g\restriction_{T_{i}} \frac{|T_{i}|}{12} & \mbox{if } j \neq k\\\\
+k^2 c_p\restriction_{T_{i}} c_g\restriction_{T_{i}} |T_{i}| \frac{0.5 * 0.5 + 0.5 * 0.5 + 0 * 0}{3} & = & k^2 c_p\restriction_{T_{i}} c_g\restriction_{T_{i}} \frac{|T_{i}|}{6} & \mbox{if } j = k\end{cases}
+\end{aligned} %]]></script>
+
+<p>(We used a different 2D quadrature formula, exact for second degree polynomials.)</p>
+
+<h2 id="border">Border</h2>
+
+<p>In order to cope with the second (boundary) integral, we need to describe what’s happening near the boundary and give an expression of <code>\(\partial \eta / \partial n\restriction_{\Omega}\)</code>.
+Let <code>\(\Gamma_{C}\)</code> and <code>\(\Gamma_{O}\)</code> respectively the closed and open boundaries. Then:</p>
+
+<script type="math/tex; mode=display">\oint_{\partial\Omega} c_p c_g \psi \frac{\partial \eta}{\partial n}d\sigma = \int_{\Gamma_{C}} c_p c_g \psi \frac{\partial \eta}{\partial n}d\sigma + \int_{\Gamma_{O}} c_p c_g \psi \frac{\partial \eta}{\partial n}d\sigma</script>
+
+<h3 id="closed-boundary">Closed boundary</h3>
+
+<h4 id="expression-of-the-complex-amplitude-normal-derivative-along-the-closed-boundary">Expression of the complex amplitude normal derivative along the closed boundary</h4>
+
+<p>Close to <code>\(\Gamma_{C}\)</code>, we decompose the unknown complex amplitude <code>\(\eta\)</code> as the sum of two complex amplitudes:</p>
+
+<ul>
+  <li>the amplitude of an unknown incident wave;</li>
+  <li>the amplitude of its reflection</li>
+</ul>
+
+<p>Here is a sketch of what’s happening:</p>
+
+<p><img src="/assets/lyttelton/closed_boundary.jpg" alt="closed boundary sketch" /></p>
+
+<p>Ultimately we end up with the following expression:</p>
+
+<script type="math/tex; mode=display">\frac{\partial \eta}{\partial n}\restriction_{\Gamma_{C}} = -i \cdot k \cdot \cos(\theta)\frac{1-Re^{-i\rho}}{1 + Re^{-i\rho}} \cdot \eta\restriction_{\Gamma_{C}}</script>
+
+<p>with <code>\(\rho\)</code> a phase shift and <code>\(0 \leq R \leq 1\)</code> a reflection coefficient.</p>
+
+<p>We’re facing a <a href="https://www.youtube.com/watch?v=rn-wj4pRpIE">technical difficulty</a> as we don’t know <code>\(\theta\)</code>, the incoming wave angle.
+The only unknown we had so far was <code>\(\eta\)</code>, the complex amplitude of the free-surface elevation.
+We need to find a linear relationship between <code>\(\cos(\theta)\)</code> and <code>\(\eta\)</code>. Here is how to find one:</p>
+
+<ul>
+  <li>Start with <code>\(\cos(\theta) = \sqrt{1 - \sin^2(\theta)}\)</code></li>
+  <li>Use the first order <a href="http://en.wikipedia.org/wiki/Taylor_series">Maclaurin serie</a> of <code>\(\sqrt{1 - x}\)</code>:</li>
+</ul>
+
+<script type="math/tex; mode=display">\cos(\theta) \approx 1 - \frac{\sin^2(\theta)}{2}</script>
+
+<ul>
+  <li>Remark that</li>
+</ul>
+
+<script type="math/tex; mode=display">\frac{\partial^{2} \eta}{\partial s^{2}} = \frac{\partial}{\partial s}\left(-i \cdot k \cdot \sin(\theta) \cdot \eta\right) = -k^2 \sin^2(\theta) \cdot \eta</script>
+
+<ul>
+  <li>So that</li>
+</ul>
+
+<script type="math/tex; mode=display">\cos(\theta) \approx 1 + \frac{\partial^{2} \eta / \partial s^{2}}{2 k^{2} \cdot \eta}</script>
+
+<p>and … <a href="https://www.youtube.com/watch?v=8wr62Dvd32k">voila</a>:</p>
+
+<script type="math/tex; mode=display">\frac{\partial \eta}{\partial n}\restriction_{\Gamma_{C}} \approx -i \cdot \frac{1-Re^{-i\rho}}{1 + Re^{-i\rho}} \left( k \cdot \eta + \frac{\partial^{2} \eta / \partial s^{2}}{2 k}\right)\restriction_{\Gamma_{C}}</script>
+
+<p>Since I’m implementing a baby simulator, I say that the phase shift <code>\(\rho\)</code> is zero.</p>
+
+<h4 id="computing-the-closed-boundary-line-integral">Computing the closed boundary line integral</h4>
+
+<p>Now that we have an expression of <code>\(\partial \eta / \partial n\restriction_{\Gamma_{C}}\)</code> we can evaluate</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned} & & \int_{\Gamma_{C_{i}}} c_p c_g e_{i_{j}} \frac{\partial e_{i_{k}}}{\partial n}d\sigma, & 1 \leq j,k \leq 2\\\\
+ & = & -i \cdot c_p \restriction_{\Gamma_{C_{i}}} c_g \restriction_{\Gamma_{C_{i}}} \frac{1-R}{1 + R} \int_{\Gamma_{C_{i}}} e_{i_{j}} \left( k \cdot e_{i_{k}} + \frac{\partial^{2} e_{i_{k}} / \partial s^{2}}{2 k}\right)d\sigma\\\\
+  & = & -i \cdot c_p \restriction_{\Gamma_{C_{i}}} c_g \restriction_{\Gamma_{C_{i}}} \frac{1-R}{1 + R}\left( k \int_{\Gamma_{C_{i}}} e_{i_{j}} e_{i_{k}} d\sigma +  \overbrace{\frac{1}{2k} \left( \left[ e_{i_{j}} \frac{\partial e_{i_{k}}}{\partial s} \right]_{\Gamma_{C_{i}}} - \int_{\Gamma_{C_{i}}} \frac{\partial e_{i_{j}}}{\partial s} \frac{\partial e_{i_{k}}}{\partial s}d\sigma\right)} \right)\end{aligned} %]]></script>
+
+<p>Using <a href="http://en.wikipedia.org/wiki/Simpson's_rule">Simpson’s rule</a> we get</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned}& & \int_{\Gamma_{C_{i}}} e_{i_{j}} e_{i_{k}} d\sigma\\\\
+ & = &\frac{|\Gamma_{C_{i}}|}{6}\left((e_{i_{j}} e_{i_{k}})\bigg|_{q_{i_{1}}} + 4(e_{i_{j}} e_{i_{k}})\bigg|_{\frac{q_{i_{1}} + q_{i_{2}}}{2}}  + (e_{i_{j}} e_{i_{k}})\bigg|_{q_{i_{2}}}\right)\\\\
+ & = &\begin{cases}\frac{|\Gamma_{C_{i}}|}{6}\left(1*0 + 4*0.5*0.5 + 0*1\right) & = & \frac{|\Gamma_{C_{i}}|}{6}, & \mbox{if } j \neq k\\\\
+\frac{|\Gamma_{C_{i}}|}{6}\left(1*1 + 4*0.5*0.5 + 0*0\right) & = & \frac{|\Gamma_{C_{i}}|}{3}, & \mbox{if } j = k\\\\
+\end{cases}\end{aligned} %]]></script>
+
+<p>Remembering that <code>\(\nabla e_{i_{j} }, 1 \leq j \leq 2\)</code> is constant along <code>\(\Gamma_{C_{i}}\)</code></p>
+
+<script type="math/tex; mode=display">\frac{\partial e_{i_{j} } }{\partial s} =
+ \frac{e_{i_{j} }(q_{i_{2} }) - e_{i_{j} }(q_{i_{1} })}{|\Gamma_{C_{i} }|} = \begin{cases} \frac{0 - 1}{|\Gamma_{C_{i}}|} = -|\Gamma_{C_{i}}|^{-1}, \mbox{if } j = 1\\\\
+ \frac{1 - 0}{|\Gamma_{C_{i}}|} = |\Gamma_{C_{i}}|^{-1}, \mbox{if } j = 2\\\\
+ \end{cases}</script>
+
+<p>So that we can calculate</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned}& &\int_{\Gamma_{C_{i}}} \frac{\partial e_{i_{j}}}{\partial s} \frac{\partial e_{i_{k}}}{\partial s}d\sigma\\\\
+ & = &  \frac{\partial e_{i_{j}}}{\partial s} \frac{\partial e_{i_{k}}}{\partial s} \restriction_{\Gamma_{C_{i}}} \int_{\Gamma_{C_{i}}}d\sigma\\\\
+ & = &  \frac{\partial e_{i_{j}}}{\partial s} \frac{\partial e_{i_{k}}}{\partial s} \restriction_{\Gamma_{C_{i}}} |\Gamma_{C_{i}}|\\\\
+ & = & \begin{cases}-|\Gamma_{C_{i}}|^{-1} \cdot |\Gamma_{C_{i}}|^{-1} \cdot |\Gamma_{C_{i}}| & = & - |\Gamma_{C_{i}}|^{-1}, & \mbox{if } j \neq k\\\\
+ |\Gamma_{C_{i}}|^{-1} \cdot |\Gamma_{C_{i}}|^{-1} \cdot |\Gamma_{C_{i}}| & = &  |\Gamma_{C_{i}}|^{-1}, & \mbox{if } j = k\\\\
+\end{cases}\end{aligned} %]]></script>
+
+<p>We only get a contribution from <code>\( \left[ e_{i_{j}} \frac{\partial e_{i_{k}}}{\partial s} \right]_{\Gamma_{C_{i}}}\)</code> at each end of the closed boundary so that I’m going to neglect it.</p>
+
+<h3 id="open-boundary">Open boundary</h3>
+
+<h4 id="expression-of-the-complex-amplitude-normal-derivative-along-the-open-boundary">Expression of the complex amplitude normal derivative along the open boundary</h4>
+
+<p>Close to <code>\(\Gamma_{O}\)</code>, we decompose the unknown complex amplitude <code>\(\eta\)</code> as the sum of two complex amplitudes:</p>
+
+<ul>
+  <li>the amplitude <code>\(\eta_{in}\)</code> of a wave crossing <code>\(\Gamma_{O}\)</code> towards the shore;</li>
+  <li>the amplitude <code>\(\eta_{out}\)</code> of a wave crossing <code>\(\Gamma_{O}\)</code> away from the shore</li>
+</ul>
+
+<p>Here is the sketch:</p>
+
+<p><img src="/assets/lyttelton/open_boundary.jpg" alt="open boundary sketch" /></p>
+
+<p><code>\(\eta_{in}\)</code> is given, so that computing it’s normal derivative along the open boundary is direct:</p>
+
+<script type="math/tex; mode=display">\frac{\partial \eta_{in}}{\partial n} = -i \cdot  n \cdot k_{in} \cdot \eta_{in}</script>
+
+<p>We don’t know <code>\(\theta\)</code>, the outgoing wave angle but we can reuse the approximation crafted in the previous section with <code>\(R = 0\)</code> (no reflection) and then write back <code>\(\eta_{out}\)</code> as the difference between <code>\(\eta\)</code> and <code>\(\eta_{in}\)</code>:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned}\frac{\partial \eta_{out}}{\partial n}\restriction_{\Gamma_{O}} & \approx & -i \cdot \left( k \cdot \eta_{out} + \frac{\partial^{2} \eta_{out} / \partial s^{2}}{2 k}\right)\restriction_{\Gamma_{O}}\\\\
+ & \approx & -i \cdot \left( k \cdot \left( \eta - \eta_{in} \right) + \frac{1}{2 k} \cdot \left( \frac{\partial^{2} \eta}{\partial s^{2}} - \frac{\partial^{2} \eta_{in}}{\partial s^{2}} \right)\right)\restriction_{\Gamma_{O}} \end{aligned} %]]></script>
+
+<p>We end up with:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned}\frac{\partial \eta}{\partial n}\restriction_{\Gamma_{O}} & = & -i \cdot \left( k \cdot \eta + \frac{\partial^{2} \eta / \partial s^{2}}{2 k}\right)\restriction_{\Gamma_{0}}\\\\
+ & + & i \cdot \left( \left(k - n \cdot k_{in}\right) \cdot \eta_{in} + \frac{\partial^{2} \eta_{in} / \partial s^{2}}{2 k}\right)\restriction_{\Gamma_{0}}\\\\
+\end{aligned} %]]></script>
+
+<p>The first term contributes to the left hand side of the linear system. The second term, involving the incoming prescribed wave, contributes to the right hand side of the linear system.</p>
+
+<h4 id="computing-the-open-boundary-line-integral">Computing the open boundary line integral</h4>
+
+<p>Since the first term of the normal derivative expression along the open boundary differs from the “closed” one by a <code>\(\frac{1-R}{1 + R}\)</code> prefactor, I will only cover the computation of the second term, the contribution to the right hand side of the linear system:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned} & & \int_{\Gamma_{O_{i}}} c_p c_g e_{i_{j}} \cdot i \cdot \left( \left(k - n \cdot k_{in}\right) \cdot \eta_{in} + \frac{\partial^{2} \eta_{in} / \partial s^{2}}{2 k}\right) d\sigma, & 1 \leq j\leq 2\\\\
+ & = & i \cdot c_p \restriction_{\Gamma_{O_{i}}} c_g \restriction_{\Gamma_{O_{i}}} \cdot \left( \left(k - n \cdot k_{in}\right) \int_{\Gamma_{O_{i}}} e_{i_{j}} \cdot \eta_{in} d\sigma + \overbrace{\frac{1}{2k} \left( \left[ e_{i_{j}} \frac{\partial \eta_{in}}{\partial s} \right]_{\Gamma_{O_{i}}} - \int_{\Gamma_{O_{i}}} \frac{\partial e_{i_{j}}}{\partial s} \frac{\partial \eta_{in}}{\partial s}d\sigma\right)}\right)\\\\ 
+\end{aligned} %]]></script>
+
+<p>Again, using Simpson’s rule we get</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned} & & \int_{\Gamma_{O_{i}}} e_{i_{j}} \cdot \eta_{in} d\sigma\\\\
+ & = &\frac{|\Gamma_{O_{i}}|}{6}\left((e_{i_{j}} \eta_{in})\bigg|_{q_{i_{1}}} + 4(e_{i_{j}} \eta_{in})\bigg|_{\frac{q_{i_{1}} + q_{i_{2}}}{2}}  + (e_{i_{j}} \eta_{in})\bigg|_{q_{i_{2}}}\right)\\\\
+ & = &\begin{cases}\frac{|\Gamma_{O_{i}}|}{6}\left(1 * \eta_{in}(q_{i_{1}}) + 4*0.5*0.5*\left(\eta_{in}(q_{i_{1}}) + \eta_{in}(q_{i_{2}})\right) + 0 * \eta_{in}(q_{i_{2}})\right) & = & \frac{|\Gamma_{O_{i}}|}{6} \cdot \left( 2 * \eta_{in}(q_{i_{1}}) + \eta_{in}(q_{i_{2}}) \right), & \mbox{if } j = 1\\\\
+ \frac{|\Gamma_{O_{i}}|}{6}\left(0 * \eta_{in}(q_{i_{1}}) + 4*0.5*0.5*\left(\eta_{in}(q_{i_{1}}) + \eta_{in}(q_{i_{2}})\right) + 1 * \eta_{in}(q_{i_{2}})\right) & = & \frac{|\Gamma_{O_{i}}|}{6} \cdot \left( \eta_{in}(q_{i_{1}}) + 2 * \eta_{in}(q_{i_{2}})  \right), & \mbox{if } j = 2\\\\
+\end{cases}\end{aligned} %]]></script>
+
+<p>And finally,</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned} & & \int_{\Gamma_{O_{i}}} \frac{\partial e_{i_{j}}}{\partial s} \frac{\partial \eta_{in}}{\partial s}d\sigma\\\\
+ & = & \begin{cases} \int_{\Gamma_{O_{i}}} -|\Gamma_{O_{i}}|^{-1} \frac{\eta_{in}(q_{i_{2}}) -  \eta_{in}(q_{i_{1}})}{|\Gamma_{O_{i}}|} d\sigma = -\frac{\eta_{in}(q_{i_{2}}) -  \eta_{in}(q_{i_{1}})}{|\Gamma_{O_{i}}|}, & \mbox{if } j = 1\\\\
+ \int_{\Gamma_{O_{i}}} |\Gamma_{O_{i}}|^{-1} \frac{\eta_{in}(q_{i_{2}}) -  \eta_{in}(q_{i_{1}})}{|\Gamma_{O_{i}}|} d\sigma = \frac{\eta_{in}(q_{i_{2}}) -  \eta_{in}(q_{i_{1}})}{|\Gamma_{O_{i}}|}, & \mbox{if } j = 2\\\\
+\end{cases}\end{aligned} %]]></script>
+
+<p>Again, we neglect the <code>\(\left[ e_{i_{j}} \frac{\partial \eta_{in}}{\partial s} \right]_{\Gamma_{O_{i}}}\)</code> term : there only is a contribution at both ends of the open boundary.</p>
+
+<h3 id="conclusion">Conclusion</h3>
+
+<p>We’ve been through the tedious process of computing by hand all we needed to built a linear system and solve the PDE using the distributed hybrid CPU/GPU solver introduced in
+the previous post. Note that this time we cope with complex numbers so that the code had to be modified a little bit.</p>
+
+<p>The assembly code for the mild-slope equation can be found in:</p>
+
+<ul>
+  <li><a href="https://github.com/ssrb/ssrb.github.com/blob/master/assets/lyttelton/BabyHares/MildSlopeEquation.cpp">MildSlopeEquation.cpp</a></li>
+  <li><a href="https://github.com/ssrb/ssrb.github.com/blob/master/assets/lyttelton/BabyHares/GpuAssembly.cu">GpuAssembly.cu</a></li>
+</ul>
+
+<h2 id="group-and-phase-speed-dispersion-relation">Group and phase speed, dispersion relation.</h2>
+
+<p>Ultimately, we will give an expression of <code>\(c_p\)</code> the <a href="http://en.wikipedia.org/wiki/Phase_speed">phase</a> speed,<code>\(c_g\)</code> the <a href="http://en.wikipedia.org/wiki/Group_speed">group</a> speed as well as the product <code>\(c_p c_g\)</code> which appears everywhere in the previously calculated expressions.</p>
+
+<p>These expressions depend on the depth <code>\(h\)</code> and we will finaly use the bathymetry information we gathered in the first part.</p>
+
+<p><a href="http://en.wikipedia.org/wiki/Mild-slope_equation">The Wikipedia article</a> tells us:</p>
+
+<blockquote>
+  <p>The phase and group speed depend on the dispersion relation, and are derived from Airy wave theory as:</p>
+
+  <script type="math/tex; mode=display">% <![CDATA[
+\begin{align*}
+    \omega^2 &=\, g\, k\, \tanh\, (kh), \\
+    c_p &=\, \frac{\omega}{k} \quad \text{and} \\
+    c_g &=\, \frac12\, c_p\, \left[ 1\, +\, kh\, \frac{1 - \tanh^2 (kh)}{\tanh\, (kh)} \right]
+    \end{align*} %]]></script>
+
+  <p>where
+<code>\(g\)</code> is Earth’s gravity and
+<code>\(\tanh\)</code> is the hyperbolic tangent.</p>
+</blockquote>
+
+<p>It comes</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned}\\\\
+ c_p c_g  & = & \frac12 c_p^2 \left[ 1 + kh \frac{1 - \tanh^2 (kh)}{\tanh (kh)} \right]\\\\
+ & = & \frac{g\ \tanh (kh)}{2k} \left[ 1 + kh \frac{1 - \tanh^2 (kh)}{\tanh (kh)} \right]\\\\
+\end{aligned} %]]></script>
+
+<h2 id="conclusion-and-references">Conclusion and references</h2>
+
+<p>Here is the solution to the equation in the Lyttleton harbor for the following input:</p>
+
+<ul>
+  <li>3m wave length</li>
+  <li>45 degrees</li>
+  <li>harbor reflection coeff 0.9</li>
+</ul>
+
+<iframe width="850" height="700" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="/assets/lyttelton/mapsol.html" style="border: 1px solid black">unwantedtext</iframe>
+<p><br /><small><a href="/assets/lyttelton/mapsol.html">View Larger Map</a></small></p>
+
+<p>My main references were:</p>
+
+<ul>
+  <li><a href="http://en.wikipedia.org/wiki/Main_Page">Wikipedia</a></li>
+  <li><a href="http://www.worldscientific.com/worldscibooks/10.1142/1241">Advanced Series on Ocean Engineering volume 13: Water Wave Propagation Over Uneven Bottoms</a>, By Maarten W Dingemans</li>
+  <li><a href="http://ta.twi.tudelft.nl/users/vuik/numanal/sande_afst.pdf">Acceleration of the 2D Helmholtz model HARES</a>, By Gemma van de Sande</li>
+  <li><a href="http://www.linz.govt.nz">The Land Information New Zealand website</a></li>
+</ul>
+
+<p>The next time I will modify <a href="http://www.blender.org">Blender</a> to use the solutions of my wave simulator in an attempt to render realistic coastal scenes.
+The workflow should be similar to the <a href="http://wiki.blender.org/index.php/Doc:2.6/Manual/Modifiers/Simulate/Ocean">Ocean Modifier</a> one.</p>
+
+
+    <hr>
+    <div class="pagination btn-group">
+      
+        <a class="btn prev" href="/numerical%20methods/2014/03/19/the-lyttelton-port-wave-penetration-project-part-2" title="The Lyttelton port wave penetration project: Part 2">&larr; Previous</a>
+      
+        <a class="btn" href="/archive.html">Archive</a>
+      
+        <a class="btn next" href="/gaming/2014/05/11/recycling-old-video-game-controllers" title="Recycling old video game controllers">Next &rarr;</a>
+      
+    </div>
+    <hr>
+    
+
+
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_developer = 1;
+    var disqus_shortname = 'ssrb'; // required: replace example with your forum shortname
+    
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+
+
+  </div>
+  
+  <div class="span4">
+    <section>
+      <h4>Published</h4>
+      <div class="date"><span>12 April 2014</span></div>
+    </section>
+    
+      <section>
+        <h4>Category</h4>
+        <span class="category">
+          Numerical methods
+        </span>
+      </section>
+         
+    
+      <section>
+        <h4>Tags</h4>
+        <ul class="tag_box">
+          
+          
+
+
+  
+     
+    	<li><a href="/tags.html#mathematics-ref">mathematics <span>7</span></a></li>
+     
+    	<li><a href="/tags.html#parallel computing-ref">parallel computing <span>7</span></a></li>
+     
+    	<li><a href="/tags.html#numerical hydraulics-ref">numerical hydraulics <span>4</span></a></li>
+    
+  
+
+
+
+        </ul>
+      </section>
+             
+  </div>
+</div>
+
+
+      </div>
+
+      <footer>
+        <p>&copy; 2018 Sébastien Bigot
+          with help from <a href="http://jekyllbootstrap.com" target="_blank" title="The Definitive Jekyll Blogging Framework">Jekyll Bootstrap</a>
+          and <a href="http://github.com/dhulihan/hooligan" target="_blank">The Hooligan Theme</a>
+        </p>
+      </footer>
+    </div> <!-- /container -->
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="/assets/themes/hooligan/js/jquery.min.js"><\/script>')</script>
+    <script src="/assets/themes/hooligan/bootstrap/js/bootstrap.min.js"></script>
+    
+    
+    
+  </body>
+</html>
+
