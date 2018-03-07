@@ -58,7 +58,7 @@ To cool down the Phi inside an ATX desktop case I came up with a custom 8mm fan 
 </div>
 
 <video width="640" height="480" controls="controls">
-<source src="https://dl.dropboxusercontent.com/u/33001193/phifantimelapse3.mp4?raw=1" type="video/mp4" />
+<source src="https://www.dropbox.com/s/b9pl26lpjuxc63z/phifantimelapse3.mp4?raw=1" type="video/mp4" />
 </video>
 
 Here are the files if your interested in customizing or printing your own:
